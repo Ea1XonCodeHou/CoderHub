@@ -1,0 +1,749 @@
+<template>
+  <div class="home-container">
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+      <div class="nav-content">
+        <!-- Logo区域 -->
+        <div class="nav-logo">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="8" fill="url(#gradient)" />
+            <path d="M12 14L20 10L28 14V26L20 30L12 26V14Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+                <stop offset="0%" stop-color="#2c3e50" />
+                <stop offset="100%" stop-color="#34495e" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="logo-text">CoderHub</span>
+        </div>
+
+        <!-- 导航菜单 -->
+        <ul class="nav-menu">
+          <li :class="{ 'active': activeTab === 'home' }" @click="activeTab = 'home'">
+            <a href="#">博客首页</a>
+          </li>
+          <li :class="{ 'active': activeTab === 'tutorial' }" @click="activeTab = 'tutorial'">
+            <a href="#">教程</a>
+          </li>
+          <li :class="{ 'active': activeTab === 'project' }" @click="activeTab = 'project'">
+            <a href="#">项目</a>
+          </li>
+          <li :class="{ 'active': activeTab === 'ai' }" @click="activeTab = 'ai'">
+            <a href="#">智能体</a>
+          </li>
+        </ul>
+
+        <!-- 右侧操作区 -->
+        <div class="nav-right">
+          <button class="btn-write">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18.5 2.50023C18.8978 2.1024 19.4374 1.87891 20 1.87891C20.5626 1.87891 21.1022 2.1024 21.5 2.50023C21.8978 2.89805 22.1213 3.43762 22.1213 4.00023C22.1213 4.56284 21.8978 5.1024 21.5 5.50023L12 15.0002L8 16.0002L9 12.0002L18.5 2.50023Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            写文章
+          </button>
+
+          <!-- 用户头像 -->
+          <div class="user-avatar" @click="toggleUserMenu">
+            <img :src="userInfo.avatar" alt="avatar" />
+            <div v-if="showUserMenu" class="user-menu">
+              <a href="#" class="menu-item">个人主页</a>
+              <a href="#" class="menu-item">我的文章</a>
+              <a href="#" class="menu-item">设置</a>
+              <a href="#" class="menu-item" @click="handleLogout">退出登录</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 主体内容区 -->
+    <div class="main-content">
+      <!-- 左侧分类导航 -->
+      <aside class="sidebar-left">
+        <div class="category-list">
+          <div 
+            v-for="category in categories" 
+            :key="category.id"
+            :class="['category-item', { 'active': selectedCategory === category.id }]"
+            @click="selectedCategory = category.id"
+          >
+            <svg class="category-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 7H21M3 12H21M3 17H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>{{ category.name }}</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 中间文章列表 -->
+      <main class="article-list">
+        <div class="list-header">
+          <h2>推荐文章</h2>
+          <div class="sort-tabs">
+            <span :class="{ 'active': sortType === 'hot' }" @click="sortType = 'hot'">热门</span>
+            <span :class="{ 'active': sortType === 'latest' }" @click="sortType = 'latest'">最新</span>
+          </div>
+        </div>
+
+        <!-- 文章卡片 -->
+        <div v-for="article in articles" :key="article.id" class="article-card">
+          <div class="article-header">
+            <img :src="article.author.avatar" class="author-avatar" alt="avatar" />
+            <div class="author-info">
+              <div class="author-name">{{ article.author.name }}</div>
+              <div class="article-meta">
+                <span>{{ article.createTime }}</span>
+                <span class="dot">·</span>
+                <span>{{ article.readCount }} 阅读</span>
+              </div>
+            </div>
+          </div>
+
+          <h3 class="article-title">{{ article.title }}</h3>
+          <p class="article-summary">{{ article.summary }}</p>
+
+          <div class="article-tags">
+            <span v-for="tag in article.tags" :key="tag" class="tag">{{ tag }}</span>
+          </div>
+
+          <div class="article-footer">
+            <div class="action-group">
+              <button class="action-btn">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M7 22V11M2 13V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H17.28C17.7623 22.0055 18.2304 21.8364 18.5979 21.524C18.9654 21.2116 19.2077 20.7769 19.28 20.3L20.66 11.3C20.7035 11.0134 20.6842 10.7207 20.6033 10.4423C20.5225 10.1638 20.3821 9.90629 20.1919 9.68751C20.0016 9.46873 19.7661 9.29393 19.5016 9.17522C19.2371 9.0565 18.9499 8.99672 18.66 9H14V4C14 3.46957 13.7893 2.96086 13.4142 2.58579C13.0391 2.21071 12.5304 2 12 2L7 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                {{ article.likeCount }}
+              </button>
+              <button class="action-btn">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                {{ article.commentCount }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- 右侧边栏 -->
+      <aside class="sidebar-right">
+        <!-- 个人信息卡片 -->
+        <div class="info-card">
+          <div class="user-profile">
+            <img :src="userInfo.avatar" alt="avatar" class="profile-avatar" />
+            <h3 class="profile-name">{{ userInfo.username }}</h3>
+            <p class="profile-level">{{ levelText }}</p>
+          </div>
+          <div class="stats">
+            <div class="stat-item">
+              <span class="stat-value">0</span>
+              <span class="stat-label">文章</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">0</span>
+              <span class="stat-label">关注</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value">0</span>
+              <span class="stat-label">粉丝</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 热门标签 -->
+        <div class="hot-tags">
+          <h4>热门标签</h4>
+          <div class="tags-container">
+            <span v-for="tag in hotTags" :key="tag" class="hot-tag">{{ tag }}</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const activeTab = ref('home')
+const selectedCategory = ref('all')
+const sortType = ref('hot')
+const showUserMenu = ref(false)
+const userInfo = ref({})
+
+// 分类列表（Mock数据）
+const categories = ref([
+  { id: 'all', name: '全部' },
+  { id: 'java', name: 'Java' },
+  { id: 'python', name: 'Python' },
+  { id: 'frontend', name: '前端' },
+  { id: 'algorithm', name: '算法' },
+  { id: 'database', name: '数据库' },
+  { id: 'architecture', name: '架构' },
+])
+
+// 文章列表（Mock数据）
+const articles = ref([
+  {
+    id: 1,
+    title: 'Spring Boot 3.0 实战教程：从入门到精通',
+    summary: '本文将详细介绍Spring Boot 3.0的核心特性和最佳实践，包括新特性、性能优化、微服务架构等内容...',
+    author: {
+      name: 'CoderHub',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
+    },
+    createTime: '2小时前',
+    readCount: 1234,
+    likeCount: 56,
+    commentCount: 23,
+    tags: ['Spring Boot', 'Java', '后端']
+  },
+  {
+    id: 2,
+    title: 'Vue 3 + TypeScript 项目最佳实践',
+    summary: '分享Vue 3结合TypeScript开发的最佳实践，包括项目结构、状态管理、性能优化等...',
+    author: {
+      name: '前端小白',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka'
+    },
+    createTime: '5小时前',
+    readCount: 890,
+    likeCount: 42,
+    commentCount: 18,
+    tags: ['Vue', 'TypeScript', '前端']
+  },
+  {
+    id: 3,
+    title: '深入理解MySQL索引优化',
+    summary: 'MySQL索引是数据库性能优化的关键，本文深入讲解索引的原理、类型、优化策略...',
+    author: {
+      name: '数据库专家',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob'
+    },
+    createTime: '1天前',
+    readCount: 2345,
+    likeCount: 98,
+    commentCount: 45,
+    tags: ['MySQL', '数据库', '性能优化']
+  }
+])
+
+// 热门标签（Mock数据）
+const hotTags = ref([
+  'Java', 'Python', 'Vue', 'React', 'Spring Boot', 
+  'MySQL', 'Redis', '算法', '面试', '架构设计'
+])
+
+// 用户等级文本
+const levelText = computed(() => {
+  const level = userInfo.value.userLevel
+  if (level === 0) return '普通会员'
+  if (level === 1) return 'VIP会员'
+  if (level === 2) return 'SVIP会员'
+  return '普通会员'
+})
+
+// 切换用户菜单
+const toggleUserMenu = () => {
+  showUserMenu.value = !showUserMenu.value
+}
+
+// 退出登录
+const handleLogout = () => {
+  localStorage.removeItem('token')
+  localStorage.removeItem('userInfo')
+  router.push('/')
+}
+
+// 页面加载时获取用户信息
+onMounted(() => {
+  const storedUserInfo = localStorage.getItem('userInfo')
+  if (storedUserInfo) {
+    userInfo.value = JSON.parse(storedUserInfo)
+  } else {
+    router.push('/')
+  }
+})
+</script>
+
+<style scoped>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.home-container {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+/* 导航栏 */
+.navbar {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.nav-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.nav-logo svg {
+  width: 36px;
+  height: 36px;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 32px;
+  list-style: none;
+  margin: 0 auto;
+}
+
+.nav-menu li {
+  position: relative;
+}
+
+.nav-menu li a {
+  display: block;
+  padding: 8px 0;
+  font-size: 15px;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.nav-menu li.active a {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.nav-menu li.active::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #2c3e50;
+}
+
+.nav-menu li:hover a {
+  color: #2c3e50;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.btn-write {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #2c3e50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-write svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-write:hover {
+  background: #34495e;
+  transform: translateY(-1px);
+}
+
+.user-avatar {
+  position: relative;
+  cursor: pointer;
+}
+
+.user-avatar img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+}
+
+.user-menu {
+  position: absolute;
+  top: 48px;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px 0;
+  min-width: 150px;
+}
+
+.menu-item {
+  display: block;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #2c3e50;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.menu-item:hover {
+  background: #f5f7fa;
+}
+
+/* 主体内容 */
+.main-content {
+  max-width: 1400px;
+  margin: 24px auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 200px 1fr 280px;
+  gap: 24px;
+}
+
+/* 左侧边栏 */
+.sidebar-left {
+  position: sticky;
+  top: 88px;
+  height: fit-content;
+}
+
+.category-list {
+  background: white;
+  border-radius: 12px;
+  padding: 12px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.category-item:hover {
+  background: #f5f7fa;
+  color: #2c3e50;
+}
+
+.category-item.active {
+  background: #f5f7fa;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.category-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* 文章列表 */
+.article-list {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.list-header h2 {
+  font-size: 20px;
+  color: #2c3e50;
+}
+
+.sort-tabs {
+  display: flex;
+  gap: 16px;
+}
+
+.sort-tabs span {
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.sort-tabs span.active {
+  background: #2c3e50;
+  color: white;
+}
+
+.sort-tabs span:hover {
+  color: #2c3e50;
+}
+
+/* 文章卡片 */
+.article-card {
+  padding: 20px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.article-card:last-child {
+  border-bottom: none;
+}
+
+.article-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.author-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.author-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.article-meta {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.dot {
+  margin: 0 6px;
+}
+
+.article-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.article-title:hover {
+  color: #34495e;
+}
+
+.article-summary {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.article-tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tag {
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #64748b;
+  background: #f5f7fa;
+  border-radius: 4px;
+}
+
+.article-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.action-group {
+  display: flex;
+  gap: 16px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #64748b;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.action-btn:hover {
+  color: #2c3e50;
+  border-color: #2c3e50;
+}
+
+/* 右侧边栏 */
+.sidebar-right {
+  position: sticky;
+  top: 88px;
+  height: fit-content;
+}
+
+.info-card,
+.hot-tags {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
+}
+
+.user-profile {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin-bottom: 12px;
+}
+
+.profile-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 4px;
+}
+
+.profile-level {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.hot-tags h4 {
+  font-size: 15px;
+  color: #2c3e50;
+  margin-bottom: 16px;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hot-tag {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: #64748b;
+  background: #f5f7fa;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hot-tag:hover {
+  color: #2c3e50;
+  background: #e2e8f0;
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+  .main-content {
+    grid-template-columns: 1fr 280px;
+  }
+  
+  .sidebar-left {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .sidebar-right {
+    display: none;
+  }
+  
+  .nav-menu {
+    display: none;
+  }
+}
+</style>
+
