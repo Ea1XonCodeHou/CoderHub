@@ -48,10 +48,10 @@
           <div class="user-avatar" @click="toggleUserMenu">
             <img :src="userInfo.avatar" alt="avatar" />
             <div v-if="showUserMenu" class="user-menu">
-              <a href="#" class="menu-item">个人主页</a>
+              <a href="#" class="menu-item" @click.prevent="goToProfile">个人主页</a>
               <a href="#" class="menu-item">我的文章</a>
               <a href="#" class="menu-item">设置</a>
-              <a href="#" class="menu-item" @click="handleLogout">退出登录</a>
+              <a href="#" class="menu-item" @click.prevent="handleLogout">退出登录</a>
             </div>
           </div>
         </div>
@@ -63,17 +63,66 @@
       <!-- 左侧分类导航 -->
       <aside class="sidebar-left">
         <div class="category-list">
+          <!-- 全部分类 -->
           <div 
-            v-for="category in categories" 
-            :key="category.id"
-            :class="['category-item', { 'active': selectedCategory === category.id }]"
-            @click="selectedCategory = category.id"
+            :class="['category-item', { 'active': selectedCategory === 'all' }]"
+            @click="selectedCategory = 'all'"
           >
             <svg class="category-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M3 7H21M3 12H21M3 17H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
-            <span>{{ category.name }}</span>
+            <span>全部</span>
           </div>
+          
+          <!-- 一级分类 -->
+          <template v-for="rootCategory in rootCategories" :key="rootCategory.id">
+            <div 
+              :class="['category-item', 'root-category', { 'active': selectedCategory === rootCategory.id }]"
+              @click="handleCategoryClick(rootCategory.id)"
+            >
+              <!-- 展开/收起按钮 -->
+              <svg 
+                v-if="hasSubCategories(rootCategory.id)"
+                @click.stop="toggleExpand(rootCategory.id)" 
+                class="expand-icon" 
+                :class="{ 'expanded': isExpanded(rootCategory.id) }"
+                viewBox="0 0 24 24" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              
+              <!-- 分类图标 -->
+              <svg class="category-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 3H5C3.89543 3 3 3.89543 3 5V9C3 10.1046 3.89543 11 5 11H9C10.1046 11 11 10.1046 11 9V5C11 3.89543 10.1046 3 9 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19 3H15C13.8954 3 13 3.89543 13 5V9C13 10.1046 13.8954 11 15 11H19C20.1046 11 21 10.1046 21 9V5C21 3.89543 20.1046 3 19 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 13H5C3.89543 13 3 13.8954 3 15V19C3 20.1046 3.89543 21 5 21H9C10.1046 21 11 20.1046 11 19V15C11 13.8954 10.1046 13 9 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19 13H15C13.8954 13 13 13.8954 13 15V19C13 20.1046 13.8954 21 15 21H19C20.1046 21 21 20.1046 21 19V15C21 13.8954 20.1046 13 19 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              
+              <span>{{ rootCategory.categoryName }}</span>
+              <span class="article-count">{{ rootCategory.articleCount }}</span>
+            </div>
+            
+            <!-- 二级分类 -->
+            <div 
+              v-if="isExpanded(rootCategory.id)"
+              v-for="subCategory in getSubCategories(rootCategory.id)" 
+              :key="subCategory.id"
+              :class="['category-item', 'sub-category', { 'active': selectedCategory === subCategory.id }]"
+              @click.stop="handleCategoryClick(subCategory.id)"
+            >
+              <svg class="category-icon sub-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 4H6C5.46957 4 4.96086 4.21071 4.58579 4.58579C4.21071 4.96086 4 5.46957 4 6V8C4 8.53043 4.21071 9.03914 4.58579 9.41421C4.96086 9.78929 5.46957 10 6 10H8C8.53043 10 9.03914 9.78929 9.41421 9.41421C9.78929 9.03914 10 8.53043 10 8V6C10 5.46957 9.78929 4.96086 9.41421 4.58579C9.03914 4.21071 8.53043 4 8 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="16" cy="7" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 16H6C6.53043 16 7.03914 16.2107 7.41421 16.5858C7.78929 16.9609 8 17.4696 8 18V20C8 20.5304 7.78929 21.0391 7.41421 21.4142C7.03914 21.7893 6.53043 22 6 22H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 18C14 17.4696 14.2107 16.9609 14.5858 16.5858C14.9609 16.2107 15.4696 16 16 16H18C18.5304 16 19.0391 16.2107 19.4142 16.5858C19.7893 16.9609 20 17.4696 20 18V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>{{ subCategory.categoryName }}</span>
+              <span class="article-count">{{ subCategory.articleCount }}</span>
+            </div>
+          </template>
         </div>
       </aside>
 
@@ -167,6 +216,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 
 const router = useRouter()
 const activeTab = ref('home')
@@ -175,16 +225,61 @@ const sortType = ref('hot')
 const showUserMenu = ref(false)
 const userInfo = ref({})
 
-// 分类列表（Mock数据）
-const categories = ref([
-  { id: 'all', name: '全部' },
-  { id: 'java', name: 'Java' },
-  { id: 'python', name: 'Python' },
-  { id: 'frontend', name: '前端' },
-  { id: 'algorithm', name: '算法' },
-  { id: 'database', name: '数据库' },
-  { id: 'architecture', name: '架构' },
-])
+// 分类列表（从后端获取）
+const categoryList = ref([])
+
+// 展开的分类ID列表（默认全部收起）
+const expandedCategories = ref([])
+
+// 计算属性：一级分类
+const rootCategories = computed(() => {
+  return categoryList.value.filter(c => !c.parentId && c.status === 1)
+})
+
+// 获取子分类
+const getSubCategories = (parentId) => {
+  return categoryList.value.filter(c => c.parentId === parentId && c.status === 1)
+}
+
+// 检查是否有子分类
+const hasSubCategories = (parentId) => {
+  return getSubCategories(parentId).length > 0
+}
+
+// 检查分类是否展开
+const isExpanded = (categoryId) => {
+  return expandedCategories.value.includes(categoryId)
+}
+
+// 切换展开/收起
+const toggleExpand = (categoryId) => {
+  const index = expandedCategories.value.indexOf(categoryId)
+  if (index > -1) {
+    // 已展开，则收起
+    expandedCategories.value.splice(index, 1)
+  } else {
+    // 未展开，则展开
+    expandedCategories.value.push(categoryId)
+  }
+}
+
+// 获取分类列表
+const fetchCategories = async () => {
+  try {
+    const response = await axios.get('/api/admin/category/list')
+    if (response.data.code === 1) {
+      categoryList.value = response.data.data
+    }
+  } catch (error) {
+    console.error('获取分类列表失败：', error)
+  }
+}
+
+// 处理分类点击
+const handleCategoryClick = (categoryId) => {
+  selectedCategory.value = categoryId
+  // 这里可以添加根据分类筛选文章的逻辑
+}
 
 // 文章列表（Mock数据）
 const articles = ref([
@@ -252,14 +347,21 @@ const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value
 }
 
+// 跳转到个人主页
+const goToProfile = () => {
+  showUserMenu.value = false
+  router.push('/profile')
+}
+
 // 退出登录
 const handleLogout = () => {
+  showUserMenu.value = false
   localStorage.removeItem('token')
   localStorage.removeItem('userInfo')
   router.push('/')
 }
 
-// 页面加载时获取用户信息
+// 页面加载时获取用户信息和分类列表
 onMounted(() => {
   const storedUserInfo = localStorage.getItem('userInfo')
   if (storedUserInfo) {
@@ -267,6 +369,9 @@ onMounted(() => {
   } else {
     router.push('/')
   }
+  
+  // 获取分类列表
+  fetchCategories()
 })
 </script>
 
@@ -459,6 +564,7 @@ onMounted(() => {
   color: #64748b;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
 }
 
 .category-item:hover {
@@ -472,9 +578,65 @@ onMounted(() => {
   font-weight: 600;
 }
 
+/* 一级分类样式 */
+.category-item.root-category {
+  font-weight: 600;
+  margin-top: 8px;
+  color: #2c3e50;
+}
+
+/* 二级分类样式 */
+.category-item.sub-category {
+  padding-left: 48px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.category-item.sub-category:hover {
+  background: #f8f9fa;
+}
+
+/* 展开/收起按钮 */
+.expand-icon {
+  width: 14px;
+  height: 14px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: transform 0.2s;
+  transform: rotate(0deg);
+  flex-shrink: 0;
+}
+
+.expand-icon:hover {
+  color: #2c3e50;
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
 .category-icon {
   width: 18px;
   height: 18px;
+  flex-shrink: 0;
+}
+
+.sub-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* 文章数量标签 */
+.article-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 
 /* 文章列表 */

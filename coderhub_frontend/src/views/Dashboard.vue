@@ -88,48 +88,7 @@
         </div>
 
         <!-- 用户管理 -->
-        <div v-if="activeMenu === 'users'" class="section">
-          <div class="section-header">
-            <h2>用户管理</h2>
-            <button class="btn-primary">添加用户</button>
-          </div>
-          <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>用户ID</th>
-                  <th>用户名</th>
-                  <th>邮箱</th>
-                  <th>手机号</th>
-                  <th>会员等级</th>
-                  <th>状态</th>
-                  <th>注册时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="user in mockUsers" :key="user.id">
-                  <td>{{ user.id.substring(0, 8) }}...</td>
-                  <td>
-                    <div class="user-cell">
-                      <img :src="user.avatar" alt="avatar" class="table-avatar" />
-                      {{ user.username }}
-                    </div>
-                  </td>
-                  <td>{{ user.email }}</td>
-                  <td>{{ user.phone }}</td>
-                  <td><span :class="['badge', 'level-' + user.level]">{{ getLevelText(user.level) }}</span></td>
-                  <td><span :class="['badge', user.status === 1 ? 'success' : 'danger']">{{ user.status === 1 ? '正常' : '禁用' }}</span></td>
-                  <td>{{ user.createTime }}</td>
-                  <td>
-                    <button class="btn-action">编辑</button>
-                    <button class="btn-action danger">禁用</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <UserManagement v-if="activeMenu === 'users'" />
 
         <!-- 文章审核 -->
         <div v-if="activeMenu === 'articles'" class="section">
@@ -165,34 +124,7 @@
         </div>
 
         <!-- 分类管理 -->
-        <div v-if="activeMenu === 'categories'" class="section">
-          <div class="section-header">
-            <h2>分类管理</h2>
-            <button class="btn-primary">添加分类</button>
-          </div>
-          <div class="category-grid">
-            <div v-for="category in mockCategories" :key="category.id" class="category-card">
-              <div class="category-info">
-                <h4>{{ category.name }}</h4>
-                <p>{{ category.count }} 篇文章</p>
-              </div>
-              <div class="category-actions">
-                <button class="btn-icon">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M18.5 2.50023C18.8978 2.1024 19.4374 1.87891 20 1.87891C20.5626 1.87891 21.1022 2.1024 21.5 2.50023C21.8978 2.89805 22.1213 3.43762 22.1213 4.00023C22.1213 4.56284 21.8978 5.1024 21.5 5.50023L12 15.0002L8 16.0002L9 12.0002L18.5 2.50023Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
-                <button class="btn-icon danger">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <CategoryManagement v-if="activeMenu === 'categories'" />
 
         <!-- 教程管理 -->
         <div v-if="activeMenu === 'tutorials'" class="section">
@@ -239,6 +171,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import UserManagement from '@/components/admin/UserManagement.vue'
+import CategoryManagement from '@/components/admin/CategoryManagement.vue'
 
 const router = useRouter()
 const activeMenu = ref('overview')
@@ -314,30 +248,6 @@ const stats = ref([
   }
 ])
 
-// Mock 用户数据
-const mockUsers = ref([
-  {
-    id: 'fbf50a02-7422-4033-a518-68d47db17389',
-    username: 'user_76932891',
-    email: '2023302051170@whu.edu.cn',
-    phone: '18191039403',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-    level: 0,
-    status: 1,
-    createTime: '2025-01-15'
-  },
-  {
-    id: 'c77f0ff5-6248-4521-8b93-a0545a0791ab',
-    username: 'user_12345678',
-    email: 'test@example.com',
-    phone: '13800138000',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
-    level: 1,
-    status: 1,
-    createTime: '2025-01-14'
-  }
-])
-
 // Mock 文章数据
 const mockArticles = ref([
   {
@@ -360,27 +270,10 @@ const mockArticles = ref([
   }
 ])
 
-// Mock 分类数据
-const mockCategories = ref([
-  { id: 1, name: 'Java', count: 234 },
-  { id: 2, name: 'Python', count: 156 },
-  { id: 3, name: 'Vue', count: 189 },
-  { id: 4, name: 'React', count: 167 },
-  { id: 5, name: '数据库', count: 145 },
-  { id: 6, name: '算法', count: 123 }
-])
-
 const currentTitle = computed(() => {
   const item = menuItems.value.find(item => item.key === activeMenu.value)
   return item ? item.label : '仪表盘'
 })
-
-const getLevelText = (level) => {
-  if (level === 0) return '普通'
-  if (level === 1) return 'VIP'
-  if (level === 2) return 'SVIP'
-  return '普通'
-}
 
 const backToHome = () => {
   router.push('/home')

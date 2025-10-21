@@ -6,6 +6,17 @@ spring:
     active: dev
   main:
     allow-circular-references: true
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  # Jackson日期格式配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
   datasource:
     druid:
       driver-class-name: ${coder.datasource.driver-class-name}
@@ -13,12 +24,25 @@ spring:
       username: ${coder.datasource.username}
       password: ${coder.datasource.password}
 
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.eaxon.coderhubpojo.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
 coder:
   jwt:
     user-secret-key: coderHubUser
     user-ttl: 7200000
-    user-token-name: token
+    user-token-name: authentication
 
     admin-secret-key: coderHubAdmin
     admin-ttl: 7200000
-    admin-token-name: token
+    admin-token-name: authentication
+
+  alioss:
+    endpoint: ${coder.alioss.endpoint}
+    access-key-id: ${coder.alioss.access-key-id}
+    access-key-secret: ${coder.alioss.access-key-secret}
+    bucket-name: ${coder.alioss.bucket-name}

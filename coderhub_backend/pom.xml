@@ -39,6 +39,8 @@
         <druid.version>1.2.16</druid.version>
         <jjwt.version>0.9.1</jjwt.version>
         <jaxb-api.version>2.3.1</jaxb-api.version>
+        <aliyun-sdk-oss.version>3.17.1</aliyun-sdk-oss.version>
+        <pagehelper.version>1.4.6</pagehelper.version>
     </properties>
 
     <!-- 依赖版本统一管理 -->
@@ -120,6 +122,20 @@
                 <groupId>javax.xml.bind</groupId>
                 <artifactId>jaxb-api</artifactId>
                 <version>${jaxb-api.version}</version>
+            </dependency>
+
+            <!-- 阿里云OSS SDK -->
+            <dependency>
+                <groupId>com.aliyun.oss</groupId>
+                <artifactId>aliyun-sdk-oss</artifactId>
+                <version>${aliyun-sdk-oss.version}</version>
+            </dependency>
+
+            <!-- PageHelper 分页插件 -->
+            <dependency>
+                <groupId>com.github.pagehelper</groupId>
+                <artifactId>pagehelper-spring-boot-starter</artifactId>
+                <version>${pagehelper.version}</version>
             </dependency>
 
             <!-- 测试依赖 -->

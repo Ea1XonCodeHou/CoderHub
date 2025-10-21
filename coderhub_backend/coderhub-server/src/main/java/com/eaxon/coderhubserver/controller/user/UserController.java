@@ -1,9 +1,11 @@
-package com.eaxon.coderhubserver.controller;
+package com.eaxon.coderhubserver.controller.user;
 
 import com.eaxon.coderhubcommon.context.BaseContext;
 import com.eaxon.coderhubcommon.result.Result;
+import com.eaxon.coderhubpojo.DTO.UserInfoUpdateDTO;
 import com.eaxon.coderhubpojo.DTO.UserLoginDTO;
 import com.eaxon.coderhubpojo.DTO.UserRegisterDTO;
+import com.eaxon.coderhubpojo.VO.UserInfoUpdateVO;
 import com.eaxon.coderhubpojo.VO.UserLoginVO;
 import com.eaxon.coderhubserver.service.UserService;
 import io.swagger.annotations.Api;
@@ -51,24 +53,16 @@ public class UserController {
         return Result.success(userLoginVO);
     }
 
+    
     /**
-     * 修改密码（测试JWT拦截器）
-     * 需要登录才能访问，会被JWT拦截器拦截
+     * 修改用户信息
      */
-    @PutMapping("/password")
-    @ApiOperation("修改密码")
-    public Result<String> updatePassword(@RequestBody Map<String, String> passwordMap) {
-        // 从ThreadLocal中获取当前用户ID
-        String userId = BaseContext.getCurrentId();
-        log.info("修改密码，userId: {}", userId);
-        
-        String oldPassword = passwordMap.get("oldPassword");
-        String newPassword = passwordMap.get("newPassword");
-        
-        // 调用Service层修改密码
-        userService.updatePassword(userId, oldPassword, newPassword);
-        
-        log.info("密码修改成功");
-        return Result.success("密码修改成功");
+    @PutMapping("/updateInfo")
+    @ApiOperation("修改用户信息")
+    public Result<UserInfoUpdateVO> userUpdateInfo(@RequestBody UserInfoUpdateDTO userInfoUpdateDTO){
+        log.info("修改用户信息：{}", userInfoUpdateDTO);
+        UserInfoUpdateVO userInfoUpdateVO = userService.update(userInfoUpdateDTO);
+        log.info("用户信息修改成功");
+        return Result.success(userInfoUpdateVO);
     }
 }

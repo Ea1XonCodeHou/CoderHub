@@ -1,6 +1,8 @@
 package com.eaxon.coderhubserver.mapper;
 
+import com.eaxon.coderhubpojo.DTO.UserPageQueryDTO;
 import com.eaxon.coderhubpojo.entity.User;
+import com.github.pagehelper.Page;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
@@ -42,6 +44,14 @@ public interface UserMapper {
     User getUserById(String userId);
 
     /**
+     * 根据用户名查询用户
+     * @param username 用户名
+     * @return 用户信息
+     */
+    @Select("select * from coder_hub.user where username = #{username}")
+    User getUserByUsername(String username);
+
+    /**
      * 插入新用户
      * @param user 用户信息
      */
@@ -50,10 +60,15 @@ public interface UserMapper {
     void insertUser(User user);
 
     /**
-     * 更新用户密码
-     * @param userId 用户ID
-     * @param password 新密码（已加密）
+     * 动态更新用户信息（通过XML配置）
+     * @param currentUser 用户信息
      */
-    @Update("update coder_hub.user set password = #{password} where id = #{userId}")
-    void updatePassword(String userId, String password);
+    void update(User currentUser);
+
+    /**
+     * 分页查询用户列表（通过XML配置）
+     * @param userPageQueryDTO 查询条件
+     * @return 用户分页列表
+     */
+    Page<User> pageQuery(UserPageQueryDTO userPageQueryDTO);
 }

@@ -19,4 +19,6 @@ public class MessageConstant {
 
     public static final String ROLE_USER="USER";
     public static final String ROLE_ADMIN="ADMIN";
+
+    public static final String UPLOAD_FAILED="文件上传失败，请重试";
 }

@@ -57,6 +57,11 @@
             <artifactId>jaxb-api</artifactId>
         </dependency>
 
+        <!-- 阿里云OSS SDK -->
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

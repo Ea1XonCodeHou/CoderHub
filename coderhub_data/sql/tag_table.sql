@@ -1,0 +1,73 @@
+-- 标签表（用户自由创建，支持模糊搜索）
+DROP TABLE IF EXISTS coder_hub.tag;
+
+CREATE TABLE coder_hub.tag (
+    id VARCHAR(36) PRIMARY KEY COMMENT '标签ID（UUID）',
+    tag_name VARCHAR(30) NOT NULL UNIQUE COMMENT '标签名称（唯一）',
+    use_count INT DEFAULT 0 COMMENT '使用次数（被多少篇文章使用）',
+    reference_count INT DEFAULT 0 COMMENT '引用量（被文章引用次数，同use_count）',
+    view_count BIGINT DEFAULT 0 COMMENT '阅读量（该标签下所有文章的总阅读量）',
+    status INT DEFAULT 1 COMMENT '状态：0-禁用 1-启用（管理员可禁用不当标签）',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    
+    -- 索引
+    INDEX idx_tag_name (tag_name),
+    INDEX idx_use_count (use_count DESC),
+    INDEX idx_status (status),
+    INDEX idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='文章标签表';
+
+-- 初始化常用标签数据（示例）
+INSERT INTO coder_hub.tag (id, tag_name, use_count, status) VALUES
+(UUID(), 'Java', 0, 1),
+(UUID(), 'Spring Boot', 0, 1),
+(UUID(), 'Vue', 0, 1),
+(UUID(), 'React', 0, 1),
+(UUID(), 'Python', 0, 1),
+(UUID(), 'Go', 0, 1),
+(UUID(), 'MySQL', 0, 1),
+(UUID(), 'Redis', 0, 1),
+(UUID(), 'Docker', 0, 1),
+(UUID(), 'Kubernetes', 0, 1),
+(UUID(), '算法', 0, 1),
+(UUID(), '数据结构', 0, 1),
+(UUID(), '设计模式', 0, 1),
+(UUID(), '微服务', 0, 1),
+(UUID(), '分布式', 0, 1),
+(UUID(), '前端开发', 0, 1),
+(UUID(), '后端开发', 0, 1),
+(UUID(), '全栈开发', 0, 1),
+(UUID(), 'LeetCode', 0, 1),
+(UUID(), '面试', 0, 1),
+(UUID(), '简历', 0, 1),
+(UUID(), '求职', 0, 1),
+(UUID(), 'GitHub', 0, 1),
+(UUID(), 'Git', 0, 1),
+(UUID(), 'Linux', 0, 1),
+(UUID(), 'TypeScript', 0, 1),
+(UUID(), 'JavaScript', 0, 1),
+(UUID(), 'CSS', 0, 1),
+(UUID(), 'HTML', 0, 1),
+(UUID(), 'Webpack', 0, 1),
+(UUID(), 'Vite', 0, 1),
+(UUID(), 'Node.js', 0, 1),
+(UUID(), 'Express', 0, 1),
+(UUID(), 'Nest.js', 0, 1),
+(UUID(), 'Django', 0, 1),
+(UUID(), 'Flask', 0, 1),
+(UUID(), 'FastAPI', 0, 1),
+(UUID(), 'Gin', 0, 1),
+(UUID(), 'MongoDB', 0, 1),
+(UUID(), 'PostgreSQL', 0, 1),
+(UUID(), 'Elasticsearch', 0, 1),
+(UUID(), 'Nginx', 0, 1),
+(UUID(), 'RabbitMQ', 0, 1),
+(UUID(), 'Kafka', 0, 1),
+(UUID(), 'Jenkins', 0, 1),
+(UUID(), 'CI/CD', 0, 1),
+(UUID(), '云原生', 0, 1),
+(UUID(), 'AWS', 0, 1),
+(UUID(), '阿里云', 0, 1),
+(UUID(), '腾讯云', 0, 1);
+
