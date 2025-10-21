@@ -37,8 +37,10 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
         
         registry.addInterceptor(jwtTokenUserInterceptor)
                 .addPathPatterns("/user/**")                    // 拦截所有/user/**路径
+                .addPathPatterns("/article/**")                 // 拦截所有/article/**路径
                 .excludePathPatterns("/user/login")             // 排除登录接口
-                .excludePathPatterns("/user/register");         // 排除注册接口
+                .excludePathPatterns("/user/register")          // 排除注册接口
+                .excludePathPatterns("/common/**");             // 排除通用接口（文件上传等）
         
         log.info("JWT拦截器注册完成");
     }

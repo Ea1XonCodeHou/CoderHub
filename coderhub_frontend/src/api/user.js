@@ -75,7 +75,7 @@ export function uploadFile(file) {
   formData.append('file', file)
   
   return request({
-    url: '/api/common/upload',
+    url: '/common/upload',
     method: 'post',
     data: formData,
     headers: {

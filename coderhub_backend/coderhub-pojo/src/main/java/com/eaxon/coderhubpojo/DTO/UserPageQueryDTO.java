@@ -10,7 +10,6 @@ import java.io.Serializable;
  * 用户分页查询DTO
  */
 @Data
-@ApiModel(description = "用户分页查询请求参数")
 public class UserPageQueryDTO implements Serializable {
     private Integer page = 1;
     private Integer pageSize = 10;

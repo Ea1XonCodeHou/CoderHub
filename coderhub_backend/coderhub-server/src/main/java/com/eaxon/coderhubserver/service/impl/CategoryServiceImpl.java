@@ -3,6 +3,7 @@ package com.eaxon.coderhubserver.service.impl;
 import com.eaxon.coderhubpojo.DTO.CategoryDTO;
 import com.eaxon.coderhubpojo.VO.CategoryVO;
 import com.eaxon.coderhubpojo.entity.Category;
+import com.eaxon.coderhubserver.mapper.ArticleMapper;
 import com.eaxon.coderhubserver.mapper.CategoryMapper;
 import com.eaxon.coderhubserver.service.CategoryService;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,9 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Autowired
     private CategoryMapper categoryMapper;
+    
+    @Autowired
+    private ArticleMapper articleMapper;
 
     @Override
     public List<CategoryVO> getAllCategories() {
@@ -177,7 +181,31 @@ public class CategoryServiceImpl implements CategoryService {
             }
         }
 
+        // ✨ 动态计算真实的文章数量
+        int realArticleCount = calculateArticleCount(category);
+        vo.setArticleCount(realArticleCount);
+
         return vo;
+    }
+    
+    /**
+     * 计算分类的真实文章数量
+     * - 子分类：统计该分类下已发布且审核通过的文章数
+     * - 父分类：统计所有子分类的文章数之和
+     */
+    private int calculateArticleCount(Category category) {
+        if (category.getParentId() != null) {
+            // 子分类：直接统计
+            return articleMapper.countByCategoryIdAndStatus(category.getId(), 1, 1);
+        } else {
+            // 父分类：统计所有子分类的文章数之和
+            List<Category> subCategories = categoryMapper.findByParentId(category.getId());
+            int totalCount = 0;
+            for (Category subCategory : subCategories) {
+                totalCount += articleMapper.countByCategoryIdAndStatus(subCategory.getId(), 1, 1);
+            }
+            return totalCount;
+        }
     }
 }
 

@@ -36,7 +36,7 @@
 
         <!-- 右侧操作区 -->
         <div class="nav-right">
-          <button class="btn-write">
+          <button class="btn-write" @click="goToEditor">
             <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M18.5 2.50023C18.8978 2.1024 19.4374 1.87891 20 1.87891C20.5626 1.87891 21.1022 2.1024 21.5 2.50023C21.8978 2.89805 22.1213 3.43762 22.1213 4.00023C22.1213 4.56284 21.8978 5.1024 21.5 5.50023L12 15.0002L8 16.0002L9 12.0002L18.5 2.50023Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -137,40 +137,58 @@
         </div>
 
         <!-- 文章卡片 -->
+        <div v-if="articles.length === 0" class="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H12.5858C12.851 3 13.1054 3.10536 13.2929 3.29289L18.7071 8.70711C18.8946 8.89464 19 9.149 19 9.41421V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p>暂无文章</p>
+        </div>
+        
         <div v-for="article in articles" :key="article.id" class="article-card">
-          <div class="article-header">
-            <img :src="article.author.avatar" class="author-avatar" alt="avatar" />
-            <div class="author-info">
-              <div class="author-name">{{ article.author.name }}</div>
-              <div class="article-meta">
-                <span>{{ article.createTime }}</span>
-                <span class="dot">·</span>
-                <span>{{ article.readCount }} 阅读</span>
+          <!-- 封面图 -->
+          <div v-if="article.coverImage" class="article-cover">
+            <img :src="article.coverImage" alt="cover" />
+          </div>
+          
+          <div class="article-content">
+            <div class="article-header">
+              <img :src="article.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'" class="author-avatar" alt="avatar" />
+              <div class="author-info">
+                <div class="author-name">{{ article.username }}</div>
+                <div class="article-meta">
+                  <span>{{ formatTime(article.createTime) }}</span>
+                  <span class="dot">·</span>
+                  <span>{{ article.viewCount }} 阅读</span>
+                </div>
               </div>
+              
+              <!-- 原创标签 -->
+              <span v-if="article.isOriginal === 1" class="original-badge">原创</span>
             </div>
-          </div>
 
-          <h3 class="article-title">{{ article.title }}</h3>
-          <p class="article-summary">{{ article.summary }}</p>
+            <h3 class="article-title">{{ article.title }}</h3>
+            <p class="article-summary">{{ article.summary }}</p>
 
-          <div class="article-tags">
-            <span v-for="tag in article.tags" :key="tag" class="tag">{{ tag }}</span>
-          </div>
+            <div class="article-tags">
+              <span v-for="tag in article.tags" :key="tag.id" class="tag">{{ tag.tagName }}</span>
+            </div>
 
-          <div class="article-footer">
-            <div class="action-group">
-              <button class="action-btn">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M7 22V11M2 13V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H17.28C17.7623 22.0055 18.2304 21.8364 18.5979 21.524C18.9654 21.2116 19.2077 20.7769 19.28 20.3L20.66 11.3C20.7035 11.0134 20.6842 10.7207 20.6033 10.4423C20.5225 10.1638 20.3821 9.90629 20.1919 9.68751C20.0016 9.46873 19.7661 9.29393 19.5016 9.17522C19.2371 9.0565 18.9499 8.99672 18.66 9H14V4C14 3.46957 13.7893 2.96086 13.4142 2.58579C13.0391 2.21071 12.5304 2 12 2L7 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                {{ article.likeCount }}
-              </button>
-              <button class="action-btn">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                {{ article.commentCount }}
-              </button>
+            <div class="article-footer">
+              <div class="category-badge">{{ article.categoryName }}</div>
+              <div class="action-group">
+                <button class="action-btn">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M7 22V11M2 13V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H17.28C17.7623 22.0055 18.2304 21.8364 18.5979 21.524C18.9654 21.2116 19.2077 20.7769 19.28 20.3L20.66 11.3C20.7035 11.0134 20.6842 10.7207 20.6033 10.4423C20.5225 10.1638 20.3821 9.90629 20.1919 9.68751C20.0016 9.46873 19.7661 9.29393 19.5016 9.17522C19.2371 9.0565 18.9499 8.99672 18.66 9H14V4C14 3.46957 13.7893 2.96086 13.4142 2.58579C13.0391 2.21071 12.5304 2 12 2L7 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  {{ article.likeCount }}
+                </button>
+                <button class="action-btn">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  {{ article.commentCount }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -278,60 +296,96 @@ const fetchCategories = async () => {
 // 处理分类点击
 const handleCategoryClick = (categoryId) => {
   selectedCategory.value = categoryId
-  // 这里可以添加根据分类筛选文章的逻辑
+  fetchArticles()
 }
 
-// 文章列表（Mock数据）
-const articles = ref([
-  {
-    id: 1,
-    title: 'Spring Boot 3.0 实战教程：从入门到精通',
-    summary: '本文将详细介绍Spring Boot 3.0的核心特性和最佳实践，包括新特性、性能优化、微服务架构等内容...',
-    author: {
-      name: 'CoderHub',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'
-    },
-    createTime: '2小时前',
-    readCount: 1234,
-    likeCount: 56,
-    commentCount: 23,
-    tags: ['Spring Boot', 'Java', '后端']
-  },
-  {
-    id: 2,
-    title: 'Vue 3 + TypeScript 项目最佳实践',
-    summary: '分享Vue 3结合TypeScript开发的最佳实践，包括项目结构、状态管理、性能优化等...',
-    author: {
-      name: '前端小白',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka'
-    },
-    createTime: '5小时前',
-    readCount: 890,
-    likeCount: 42,
-    commentCount: 18,
-    tags: ['Vue', 'TypeScript', '前端']
-  },
-  {
-    id: 3,
-    title: '深入理解MySQL索引优化',
-    summary: 'MySQL索引是数据库性能优化的关键，本文深入讲解索引的原理、类型、优化策略...',
-    author: {
-      name: '数据库专家',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob'
-    },
-    createTime: '1天前',
-    readCount: 2345,
-    likeCount: 98,
-    commentCount: 45,
-    tags: ['MySQL', '数据库', '性能优化']
-  }
-])
+// 文章列表
+const articles = ref([])
 
-// 热门标签（Mock数据）
-const hotTags = ref([
-  'Java', 'Python', 'Vue', 'React', 'Spring Boot', 
-  'MySQL', 'Redis', '算法', '面试', '架构设计'
-])
+// 获取文章列表
+const fetchArticles = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const params = {}
+    
+    // 如果选择了分类，添加分类ID参数
+    if (selectedCategory.value !== 'all') {
+      params.categoryId = selectedCategory.value
+    }
+    
+    const response = await axios.get('/api/article/list', {
+      params,
+      headers: {
+        authentication: token
+      }
+    })
+    
+    if (response.data.code === 1) {
+      articles.value = response.data.data
+    }
+  } catch (error) {
+    console.error('获取文章列表失败：', error)
+  }
+}
+
+// 格式化时间
+const formatTime = (timeStr) => {
+  if (!timeStr) return '未知时间'
+  
+  try {
+    // 处理各种时间格式
+    let time
+    if (Array.isArray(timeStr)) {
+      // [2024, 10, 21, 18, 30, 45]
+      time = new Date(timeStr[0], timeStr[1] - 1, timeStr[2], timeStr[3] || 0, timeStr[4] || 0, timeStr[5] || 0)
+    } else if (typeof timeStr === 'string') {
+      time = new Date(timeStr)
+    } else {
+      time = new Date(timeStr)
+    }
+    
+    if (isNaN(time.getTime())) {
+      console.error('无效的时间格式：', timeStr)
+      return '未知时间'
+    }
+    
+    const now = new Date()
+    const diff = now - time
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+    
+    if (minutes < 60) return `${minutes}分钟前`
+    if (hours < 24) return `${hours}小时前`
+    if (days < 7) return `${days}天前`
+    
+    return time.toLocaleDateString('zh-CN')
+  } catch (e) {
+    console.error('时间格式化错误：', e, timeStr)
+    return '未知时间'
+  }
+}
+
+// 热门标签
+const hotTags = ref([])
+
+// 获取热门标签
+const fetchHotTags = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const response = await axios.get('/api/article/tags/hot', {
+      params: { limit: 10 },
+      headers: {
+        authentication: token
+      }
+    })
+    if (response.data.code === 1) {
+      hotTags.value = response.data.data.map(tag => tag.tagName)
+    }
+  } catch (error) {
+    console.error('获取热门标签失败：', error)
+  }
+}
 
 // 用户等级文本
 const levelText = computed(() => {
@@ -353,6 +407,11 @@ const goToProfile = () => {
   router.push('/profile')
 }
 
+// 跳转到文章编辑器
+const goToEditor = () => {
+  router.push('/article/editor')
+}
+
 // 退出登录
 const handleLogout = () => {
   showUserMenu.value = false
@@ -361,7 +420,7 @@ const handleLogout = () => {
   router.push('/')
 }
 
-// 页面加载时获取用户信息和分类列表
+// 页面加载时获取用户信息和数据
 onMounted(() => {
   const storedUserInfo = localStorage.getItem('userInfo')
   if (storedUserInfo) {
@@ -370,8 +429,10 @@ onMounted(() => {
     router.push('/')
   }
   
-  // 获取分类列表
+  // 获取数据
   fetchCategories()
+  fetchArticles()
+  fetchHotTags()
 })
 </script>
 
@@ -684,14 +745,66 @@ onMounted(() => {
   color: #2c3e50;
 }
 
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.empty-state svg {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  color: #cbd5e1;
+}
+
+.empty-state p {
+  font-size: 14px;
+}
+
 /* 文章卡片 */
 .article-card {
+  display: flex;
+  gap: 16px;
   padding: 20px 0;
   border-bottom: 1px solid #e2e8f0;
+  transition: all 0.3s;
+}
+
+.article-card:hover {
+  transform: translateX(4px);
 }
 
 .article-card:last-child {
   border-bottom: none;
+}
+
+/* 封面图 */
+.article-cover {
+  flex-shrink: 0;
+  width: 200px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.article-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.article-card:hover .article-cover img {
+  transform: scale(1.05);
+}
+
+/* 文章内容 */
+.article-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .article-header {
@@ -705,6 +818,10 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+}
+
+.author-info {
+  flex: 1;
 }
 
 .author-name {
@@ -722,6 +839,16 @@ onMounted(() => {
   margin: 0 6px;
 }
 
+/* 原创标签 */
+.original-badge {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #f59e0b;
+  background: #fef3c7;
+  border-radius: 4px;
+}
+
 .article-title {
   font-size: 18px;
   font-weight: 600;
@@ -729,6 +856,11 @@ onMounted(() => {
   margin-bottom: 8px;
   cursor: pointer;
   transition: color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .article-title:hover {
@@ -740,10 +872,16 @@ onMounted(() => {
   color: #64748b;
   line-height: 1.6;
   margin-bottom: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .article-tags {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -754,12 +892,30 @@ onMounted(() => {
   color: #64748b;
   background: #f5f7fa;
   border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tag:hover {
+  background: #e2e8f0;
+  color: #2c3e50;
 }
 
 .article-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: auto;
+}
+
+/* 分类标签 */
+.category-badge {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #2c3e50;
+  background: #e2e8f0;
+  border-radius: 4px;
 }
 
 .action-group {

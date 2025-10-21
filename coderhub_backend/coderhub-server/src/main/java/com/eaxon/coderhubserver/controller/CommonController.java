@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/common")
+@RequestMapping("/common")
 @Api(tags = "通用工具接口")
 @Slf4j
 public class CommonController {

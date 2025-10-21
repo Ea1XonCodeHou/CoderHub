@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.ArticleTagRelationMapper">
+
+    <!-- 插入关联关系 -->
+    <insert id="insert">
+        INSERT INTO article_tag_relation (id, article_id, tag_id, create_time)
+        VALUES (#{id}, #{articleId}, #{tagId}, #{createTime})
+    </insert>
+
+    <!-- 根据文章ID删除关联关系 -->
+    <delete id="deleteByArticleId">
+        DELETE FROM article_tag_relation WHERE article_id = #{articleId}
+    </delete>
+
+    <!-- 根据文章ID查询关联关系 -->
+    <select id="getByArticleId" resultType="com.eaxon.coderhubpojo.entity.ArticleTagRelation">
+        SELECT * FROM article_tag_relation WHERE article_id = #{articleId}
+    </select>
+
+    <!-- 批量插入关联关系 -->
+    <insert id="batchInsert">
+        INSERT INTO article_tag_relation (id, article_id, tag_id, create_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.articleId}, #{item.tagId}, #{item.createTime})
+        </foreach>
+    </insert>
+
+</mapper>
+

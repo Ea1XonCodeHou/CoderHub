@@ -91,37 +91,7 @@
         <UserManagement v-if="activeMenu === 'users'" />
 
         <!-- 文章审核 -->
-        <div v-if="activeMenu === 'articles'" class="section">
-          <div class="section-header">
-            <h2>文章审核</h2>
-            <div class="filter-group">
-              <select class="select-filter">
-                <option>全部状态</option>
-                <option>待审核</option>
-                <option>已通过</option>
-                <option>已拒绝</option>
-              </select>
-            </div>
-          </div>
-          <div class="article-list">
-            <div v-for="article in mockArticles" :key="article.id" class="article-item">
-              <h4>{{ article.title }}</h4>
-              <p>{{ article.summary }}</p>
-              <div class="article-meta">
-                <span>作者：{{ article.author }}</span>
-                <span>·</span>
-                <span>{{ article.createTime }}</span>
-                <span>·</span>
-                <span :class="['status', article.status]">{{ article.statusText }}</span>
-              </div>
-              <div class="article-actions">
-                <button class="btn-action success">通过</button>
-                <button class="btn-action danger">拒绝</button>
-                <button class="btn-action">查看详情</button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ArticleReview v-if="activeMenu === 'articles'" />
 
         <!-- 分类管理 -->
         <CategoryManagement v-if="activeMenu === 'categories'" />
@@ -173,6 +143,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import UserManagement from '@/components/admin/UserManagement.vue'
 import CategoryManagement from '@/components/admin/CategoryManagement.vue'
+import ArticleReview from '@/components/admin/ArticleReview.vue'
 
 const router = useRouter()
 const activeMenu = ref('overview')

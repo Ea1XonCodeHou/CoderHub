@@ -74,5 +74,19 @@ public interface CategoryMapper {
      */
     @Select("SELECT COUNT(*) FROM coder_hub.category WHERE parent_id = #{parentId}")
     int countByParentId(String parentId);
+
+    /**
+     * 增加文章数量
+     * @param categoryId 分类ID
+     */
+    @Update("UPDATE coder_hub.category SET article_count = article_count + 1 WHERE id = #{categoryId}")
+    void incrementArticleCount(String categoryId);
+
+    /**
+     * 减少文章数量
+     * @param categoryId 分类ID
+     */
+    @Update("UPDATE coder_hub.category SET article_count = article_count - 1 WHERE id = #{categoryId} AND article_count > 0")
+    void decrementArticleCount(String categoryId);
 }
 
