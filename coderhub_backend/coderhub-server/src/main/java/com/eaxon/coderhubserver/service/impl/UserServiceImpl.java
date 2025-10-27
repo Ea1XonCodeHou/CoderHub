@@ -39,6 +39,12 @@ public class UserServiceImpl implements UserService {
     private UserMapper userMapper;
     @Autowired
     private JwtProperties jwtProperties;
+
+    @Override
+    public User getUserById(String userId) {
+        return userMapper.getUserById(userId);
+    }
+
     /**
      * 用户注册
      * @param userRegisterDTO

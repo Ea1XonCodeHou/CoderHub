@@ -46,3 +46,19 @@ coder:
     access-key-id: ${coder.alioss.access-key-id}
     access-key-secret: ${coder.alioss.access-key-secret}
     bucket-name: ${coder.alioss.bucket-name}
+
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: ${langchain4j.open-ai.chat-model.api-key}
+      base-url: https://api.siliconflow.cn/v1
+      model-name: Qwen/Qwen3-VL-235B-A22B-Instruct
+      log-requests: true
+      log-responses: true
+
+    streaming-chat-model:
+      api-key: ${langchain4j.open-ai.streaming-chat-model.api-key}
+      base-url: https://api.siliconflow.cn/v1
+      model-name: Qwen/Qwen3-VL-235B-A22B-Instruct
+      log-requests: true
+      log-responses: true

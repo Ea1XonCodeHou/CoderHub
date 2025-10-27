@@ -144,7 +144,7 @@
           <p>暂无文章</p>
         </div>
         
-        <div v-for="article in articles" :key="article.id" class="article-card">
+        <div v-for="article in articles" :key="article.id" class="article-card" @click="goToArticle(article.id)">
           <!-- 封面图 -->
           <div v-if="article.coverImage" class="article-cover">
             <img :src="article.coverImage" alt="cover" />
@@ -228,6 +228,33 @@
         </div>
       </aside>
     </div>
+
+    <!-- 页脚 -->
+    <footer class="page-footer">
+      <div class="footer-container">
+        <div class="footer-content">
+          <div class="footer-section">
+            <h4>CoderHub</h4>
+            <p>专业的技术分享社区</p>
+          </div>
+          <div class="footer-section">
+            <h4>快速链接</h4>
+            <a href="#">关于我们</a>
+            <a href="#">联系方式</a>
+            <a href="#">使用协议</a>
+          </div>
+          <div class="footer-section">
+            <h4>社区</h4>
+            <a href="#">写文章</a>
+            <a href="#">问答</a>
+            <a href="#">活动</a>
+          </div>
+        </div>
+        <div class="footer-copyright">
+          © 2024 CoderHub. All rights reserved.
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -326,6 +353,11 @@ const fetchArticles = async () => {
   } catch (error) {
     console.error('获取文章列表失败：', error)
   }
+}
+
+// 跳转到文章详情
+const goToArticle = (articleId) => {
+  router.push(`/article/${articleId}`)
 }
 
 // 格式化时间
@@ -770,10 +802,15 @@ onMounted(() => {
   padding: 20px 0;
   border-bottom: 1px solid #e2e8f0;
   transition: all 0.3s;
+  cursor: pointer;
 }
 
 .article-card:hover {
   transform: translateX(4px);
+  background: #f8f9fa;
+  padding-left: 12px;
+  margin-left: -12px;
+  border-radius: 8px;
 }
 
 .article-card:last-child {
@@ -1062,6 +1099,59 @@ onMounted(() => {
   .nav-menu {
     display: none;
   }
+}
+
+/* ==================== 页脚 ==================== */
+.page-footer {
+  background: #2c3e50;
+  color: white;
+  padding: 40px 0 20px;
+  margin-top: 60px;
+}
+
+.footer-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  margin-bottom: 32px;
+}
+
+.footer-section h4 {
+  font-size: 16px;
+  margin: 0 0 16px 0;
+}
+
+.footer-section p {
+  font-size: 14px;
+  color: #bdc3c7;
+  margin: 0;
+}
+
+.footer-section a {
+  display: block;
+  font-size: 14px;
+  color: #bdc3c7;
+  text-decoration: none;
+  margin-bottom: 8px;
+  transition: color 0.3s;
+}
+
+.footer-section a:hover {
+  color: white;
+}
+
+.footer-copyright {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid #34495e;
+  font-size: 14px;
+  color: #bdc3c7;
 }
 </style>
 

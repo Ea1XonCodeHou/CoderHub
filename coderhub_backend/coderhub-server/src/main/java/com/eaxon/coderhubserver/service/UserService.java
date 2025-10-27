@@ -12,6 +12,7 @@ import com.eaxon.coderhubpojo.VO.UserLoginVO;
 import com.eaxon.coderhubpojo.entity.User;
 
 public interface UserService {
+    User getUserById(String userId);
     void userRegister(UserRegisterDTO userRegisterDTO);
     User getUserByPhone(String userPhone);
     User getUserByEmail(String userEmail);
