@@ -7,7 +7,10 @@ import com.eaxon.coderhubpojo.DTO.UserLoginDTO;
 import com.eaxon.coderhubpojo.DTO.UserRegisterDTO;
 import com.eaxon.coderhubpojo.VO.UserInfoUpdateVO;
 import com.eaxon.coderhubpojo.VO.UserLoginVO;
+import com.eaxon.coderhubpojo.VO.UserStatsVO;
 import com.eaxon.coderhubpojo.entity.User;
+import com.eaxon.coderhubserver.mapper.ArticleMapper;
+import com.eaxon.coderhubserver.service.UserFollowService;
 import com.eaxon.coderhubserver.service.UserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -16,6 +19,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -26,6 +30,13 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private UserFollowService userFollowService;
+    
+    @Autowired
+    private ArticleMapper articleMapper;
+    
     /**
      * 用户注册
      * @param userRegisterDTO 注册信息
@@ -81,5 +92,74 @@ public class UserController {
         UserLoginVO vo = new UserLoginVO();
         BeanUtils.copyProperties(user, vo);
         return Result.success(vo);
+    }
+
+    /**
+     * 获取用户统计信息（文章数、关注数、粉丝数）
+     */
+    @GetMapping("/{userId}/stats")
+    @ApiOperation("获取用户统计信息")
+    public Result<UserStatsVO> getUserStats(@PathVariable String userId) {
+        log.info("获取用户统计信息：userId={}", userId);
+        
+        // 统计文章数
+        Integer articleCount = articleMapper.countByUserId(userId);
+        
+        // 统计关注数
+        Integer followingCount = userFollowService.getFollowingCount(userId);
+        
+        // 统计粉丝数
+        Integer followersCount = userFollowService.getFollowersCount(userId);
+        
+        // 检查当前用户是否已关注该用户
+        Boolean isFollowing = false;
+        String currentUserId = BaseContext.getCurrentId();
+        if (currentUserId != null && !currentUserId.equals(userId)) {
+            isFollowing = userFollowService.isFollowing(currentUserId, userId);
+        }
+        
+        UserStatsVO statsVO = UserStatsVO.builder()
+                .articleCount(articleCount != null ? articleCount : 0)
+                .followingCount(followingCount)
+                .followersCount(followersCount)
+                .isFollowing(isFollowing)
+                .build();
+        
+        return Result.success(statsVO);
+    }
+
+    /**
+     * 关注/取消关注用户
+     */
+    @PostMapping("/{userId}/follow")
+    @ApiOperation("关注/取消关注用户")
+    public Result<Map<String, Object>> toggleFollow(@PathVariable String userId) {
+        String currentUserId = BaseContext.getCurrentId();
+        log.info("用户{}关注/取消关注用户{}", currentUserId, userId);
+        
+        Boolean isFollowing = userFollowService.toggleFollow(currentUserId, userId);
+        
+        // 重新查询粉丝数
+        Integer followersCount = userFollowService.getFollowersCount(userId);
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("isFollowing", isFollowing);
+        result.put("followersCount", followersCount);
+        
+        return Result.success(result);
+    }
+
+    /**
+     * 检查是否已关注某用户
+     */
+    @GetMapping("/{userId}/follow/status")
+    @ApiOperation("检查是否已关注某用户")
+    public Result<Boolean> checkFollowStatus(@PathVariable String userId) {
+        String currentUserId = BaseContext.getCurrentId();
+        log.info("检查用户{}是否关注用户{}", currentUserId, userId);
+        
+        Boolean isFollowing = userFollowService.isFollowing(currentUserId, userId);
+        
+        return Result.success(isFollowing);
     }
 }

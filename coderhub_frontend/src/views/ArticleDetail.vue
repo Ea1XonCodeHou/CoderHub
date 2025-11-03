@@ -279,10 +279,22 @@
         <!-- 作者卡片 -->
         <div class="author-card">
           <div class="author-card-header">
-            <img :src="author.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + author.username" class="author-card-avatar" />
+            <!-- 头像容器（带VIP特效） -->
+            <div class="avatar-container" :class="getAvatarClass(author.userLevel)">
+              <img :src="author.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + author.username" class="author-card-avatar" />
+              <!-- VIP 光环 (userLevel === 1) -->
+              <div v-if="author.userLevel === 1" class="vip-ring"></div>
+              <!-- SVIP 彩虹光环 (userLevel === 2) -->
+              <div v-if="author.userLevel === 2" class="svip-ring"></div>
+            </div>
             <div class="author-card-info">
-              <h4 class="author-card-name">{{ author.username }}</h4>
-              <p class="author-card-level">{{ author.userLevel === 1 ? '普通用户' : '管理员' }}</p>
+              <h4 class="author-card-name">
+                {{ author.username }}
+                <!-- VIP/SVIP 徽章 -->
+                <span v-if="author.userLevel === 1" class="level-badge vip-badge">VIP</span>
+                <span v-if="author.userLevel === 2" class="level-badge svip-badge">SVIP</span>
+              </h4>
+              <p class="author-card-level">{{ getUserLevelText(author.userLevel) }}</p>
             </div>
           </div>
           
@@ -649,23 +661,34 @@ window.copyCodeFromButton = async function(button) {
 }
 
 
-// 获取作者信息
+// 获取作者信息和统计数据
 const fetchAuthorInfo = async (userId) => {
   try {
     const token = localStorage.getItem('token')
-    const response = await axios.get(`/api/user/${userId}`, {
+    
+    // 获取作者基本信息
+    const userResponse = await axios.get(`/api/user/${userId}`, {
       headers: { authentication: token }
     })
     
-    if (response.data.code === 1) {
-      author.value = response.data.data
-      
-      // 获取作者统计（这里暂时用模拟数据）
+    if (userResponse.data.code === 1) {
+      author.value = userResponse.data.data
+    }
+    
+    // 获取作者统计数据（真实数据）
+    const statsResponse = await axios.get(`/api/user/${userId}/stats`, {
+      headers: { authentication: token }
+    })
+    
+    if (statsResponse.data.code === 1) {
+      const stats = statsResponse.data.data
       authorStats.value = {
-        articleCount: Math.floor(Math.random() * 100),
-        followCount: Math.floor(Math.random() * 50),
-        fansCount: Math.floor(Math.random() * 200)
+        articleCount: stats.articleCount || 0,
+        followCount: stats.followingCount || 0,
+        fansCount: stats.followersCount || 0
       }
+      // 更新关注状态
+      isFollowing.value = stats.isFollowing || false
     }
   } catch (error) {
     console.error('获取作者信息失败：', error)
@@ -769,10 +792,35 @@ const toggleCollect = () => {
   // TODO: 调用后端接口
 }
 
-// 关注
-const toggleFollow = () => {
-  isFollowing.value = !isFollowing.value
-  // TODO: 调用后端接口
+// 关注/取消关注
+const toggleFollow = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    
+    if (!token) {
+      alert('请先登录')
+      router.push('/login')
+      return
+    }
+    
+    const response = await axios.post(`/api/user/${author.value.id}/follow`, {}, {
+      headers: { authentication: token }
+    })
+    
+    if (response.data.code === 1) {
+      // 更新关注状态和粉丝数
+      isFollowing.value = response.data.data.isFollowing
+      authorStats.value.fansCount = response.data.data.followersCount
+      
+      console.log('关注操作成功:', isFollowing.value ? '已关注' : '已取消关注')
+    } else {
+      console.error('关注操作失败:', response.data.msg)
+      alert('操作失败：' + response.data.msg)
+    }
+  } catch (error) {
+    console.error('关注请求失败:', error)
+    alert('网络错误，请稍后重试')
+  }
 }
 
 // 分享
@@ -959,6 +1007,20 @@ const getUserLevel = (userId) => {
   // 这里简化处理，实际应该从用户信息中获取
   // 暂时返回1（普通用户）
   return 1
+}
+
+// 获取用户等级文本（userLevel: 0-普通 1-VIP 2-SVIP）
+const getUserLevelText = (userLevel) => {
+  if (userLevel === 2) return '超级会员'
+  if (userLevel === 1) return '尊贵会员'
+  return '普通用户'
+}
+
+// 获取头像容器样式类（userLevel: 0-普通 1-VIP 2-SVIP）
+const getAvatarClass = (userLevel) => {
+  if (userLevel === 2) return 'svip-avatar'
+  if (userLevel === 1) return 'vip-avatar'
+  return 'normal-avatar'
 }
 
 // 跳转到文章
@@ -2170,10 +2232,106 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+/* 头像容器 */
+.avatar-container {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+
 .author-card-avatar {
   width: 56px;
   height: 56px;
   border-radius: 50%;
+  position: relative;
+  z-index: 2;
+}
+
+/* VIP 头像特效 */
+.vip-avatar .author-card-avatar {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+.vip-ring {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  background: linear-gradient(45deg, #FFD700, #FFA500, #FFD700) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: vipRotate 3s linear infinite;
+  z-index: 1;
+}
+
+@keyframes vipRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* SVIP 头像特效 */
+.svip-avatar .author-card-avatar {
+  box-shadow: 0 0 30px rgba(138, 43, 226, 0.8);
+  animation: svipPulse 2s ease-in-out infinite;
+}
+
+@keyframes svipPulse {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(138, 43, 226, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(255, 20, 147, 1);
+  }
+}
+
+.svip-ring {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  background: linear-gradient(90deg, 
+    #FF1493, 
+    #FF69B4, 
+    #FF6347, 
+    #FFD700, 
+    #00FA9A, 
+    #00CED1, 
+    #1E90FF, 
+    #9370DB, 
+    #FF1493
+  ) border-box;
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: svipRainbow 3s linear infinite;
+  z-index: 1;
+}
+
+@keyframes svipRainbow {
+  0% {
+    background-position: 0% 50%;
+    transform: rotate(0deg);
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+    transform: rotate(360deg);
+  }
 }
 
 .author-card-info {
@@ -2185,6 +2343,53 @@ onMounted(() => {
   font-weight: 600;
   color: #333;
   margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 等级徽章 */
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.vip-badge {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+  animation: vipBadgeGlow 2s ease-in-out infinite;
+}
+
+@keyframes vipBadgeGlow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.8);
+  }
+}
+
+.svip-badge {
+  background: linear-gradient(135deg, #FF1493 0%, #9370DB 50%, #1E90FF 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4);
+  animation: svipBadgeGlow 2s ease-in-out infinite;
+}
+
+@keyframes svipBadgeGlow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(138, 43, 226, 0.8);
+  }
 }
 
 .author-card-level {

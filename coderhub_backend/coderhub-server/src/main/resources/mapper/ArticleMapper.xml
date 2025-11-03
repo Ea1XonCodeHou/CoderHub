@@ -136,5 +136,13 @@
         WHERE id = #{id}
     </update>
 
+    <!-- 统计用户发布的文章数量（已发布且已审核通过） -->
+    <select id="countByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM article
+        WHERE user_id = #{userId}
+        AND status = 1
+        AND audit_status = 1
+    </select>
+
 </mapper>
 

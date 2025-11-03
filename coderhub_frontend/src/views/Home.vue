@@ -199,21 +199,33 @@
         <!-- 个人信息卡片 -->
         <div class="info-card">
           <div class="user-profile">
-            <img :src="userInfo.avatar" alt="avatar" class="profile-avatar" />
-            <h3 class="profile-name">{{ userInfo.username }}</h3>
+            <!-- 头像容器（带VIP特效） -->
+            <div class="avatar-container" :class="getAvatarClass(userInfo.userLevel)">
+              <img :src="userInfo.avatar" alt="avatar" class="profile-avatar" />
+              <!-- VIP 光环 (userLevel === 1) -->
+              <div v-if="userInfo.userLevel === 1" class="vip-ring"></div>
+              <!-- SVIP 彩虹光环 (userLevel === 2) -->
+              <div v-if="userInfo.userLevel === 2" class="svip-ring"></div>
+            </div>
+            <h3 class="profile-name">
+              {{ userInfo.username }}
+              <!-- VIP/SVIP 徽章 -->
+              <span v-if="userInfo.userLevel === 1" class="level-badge vip-badge">VIP</span>
+              <span v-if="userInfo.userLevel === 2" class="level-badge svip-badge">SVIP</span>
+            </h3>
             <p class="profile-level">{{ levelText }}</p>
           </div>
           <div class="stats">
             <div class="stat-item">
-              <span class="stat-value">0</span>
+              <span class="stat-value">{{ userStats.articleCount }}</span>
               <span class="stat-label">文章</span>
             </div>
             <div class="stat-item">
-              <span class="stat-value">0</span>
+              <span class="stat-value">{{ userStats.followingCount }}</span>
               <span class="stat-label">关注</span>
             </div>
             <div class="stat-item">
-              <span class="stat-value">0</span>
+              <span class="stat-value">{{ userStats.followersCount }}</span>
               <span class="stat-label">粉丝</span>
             </div>
           </div>
@@ -269,6 +281,13 @@ const selectedCategory = ref('all')
 const sortType = ref('hot')
 const showUserMenu = ref(false)
 const userInfo = ref({})
+
+// 用户统计信息
+const userStats = ref({
+  articleCount: 0,
+  followingCount: 0,
+  followersCount: 0
+})
 
 // 分类列表（从后端获取）
 const categoryList = ref([])
@@ -419,14 +438,20 @@ const fetchHotTags = async () => {
   }
 }
 
-// 用户等级文本
+// 用户等级文本（userLevel: 0-普通 1-VIP 2-SVIP）
 const levelText = computed(() => {
   const level = userInfo.value.userLevel
-  if (level === 0) return '普通会员'
-  if (level === 1) return 'VIP会员'
-  if (level === 2) return 'SVIP会员'
-  return '普通会员'
+  if (level === 2) return '超级会员'
+  if (level === 1) return '尊贵会员'
+  return '普通用户'
 })
+
+// 获取头像容器样式类（userLevel: 0-普通 1-VIP 2-SVIP）
+const getAvatarClass = (userLevel) => {
+  if (userLevel === 2) return 'svip-avatar'
+  if (userLevel === 1) return 'vip-avatar'
+  return 'normal-avatar'
+}
 
 // 切换用户菜单
 const toggleUserMenu = () => {
@@ -442,6 +467,29 @@ const goToProfile = () => {
 // 跳转到文章编辑器
 const goToEditor = () => {
   router.push('/article/editor')
+}
+
+// 获取用户统计信息
+const fetchUserStats = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token || !userInfo.value.id) return
+    
+    const response = await axios.get(`/api/user/${userInfo.value.id}/stats`, {
+      headers: { authentication: token }
+    })
+    
+    if (response.data.code === 1) {
+      const stats = response.data.data
+      userStats.value = {
+        articleCount: stats.articleCount || 0,
+        followingCount: stats.followingCount || 0,
+        followersCount: stats.followersCount || 0
+      }
+    }
+  } catch (error) {
+    console.error('获取用户统计信息失败：', error)
+  }
 }
 
 // 退出登录
@@ -465,6 +513,7 @@ onMounted(() => {
   fetchCategories()
   fetchArticles()
   fetchHotTags()
+  fetchUserStats()
 })
 </script>
 
@@ -1003,13 +1052,111 @@ onMounted(() => {
 .user-profile {
   text-align: center;
   margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 头像容器（与ArticleDetail保持一致） */
+.avatar-container {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 12px;
 }
 
 .profile-avatar {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  margin-bottom: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+/* VIP 头像特效 */
+.vip-avatar .profile-avatar {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+.vip-ring {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  background: linear-gradient(45deg, #FFD700, #FFA500, #FFD700) border-box;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: vipRotate 3s linear infinite;
+  z-index: 1;
+}
+
+@keyframes vipRotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* SVIP 头像特效 */
+.svip-avatar .profile-avatar {
+  box-shadow: 0 0 30px rgba(138, 43, 226, 0.8);
+  animation: svipPulse 2s ease-in-out infinite;
+}
+
+@keyframes svipPulse {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(138, 43, 226, 0.8);
+  }
+  50% {
+    box-shadow: 0 0 50px rgba(255, 20, 147, 1);
+  }
+}
+
+.svip-ring {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border-radius: 50%;
+  border: 4px solid transparent;
+  background: linear-gradient(90deg, 
+    #FF1493, 
+    #FF69B4, 
+    #FF6347, 
+    #FFD700, 
+    #00FA9A, 
+    #00CED1, 
+    #1E90FF, 
+    #9370DB, 
+    #FF1493
+  ) border-box;
+  background-size: 300% 300%;
+  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: svipRainbow 3s linear infinite;
+  z-index: 1;
+}
+
+@keyframes svipRainbow {
+  0% {
+    background-position: 0% 50%;
+    transform: rotate(0deg);
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+    transform: rotate(360deg);
+  }
 }
 
 .profile-name {
@@ -1017,6 +1164,54 @@ onMounted(() => {
   font-weight: 600;
   color: #2c3e50;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* 等级徽章 */
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.vip-badge {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+  animation: vipBadgeGlow 2s ease-in-out infinite;
+}
+
+@keyframes vipBadgeGlow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.8);
+  }
+}
+
+.svip-badge {
+  background: linear-gradient(135deg, #FF1493 0%, #9370DB 50%, #1E90FF 100%);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4);
+  animation: svipBadgeGlow 2s ease-in-out infinite;
+}
+
+@keyframes svipBadgeGlow {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(138, 43, 226, 0.8);
+  }
 }
 
 .profile-level {

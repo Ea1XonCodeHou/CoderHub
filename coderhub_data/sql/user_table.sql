@@ -17,7 +17,7 @@ CREATE TABLE `user` (
   `phone` VARCHAR(11) UNIQUE COMMENT '手机号（用于登录）',
   `email` VARCHAR(100) UNIQUE COMMENT '邮箱（用于登录）',
   `avatar` VARCHAR(255) DEFAULT 'https://coderhub-avatar.oss-cn-hangzhou.aliyuncs.com/default.png' COMMENT '头像URL',
-  `user_level` VARCHAR(20) DEFAULT 'NORMAL' COMMENT '会员等级：NORMAL-普通 VIP-会员 SVIP-超级会员',
+  `user_level` INT(20) DEFAULT 'NORMAL' COMMENT '会员等级：NORMAL-普通 VIP-会员 SVIP-超级会员',
   `status` INT DEFAULT 1 COMMENT '账号状态：1-正常 0-禁用',
   `role` VARCHAR(20) DEFAULT 'USER' COMMENT '角色：USER-普通用户 ADMIN-管理员',
   `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

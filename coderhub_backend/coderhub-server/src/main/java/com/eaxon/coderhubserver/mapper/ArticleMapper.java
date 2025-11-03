@@ -86,5 +86,10 @@ public interface ArticleMapper {
      * 更新文章评论数
      */
     void updateCommentCount(@Param("id") String id, @Param("commentCount") Integer commentCount);
+
+    /**
+     * 统计用户发布的文章数量（已发布状态）
+     */
+    Integer countByUserId(String userId);
 }
 
