@@ -223,11 +223,37 @@
           <h3 class="recommend-title">相关推荐</h3>
           <div class="recommend-list">
             <div v-for="item in relatedArticles" :key="item.id" class="recommend-item" @click="goToArticle(item.id)">
-              <h4 class="recommend-item-title">{{ item.title }}</h4>
-              <div class="recommend-item-meta">
-                <span>{{ item.viewCount }} 阅读</span>
-                <span class="dot">·</span>
-                <span>{{ item.likeCount }} 点赞</span>
+              <div v-if="item.coverImage" class="recommend-item-cover">
+                <img :src="item.coverImage" :alt="item.title" />
+              </div>
+              <div class="recommend-item-content">
+                <h4 class="recommend-item-title">{{ item.title }}</h4>
+                <div class="recommend-item-meta">
+                  <span>{{ item.viewCount }} 阅读</span>
+                  <span class="dot">·</span>
+                  <span>{{ item.likeCount }} 点赞</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 猜你喜欢 -->
+        <div class="recommend-card guess-like-card">
+          <h3 class="recommend-title">猜你喜欢</h3>
+          <div class="recommend-list">
+            <div v-for="item in guessYouLike" :key="item.id" class="recommend-item" @click="goToArticle(item.id)">
+              <div v-if="item.coverImage" class="recommend-item-cover">
+                <img :src="item.coverImage" :alt="item.title" />
+              </div>
+              <div class="recommend-item-content">
+                <h4 class="recommend-item-title">{{ item.title }}</h4>
+                <div class="recommend-item-meta">
+                  <svg viewBox="0 0 24 24" fill="none" class="hot-icon">
+                    <path d="M17.66 11.2C17.43 10.9 17.15 10.64 16.89 10.38C16.22 9.78 15.46 9.35 14.82 8.72C13.33 7.26 13 4.85 13.95 3C13 3.23 12.17 3.75 11.46 4.32C8.87 6.4 7.85 10.07 9.07 13.22C9.11 13.32 9.15 13.42 9.15 13.55C9.15 13.77 9 13.97 8.8 14.05C8.57 14.15 8.33 14.09 8.14 13.93C8.08 13.88 8.04 13.83 8 13.76C6.87 12.33 6.69 10.28 7.45 8.64C5.78 10 4.87 12.3 5 14.47C5.06 14.97 5.12 15.47 5.29 15.97C5.43 16.57 5.7 17.17 6 17.7C7.08 19.43 8.95 20.67 10.96 20.92C13.1 21.19 15.39 20.8 17.03 19.32C18.86 17.66 19.5 15 18.56 12.72L18.43 12.46C18.22 12 17.66 11.2 17.66 11.2Z" fill="currentColor"/>
+                  </svg>
+                  <span>{{ item.viewCount }} 阅读</span>
+                </div>
               </div>
             </div>
           </div>
@@ -265,12 +291,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { marked } from 'marked'
+import axios from 'axios'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
-import axios from 'axios'
+import { marked } from 'marked'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const router = useRouter()
 const route = useRoute()
@@ -338,6 +364,9 @@ const commentsSection = ref(null)
 // 相关推荐
 const relatedArticles = ref([])
 
+// 猜你喜欢
+const guessYouLike = ref([])
+
 // 渲染的Markdown内容
 const renderedContent = ref('')
 
@@ -346,13 +375,52 @@ const isAuthor = computed(() => {
   return currentUser.value.id === author.value.id
 })
 
-// 配置marked
-marked.setOptions({
-  highlight: function(code, lang) {
-    const language = hljs.getLanguage(lang) ? lang : 'plaintext'
-    return hljs.highlight(code, { language }).value
-  },
-  langPrefix: 'hljs language-',
+// 配置marked - 自定义代码块渲染器生成MacOS风格代码块
+const renderer = {
+  code(code, language) {
+    // 确定语言
+    const lang = language || 'plaintext'
+    
+    // 使用highlight.js进行语法高亮
+    let highlightedCode
+    try {
+      if (lang !== 'plaintext' && hljs.getLanguage(lang)) {
+        highlightedCode = hljs.highlight(code, { language: lang }).value
+      } else {
+        highlightedCode = hljs.highlightAuto(code).value
+      }
+    } catch (e) {
+      highlightedCode = code
+    }
+    
+    // 将代码内容进行Base64编码，避免特殊字符问题
+    const encodedCode = btoa(encodeURIComponent(code))
+    
+    // 生成MacOS风格的HTML结构
+    return `
+      <div class="code-block-macos">
+        <div class="code-block-header">
+          <div class="code-block-dots">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+          </div>
+          <div class="code-block-lang">${lang.toUpperCase()}</div>
+          <button class="code-copy-btn" data-code="${encodedCode}" onclick="copyCodeFromButton(this)">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M5.75 4.75H10.25M5.75 7.75H10.25M5.75 10.75H8.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 5.25C3 4.00736 4.00736 3 5.25 3H10.75C11.9926 3 13 4.00736 13 5.25V13.25C13 14.4926 11.9926 15.5 10.75 15.5H5.25C4.00736 15.5 3 14.4926 3 13.25V5.25Z" stroke="currentColor" stroke-width="1.5"/></svg>
+            <span>Copy</span>
+          </button>
+        </div>
+        <div class="code-block-content">
+          <pre><code class="hljs language-${lang}">${highlightedCode}</code></pre>
+        </div>
+      </div>
+    `
+  }
+}
+
+marked.use({ 
+  renderer,
   breaks: true,
   gfm: true
 })
@@ -378,8 +446,14 @@ const fetchArticleDetail = async () => {
         await loadMarkdownContent(article.value.contentUrl)
       }
       
-      // 获取相关推荐
+      // 查询用户是否已点赞（如果已登录）
+      if (token) {
+        fetchLikeStatus()
+      }
+      
+      // 获取相关推荐和猜你喜欢
       fetchRelatedArticles()
+      fetchGuessYouLike()
     }
   } catch (error) {
     console.error('获取文章详情失败：', error)
@@ -397,6 +471,47 @@ const loadMarkdownContent = async (url) => {
     renderedContent.value = '<p style="color: red;">文章内容加载失败</p>'
   }
 }
+
+// 全局复制函数（从data-code属性中读取Base64编码的代码）
+window.copyCodeFromButton = async function(button) {
+  try {
+    // 从data-code属性解码代码内容
+    const encodedCode = button.getAttribute('data-code')
+    const code = decodeURIComponent(atob(encodedCode))
+    
+    await navigator.clipboard.writeText(code)
+    
+    // 更新按钮状态
+    button.classList.add('copied')
+    button.innerHTML = `
+      <svg viewBox="0 0 16 16" fill="none"><path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z" fill="currentColor"/></svg>
+      <span>Copied!</span>
+    `
+    
+    // 2秒后恢复
+    setTimeout(() => {
+      button.classList.remove('copied')
+      button.innerHTML = `
+        <svg viewBox="0 0 16 16" fill="none"><path d="M5.75 4.75H10.25M5.75 7.75H10.25M5.75 10.75H8.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 5.25C3 4.00736 4.00736 3 5.25 3H10.75C11.9926 3 13 4.00736 13 5.25V13.25C13 14.4926 11.9926 15.5 10.75 15.5H5.25C4.00736 15.5 3 14.4926 3 13.25V5.25Z" stroke="currentColor" stroke-width="1.5"/></svg>
+        <span>Copy</span>
+      `
+    }, 2000)
+  } catch (err) {
+    console.error('复制失败：', err)
+    // 显示错误状态
+    button.innerHTML = `
+      <svg viewBox="0 0 16 16" fill="none"><path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span>Error</span>
+    `
+    setTimeout(() => {
+      button.innerHTML = `
+        <svg viewBox="0 0 16 16" fill="none"><path d="M5.75 4.75H10.25M5.75 7.75H10.25M5.75 10.75H8.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M3 5.25C3 4.00736 4.00736 3 5.25 3H10.75C11.9926 3 13 4.00736 13 5.25V13.25C13 14.4926 11.9926 15.5 10.75 15.5H5.25C4.00736 15.5 3 14.4926 3 13.25V5.25Z" stroke="currentColor" stroke-width="1.5"/></svg>
+        <span>Copy</span>
+      `
+    }, 2000)
+  }
+}
+
 
 // 获取作者信息
 const fetchAuthorInfo = async (userId) => {
@@ -440,11 +555,75 @@ const fetchRelatedArticles = async () => {
   }
 }
 
+// 获取"猜你喜欢"（浏览量最高的前3篇文章）
+const fetchGuessYouLike = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const response = await axios.get('/api/article/list', {
+      headers: { authentication: token }
+    })
+    
+    if (response.data.code === 1) {
+      // 按浏览量排序，取前3篇（排除当前文章）
+      guessYouLike.value = response.data.data
+        .filter(item => item.id !== article.value.id)
+        .sort((a, b) => b.viewCount - a.viewCount)
+        .slice(0, 3)
+    }
+  } catch (error) {
+    console.error('获取猜你喜欢失败：', error)
+  }
+}
+
+// 查询点赞状态
+const fetchLikeStatus = async () => {
+  try {
+    const articleId = route.params.id
+    const token = localStorage.getItem('token')
+    
+    const response = await axios.get(`/api/article/${articleId}/like/status`, {
+      headers: { authentication: token }
+    })
+    
+    if (response.data.code === 1) {
+      isLiked.value = response.data.data
+      console.log('点赞状态:', isLiked.value ? '已点赞' : '未点赞')
+    }
+  } catch (error) {
+    console.error('获取点赞状态失败:', error)
+  }
+}
+
 // 点赞
-const toggleLike = () => {
-  isLiked.value = !isLiked.value
-  article.value.likeCount += isLiked.value ? 1 : -1
-  // TODO: 调用后端接口
+const toggleLike = async () => {
+  try {
+    const articleId = route.params.id
+    const token = localStorage.getItem('token')
+    
+    if (!token) {
+      alert('请先登录')
+      router.push('/login')
+      return
+    }
+    
+    const response = await axios.post(`/api/article/${articleId}/like`, {}, {
+      headers: { authentication: token }
+    })
+    
+    if (response.data.code === 1) {
+      // 更新点赞状态和数量
+      isLiked.value = response.data.data.liked
+      article.value.likeCount = response.data.data.likeCount
+      
+      console.log('点赞操作成功:', isLiked.value ? '已点赞' : '已取消点赞')
+    } else {
+      console.error('点赞失败:', response.data.msg)
+      alert('操作失败：' + response.data.msg)
+    }
+  } catch (error) {
+    console.error('点赞请求失败:', error)
+    alert('网络错误，请稍后重试')
+  }
 }
 
 // 收藏
@@ -576,16 +755,11 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   cursor: pointer;
-  transition: transform 0.3s;
-}
-
-.nav-logo:hover {
-  transform: scale(1.05);
 }
 
 .nav-logo svg {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
 }
 
 .logo-text {
@@ -598,36 +772,41 @@ onMounted(() => {
 .nav-menu {
   display: flex;
   list-style: none;
-  margin: 0;
+  margin: 0 auto;
   padding: 0;
-  gap: 8px;
+  gap: 32px;
 }
 
 .nav-menu li {
-  padding: 8px 16px;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: all 0.3s;
+  position: relative;
 }
 
-.nav-menu li:hover {
-  background: #f0f4f8;
-}
-
-.nav-menu li.active {
-  background: #2c3e50;
-  color: white;
+.nav-menu li a {
+  display: block;
+  padding: 8px 0;
+  font-size: 15px;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.2s;
 }
 
 .nav-menu li.active a {
-  color: white;
+  color: #2c3e50;
+  font-weight: 600;
 }
 
-.nav-menu a {
-  text-decoration: none;
+.nav-menu li.active::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #2c3e50;
+}
+
+.nav-menu li:hover a {
   color: #2c3e50;
-  font-weight: 500;
-  font-size: 15px;
 }
 
 /* 右侧操作区 */
@@ -640,22 +819,21 @@ onMounted(() => {
 .btn-write {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
+  gap: 6px;
+  padding: 8px 16px;
   background: #2c3e50;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
 }
 
 .btn-write:hover {
   background: #34495e;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.3);
+  transform: translateY(-1px);
 }
 
 .btn-write svg {
@@ -670,16 +848,10 @@ onMounted(() => {
 }
 
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 2px solid #e2e8f0;
-  transition: all 0.3s;
-}
-
-.user-avatar:hover {
-  border-color: #2c3e50;
-  transform: scale(1.1);
 }
 
 .user-menu {
@@ -724,17 +896,21 @@ onMounted(() => {
   margin: 24px auto;
   padding: 0 24px;
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 880px) 320px;
   gap: 24px;
   flex: 1;
+  justify-content: center;
 }
 
 /* ==================== 左侧主体 ==================== */
 .article-main {
+  width: 100%;
+  max-width: 880px;
   background: white;
   border-radius: 12px;
   padding: 40px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
 
 /* 文章头部 */
@@ -831,15 +1007,20 @@ onMounted(() => {
 
 /* 封面 */
 .article-cover {
+  width: 100%;
   margin-bottom: 32px;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .article-cover img {
   width: 100%;
-  max-height: 400px;
-  object-fit: cover;
+  height: auto;
+  max-height: 480px;
+  object-fit: contain;
+  background: #f5f7fa;
+  display: block;
 }
 
 /* 文章正文 */
@@ -848,11 +1029,22 @@ onMounted(() => {
   font-size: 16px;
   line-height: 1.8;
   color: #333;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  word-wrap: break-word;
 }
 
 /* Markdown样式 */
 .markdown-body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.markdown-body * {
+  max-width: 100%;
 }
 
 .markdown-body h1,
@@ -884,50 +1076,306 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
-.markdown-body code {
-  padding: 2px 6px;
-  background: #f6f8fa;
-  border-radius: 4px;
-  font-size: 14px;
-  font-family: 'Consolas', 'Monaco', monospace;
+/* ==================== 代码块样式 - MacOS风格 ==================== */
+
+/* 内联代码样式（行内代码） - 使用:deep()穿透scoped */
+.article-content :deep(code:not(.hljs)) {
+  padding: 3px 8px;
+  background: linear-gradient(135deg, #f6f8fa 0%, #f0f2f5 100%);
+  border: 1px solid #e1e4e8;
+  border-radius: 5px;
+  font-size: 13.5px;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  color: #e83e8c;
+  font-weight: 500;
 }
 
-.markdown-body pre {
-  padding: 0;
-  background: #282c34;
-  border-radius: 12px;
+/* MacOS风格代码块容器 */
+.article-content :deep(.code-block-macos) {
+  margin: 28px 0;
+  border-radius: 10px;
   overflow: hidden;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: #1e1e1e;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 
+              0 2px 8px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.article-content :deep(.code-block-macos:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2), 
+              0 5px 15px rgba(0, 0, 0, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* MacOS标题栏 */
+.article-content :deep(.code-block-header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(180deg, #323232 0%, #282828 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
   position: relative;
 }
 
-.markdown-body pre::before {
+.article-content :deep(.code-block-header::after) {
   content: '';
-  display: block;
-  height: 36px;
-  background: #21252b;
-  border-bottom: 1px solid #181a1f;
-}
-
-.markdown-body pre::after {
-  content: '●●●';
   position: absolute;
-  top: 12px;
-  left: 16px;
-  color: #4b5363;
-  font-size: 12px;
-  letter-spacing: 4px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.05) 50%, 
+    transparent
+  );
 }
 
-.markdown-body pre code {
-  background: none;
-  padding: 20px;
-  color: #abb2bf;
+/* MacOS三个圆点 */
+.article-content :deep(.code-block-dots) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 1;
+}
+
+.article-content :deep(.code-block-dots .dot) {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.article-content :deep(.dot-red) {
+  background: linear-gradient(135deg, #ff5f57 0%, #ff4136 100%);
+  box-shadow: 
+    0 0 0 0.5px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.article-content :deep(.dot-red:hover) {
+  transform: scale(1.1);
+  filter: brightness(1.1);
+}
+
+.article-content :deep(.dot-yellow) {
+  background: linear-gradient(135deg, #ffbd2e 0%, #ffaa00 100%);
+  box-shadow: 
+    0 0 0 0.5px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.article-content :deep(.dot-yellow:hover) {
+  transform: scale(1.1);
+  filter: brightness(1.1);
+}
+
+.article-content :deep(.dot-green) {
+  background: linear-gradient(135deg, #28ca42 0%, #00ca4e 100%);
+  box-shadow: 
+    0 0 0 0.5px rgba(0, 0, 0, 0.3),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.article-content :deep(.dot-green:hover) {
+  transform: scale(1.1);
+  filter: brightness(1.1);
+}
+
+/* 语言标签 */
+.article-content :deep(.code-block-lang) {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  color: #707070;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* 复制按钮 */
+.article-content :deep(.code-copy-btn) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #9a9a9a;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  z-index: 1;
+}
+
+.article-content :deep(.code-copy-btn:hover) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #d4d4d4;
+  transform: translateY(-1px);
+}
+
+.article-content :deep(.code-copy-btn:active) {
+  transform: translateY(0);
+}
+
+.article-content :deep(.code-copy-btn.copied) {
+  background: rgba(40, 202, 66, 0.15);
+  border-color: rgba(40, 202, 66, 0.35);
+  color: #28ca42;
+}
+
+.article-content :deep(.code-copy-btn svg) {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  stroke-width: 1.8;
+}
+
+/* 代码内容区域 */
+.article-content :deep(.code-block-content) {
+  background: #1e1e1e;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.article-content :deep(.code-block-content::-webkit-scrollbar) {
+  height: 12px;
+}
+
+.article-content :deep(.code-block-content::-webkit-scrollbar-track) {
+  background: #1a1a1a;
+}
+
+.article-content :deep(.code-block-content::-webkit-scrollbar-thumb) {
+  background: #404040;
+  border-radius: 6px;
+  border: 3px solid #1a1a1a;
+}
+
+.article-content :deep(.code-block-content::-webkit-scrollbar-thumb:hover) {
+  background: #4a4a4a;
+}
+
+.article-content :deep(.code-block-content pre) {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.article-content :deep(.code-block-content code) {
   display: block;
+  padding: 20px;
   font-size: 14px;
-  line-height: 1.6;
-  font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  line-height: 1.7;
+  font-family: 'Fira Code', 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+  color: #d4d4d4;
+  white-space: pre;
+  word-wrap: normal;
+  tab-size: 4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-weight: 400;
+  background: none;
+  border: none;
+}
+
+/* Highlight.js 语法高亮颜色 - VS Code Dark+ 主题 */
+.article-content :deep(.hljs-keyword),
+.article-content :deep(.hljs-selector-tag),
+.article-content :deep(.hljs-literal),
+.article-content :deep(.hljs-type) {
+  color: #569cd6;
+}
+
+.article-content :deep(.hljs-string),
+.article-content :deep(.hljs-attr),
+.article-content :deep(.hljs-attribute) {
+  color: #ce9178;
+}
+
+.article-content :deep(.hljs-number) {
+  color: #b5cea8;
+}
+
+.article-content :deep(.hljs-built_in),
+.article-content :deep(.hljs-class .hljs-title) {
+  color: #4ec9b0;
+}
+
+.article-content :deep(.hljs-function .hljs-title),
+.article-content :deep(.hljs-title.function_) {
+  color: #dcdcaa;
+}
+
+.article-content :deep(.hljs-comment),
+.article-content :deep(.hljs-quote) {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.article-content :deep(.hljs-variable),
+.article-content :deep(.hljs-template-variable),
+.article-content :deep(.hljs-params) {
+  color: #9cdcfe;
+}
+
+.article-content :deep(.hljs-tag),
+.article-content :deep(.hljs-name),
+.article-content :deep(.hljs-selector-id) {
+  color: #569cd6;
+}
+
+.article-content :deep(.hljs-regexp),
+.article-content :deep(.hljs-link) {
+  color: #d16969;
+}
+
+.article-content :deep(.hljs-meta) {
+  color: #9cdcfe;
+}
+
+.article-content :deep(.hljs-selector-class) {
+  color: #d7ba7d;
+}
+
+.article-content :deep(.hljs-symbol),
+.article-content :deep(.hljs-bullet) {
+  color: #4fc1ff;
+}
+
+.article-content :deep(.hljs-emphasis) {
+  font-style: italic;
+}
+
+.article-content :deep(.hljs-strong) {
+  font-weight: 700;
+}
+
+.article-content :deep(.hljs-deletion) {
+  color: #d16969;
+  background: rgba(209, 105, 105, 0.1);
+}
+
+.article-content :deep(.hljs-addition) {
+  color: #b5cea8;
+  background: rgba(181, 206, 168, 0.1);
 }
 
 .markdown-body blockquote {
@@ -957,9 +1405,13 @@ onMounted(() => {
 }
 
 .markdown-body img {
-  max-width: 100%;
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
   border-radius: 8px;
-  margin: 16px 0;
+  margin: 16px auto;
+  display: block;
+  object-fit: contain;
 }
 
 /* 互动栏 */
@@ -1176,6 +1628,30 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: sticky;
+  top: 80px;
+  height: fit-content;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* 自定义滚动条 */
+.article-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.article-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.article-sidebar::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 3px;
+}
+
+.article-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #c0c0c0;
 }
 
 /* 作者卡片 */
@@ -1184,8 +1660,6 @@ onMounted(() => {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  position: sticky;
-  top: 80px;
 }
 
 .author-card-header {
@@ -1274,6 +1748,7 @@ onMounted(() => {
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin-bottom: 16px;
 }
 
 .recommend-title {
@@ -1290,14 +1765,44 @@ onMounted(() => {
 }
 
 .recommend-item {
+  display: flex;
+  gap: 12px;
   cursor: pointer;
   padding: 12px;
   border-radius: 8px;
   transition: all 0.3s;
+  border: 1px solid transparent;
 }
 
 .recommend-item:hover {
   background: #f8f9fa;
+  border-color: #e8e8e8;
+  transform: translateX(2px);
+}
+
+.recommend-item-cover {
+  flex-shrink: 0;
+  width: 80px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f5f7fa;
+}
+
+.recommend-item-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.recommend-item:hover .recommend-item-cover img {
+  transform: scale(1.1);
+}
+
+.recommend-item-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .recommend-item-title {
@@ -1308,6 +1813,7 @@ onMounted(() => {
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1325,6 +1831,32 @@ onMounted(() => {
   height: 3px;
   background: #ccc;
   border-radius: 50%;
+}
+
+/* 猜你喜欢卡片特殊样式 */
+.guess-like-card {
+  background: linear-gradient(135deg, #fff5f5 0%, #fff8f0 100%);
+  border: 1px solid #ffe4e4;
+}
+
+.guess-like-card .recommend-title {
+  color: #d97706;
+}
+
+.guess-like-card .recommend-item {
+  background: white;
+}
+
+.guess-like-card .recommend-item:hover {
+  background: #fffbf5;
+  border-color: #ffd4a3;
+}
+
+.hot-icon {
+  width: 14px;
+  height: 14px;
+  color: #f59e0b;
+  flex-shrink: 0;
 }
 
 /* ==================== 页脚 ==================== */

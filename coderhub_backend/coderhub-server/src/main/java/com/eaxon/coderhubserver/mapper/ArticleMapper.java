@@ -76,5 +76,10 @@ public interface ArticleMapper {
     int countByCategoryIdAndStatus(@Param("categoryId") String categoryId, 
                                     @Param("status") Integer status, 
                                     @Param("auditStatus") Integer auditStatus);
+
+    /**
+     * 更新文章点赞数
+     */
+    void updateLikeCount(@Param("id") String id, @Param("likeCount") Integer likeCount);
 }
 

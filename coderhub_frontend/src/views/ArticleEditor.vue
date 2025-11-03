@@ -314,6 +314,16 @@
       @change="handleCoverUpload"
       style="display: none"
     >
+    
+    <!-- Toast通知组件 -->
+    <Toast 
+      :show="toast.show"
+      :title="toast.title"
+      :message="toast.message"
+      :type="toast.type"
+      :duration="toast.duration"
+      @update:show="toast.show = $event"
+    />
   </div>
 </template>
 
@@ -324,8 +334,29 @@ import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 import axios from 'axios'
+import Toast from '../components/Toast.vue'
 
 const router = useRouter()
+
+// Toast通知状态
+const toast = ref({
+  show: false,
+  title: '提示',
+  message: '',
+  type: 'info',
+  duration: 3000
+})
+
+// showToast 辅助函数
+const showToast = (title, message = '', type = 'success', duration = 3000) => {
+  toast.value = {
+    show: true,
+    title,
+    message,
+    type,
+    duration
+  }
+}
 
 // 表单数据
 const form = ref({
@@ -463,7 +494,7 @@ const selectSuggestedTag = (tagName) => {
     return
   }
   if (form.value.tags.length >= 5) {
-    alert('最多只能添加5个标签')
+    showToast('标签数量限制', '最多只能添加5个标签', 'warning')
     return
   }
   form.value.tags.push(tagName)
@@ -477,11 +508,11 @@ const addCurrentTag = () => {
   if (!tag) return
   
   if (form.value.tags.includes(tag)) {
-    alert('标签已存在')
+    showToast('标签已存在', '该标签已经添加过了', 'warning')
     return
   }
   if (form.value.tags.length >= 5) {
-    alert('最多只能添加5个标签')
+    showToast('标签数量限制', '最多只能添加5个标签', 'warning')
     return
   }
   form.value.tags.push(tag)
@@ -514,13 +545,13 @@ const handleCoverUpload = async (event) => {
 
   // 验证文件类型
   if (!file.type.startsWith('image/')) {
-    alert('请选择图片文件')
+    showToast('文件类型错误', '请选择图片文件', 'error')
     return
   }
 
   // 验证文件大小（5MB）
   if (file.size > 5 * 1024 * 1024) {
-    alert('封面图大小不能超过5MB')
+    showToast('文件过大', '封面图大小不能超过5MB', 'error')
     return
   }
 
@@ -536,13 +567,13 @@ const handleCoverUpload = async (event) => {
 
     if (response.data.code === 1) {
       form.value.coverImage = response.data.data
-      alert('封面上传成功')
+      showToast('上传成功', '封面图已上传', 'success')
     } else {
-      alert('封面上传失败：' + response.data.msg)
+      showToast('上传失败', response.data.msg, 'error')
     }
   } catch (error) {
     console.error('封面上传失败：', error)
-    alert('封面上传失败')
+    showToast('上传失败', '网络错误，请重试', 'error')
   }
 
   // 清空input
@@ -606,12 +637,12 @@ const handleImageUpload = async (event) => {
   if (!file) return
 
   if (!file.type.startsWith('image/')) {
-    alert('请选择图片文件')
+    showToast('文件类型错误', '请选择图片文件', 'error')
     return
   }
 
   if (file.size > 10 * 1024 * 1024) {
-    alert('图片大小不能超过10MB')
+    showToast('文件过大', '图片大小不能超过10MB', 'error')
     return
   }
 
@@ -640,10 +671,12 @@ const handleImageUpload = async (event) => {
         textarea.focus()
         textarea.setSelectionRange(start + markdown.length, start + markdown.length)
       }, 0)
+      
+      showToast('上传成功', '图片已插入到编辑器', 'success')
     }
   } catch (error) {
     console.error('图片上传失败：', error)
-    alert('图片上传失败')
+    showToast('上传失败', '网络错误，请重试', 'error')
   }
 
   imageInput.value.value = ''
@@ -665,13 +698,13 @@ const saveDraft = async () => {
     })
 
     if (response.data.code === 1) {
-      alert('草稿保存成功')
+      showToast('保存成功', '草稿已保存', 'success')
     } else {
-      alert('保存失败：' + response.data.msg)
+      showToast('保存失败', response.data.msg, 'error')
     }
   } catch (error) {
     console.error('保存草稿失败：', error)
-    alert('保存草稿失败')
+    showToast('保存失败', '网络错误，请重试', 'error')
   }
 }
 
@@ -692,32 +725,34 @@ const publishArticle = async () => {
     })
 
     if (response.data.code === 1) {
-      alert('文章发布成功！')
-      router.push('/home')
+      showToast('发布成功！', '文章已成功发布', 'success', 2000)
+      setTimeout(() => {
+        router.push('/home')
+      }, 2000)
     } else {
-      alert('发布失败：' + response.data.msg)
+      showToast('发布失败', response.data.msg, 'error')
     }
   } catch (error) {
     console.error('发布文章失败：', error)
-    alert('发布文章失败')
+    showToast('发布失败', '网络错误，请重试', 'error')
   }
 }
 
 const validateForm = () => {
   if (!form.value.title.trim()) {
-    alert('请输入文章标题')
+    showToast('标题不能为空', '请输入文章标题', 'warning')
     return false
   }
   if (!form.value.content.trim()) {
-    alert('请输入文章内容')
+    showToast('内容不能为空', '请输入文章内容', 'warning')
     return false
   }
   if (!form.value.categoryId) {
-    alert('请选择文章分类')
+    showToast('请选择分类', '文章必须选择一个分类', 'warning')
     return false
   }
   if (form.value.tags.length === 0) {
-    alert('请至少添加一个标签')
+    showToast('缺少标签', '请至少添加一个标签', 'warning')
     return false
   }
   return true
@@ -768,7 +803,7 @@ const addReference = (article) => {
   
   // 最多添加3篇参考文章
   if (referenceArticles.value.length >= 3) {
-    alert('最多只能添加3篇参考文章')
+    showToast('参考文章数量限制', '最多只能添加3篇参考文章', 'warning')
     return
   }
   
@@ -778,6 +813,8 @@ const addReference = (article) => {
     viewCount: article.viewCount || 0,
     likeCount: article.likeCount || 0
   })
+  
+  showToast('已添加参考', '文章已添加到参考列表', 'success', 2000)
 }
 
 // 移除参考文章
@@ -1703,16 +1740,28 @@ onMounted(() => {
 .markdown-preview :deep(pre) {
   background: #282c34;
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow-x: auto;
   margin: 16px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .markdown-preview :deep(pre code) {
   padding: 0;
   background: transparent;
-  color: inherit;
+  color: #abb2bf !important; /* 亮色代码文字 */
+  display: block;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
 }
+
+/* 代码高亮颜色覆盖 */
+.markdown-preview :deep(pre code .hljs-keyword) { color: #c678dd !important; }
+.markdown-preview :deep(pre code .hljs-string) { color: #98c379 !important; }
+.markdown-preview :deep(pre code .hljs-number) { color: #d19a66 !important; }
+.markdown-preview :deep(pre code .hljs-function) { color: #61afef !important; }
+.markdown-preview :deep(pre code .hljs-comment) { color: #5c6370 !important; }
 
 .markdown-preview :deep(img) {
   max-width: 100%;

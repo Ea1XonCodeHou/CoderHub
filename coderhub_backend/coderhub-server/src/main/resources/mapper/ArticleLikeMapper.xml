@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.ArticleLikeMapper">
+
+    <!-- 插入点赞记录 -->
+    <insert id="insert">
+        INSERT INTO article_like (
+            id, user_id, article_id, create_time
+        ) VALUES (
+            #{id}, #{userId}, #{articleId}, #{createTime}
+        )
+    </insert>
+
+    <!-- 删除点赞记录 -->
+    <delete id="delete">
+        DELETE FROM article_like
+        WHERE user_id = #{userId} AND article_id = #{articleId}
+    </delete>
+
+    <!-- 查询用户是否已点赞该文章 -->
+    <select id="getByUserIdAndArticleId" resultType="com.eaxon.coderhubpojo.entity.ArticleLike">
+        SELECT * FROM article_like
+        WHERE user_id = #{userId} AND article_id = #{articleId}
+    </select>
+
+    <!-- 统计文章点赞数 -->
+    <select id="countByArticleId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM article_like
+        WHERE article_id = #{articleId}
+    </select>
+
+</mapper>
+

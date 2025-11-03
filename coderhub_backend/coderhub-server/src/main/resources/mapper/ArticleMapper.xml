@@ -40,6 +40,7 @@
             <if test="status != null">status = #{status},</if>
             <if test="isTop != null">is_top = #{isTop},</if>
             <if test="isOriginal != null">is_original = #{isOriginal},</if>
+            <if test="likeCount != null">like_count = #{likeCount},</if>
             update_time = NOW()
         </set>
         WHERE id = #{id}
@@ -120,6 +121,13 @@
         AND status = #{status}
         AND audit_status = #{auditStatus}
     </select>
+
+    <!-- 更新文章点赞数 -->
+    <update id="updateLikeCount">
+        UPDATE article
+        SET like_count = #{likeCount}
+        WHERE id = #{id}
+    </update>
 
 </mapper>
 

@@ -733,16 +733,28 @@ onMounted(() => {
 .markdown-viewer :deep(pre) {
   background: #282c34;
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow-x: auto;
   margin: 16px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .markdown-viewer :deep(pre code) {
   padding: 0;
   background: transparent;
-  color: inherit;
+  color: #abb2bf !important; /* 亮色代码文字 */
+  display: block;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
 }
+
+/* 代码高亮颜色覆盖 */
+.markdown-viewer :deep(pre code .hljs-keyword) { color: #c678dd !important; }
+.markdown-viewer :deep(pre code .hljs-string) { color: #98c379 !important; }
+.markdown-viewer :deep(pre code .hljs-number) { color: #d19a66 !important; }
+.markdown-viewer :deep(pre code .hljs-function) { color: #61afef !important; }
+.markdown-viewer :deep(pre code .hljs-comment) { color: #5c6370 !important; }
 
 .markdown-viewer :deep(img) {
   max-width: 100%;

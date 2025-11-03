@@ -31,4 +31,3 @@ public class AIServiceImpl implements AIService {
         }
     }
 }
-
