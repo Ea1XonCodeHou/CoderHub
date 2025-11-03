@@ -81,5 +81,10 @@ public interface ArticleMapper {
      * 更新文章点赞数
      */
     void updateLikeCount(@Param("id") String id, @Param("likeCount") Integer likeCount);
+
+    /**
+     * 更新文章评论数
+     */
+    void updateCommentCount(@Param("id") String id, @Param("commentCount") Integer commentCount);
 }
 

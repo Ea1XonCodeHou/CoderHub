@@ -129,5 +129,12 @@
         WHERE id = #{id}
     </update>
 
+    <!-- 更新文章评论数 -->
+    <update id="updateCommentCount">
+        UPDATE article
+        SET comment_count = #{commentCount}
+        WHERE id = #{id}
+    </update>
+
 </mapper>
 

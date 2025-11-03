@@ -142,7 +142,7 @@
         <!-- 评论区 -->
         <div ref="commentsSection" class="comments-section">
           <div class="comments-header">
-            <h3>评论 ({{ article.commentCount }})</h3>
+            <h3>评论 {{ comments.length > 0 ? `(${comments.length})` : '' }}</h3>
           </div>
           
           <!-- 评论输入框 -->
@@ -150,35 +150,123 @@
             <img :src="currentUser?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'" class="comment-avatar" />
             <div class="comment-input-wrapper">
               <textarea 
+                ref="commentTextarea"
                 v-model="commentInput"
-                placeholder="写下你的评论..."
+                :placeholder="replyingTo ? `回复 @${replyingTo.username}` : '写下你的评论...'"
                 class="comment-input"
                 rows="3"
+                @focus="commentInputFocused = true"
               ></textarea>
-              <div class="comment-actions">
-                <button class="btn-cancel" @click="commentInput = ''">取消</button>
-                <button class="btn-submit" @click="submitComment" :disabled="!commentInput.trim()">发布</button>
+              <div class="comment-actions" v-show="commentInputFocused || commentInput.trim()">
+                <button class="btn-cancel" @click="cancelComment">取消</button>
+                <button class="btn-submit" @click="submitComment" :disabled="!commentInput.trim() || isSubmittingComment">
+                  {{ isSubmittingComment ? '发布中...' : '发布' }}
+                </button>
               </div>
             </div>
           </div>
 
           <!-- 评论列表 -->
           <div class="comments-list">
-            <div v-if="comments.length === 0" class="no-comments">
+            <div v-if="isLoadingComments" class="loading-comments">
+              <div class="spinner"></div>
+              <p>加载评论中...</p>
+            </div>
+            
+            <div v-else-if="comments.length === 0" class="no-comments">
               <svg viewBox="0 0 24 24" fill="none">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="2"/>
               </svg>
               <p>暂无评论，快来抢沙发吧~</p>
             </div>
             
+            <!-- 顶级评论 -->
             <div v-else v-for="comment in comments" :key="comment.id" class="comment-item">
-              <img :src="comment.avatar" class="comment-user-avatar" />
+              <img :src="comment.userAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + comment.username" class="comment-user-avatar" />
+              
               <div class="comment-content-wrapper">
-                <div class="comment-user-name">{{ comment.username }}</div>
-                <div class="comment-text">{{ comment.content }}</div>
+                <div class="comment-user-info">
+                  <span class="comment-user-name">{{ comment.username }}</span>
+                  <span v-if="comment.userId === author.id" class="author-badge">作者</span>
+                  <!-- VIP等级徽章 -->
+                  <span v-if="getUserLevel(comment.userId) > 1" class="vip-badge">
+                    <svg viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M8 0l2.5 5 5.5.8-4 3.9.9 5.3L8 12.5 3.1 15l.9-5.3-4-3.9L5.5 5z"/>
+                    </svg>
+                    VIP
+                  </span>
+                </div>
+                
+                <!-- 评论内容（支持Markdown） -->
+                <div class="comment-text" v-html="renderCommentContent(comment.content)"></div>
+                
                 <div class="comment-footer">
                   <span class="comment-time">{{ formatTime(comment.createTime) }}</span>
-                  <button class="comment-reply-btn">回复</button>
+                  <span class="dot">·</span>
+                  <button class="comment-action-btn" @click="toggleCommentLike(comment)" :class="{ liked: comment.isLiked }">
+                    <svg viewBox="0 0 16 16" fill="none">
+                      <path d="M8 13.5L3.5 9C2 7.5 2 5 3.5 3.5C5 2 7.5 2 9 3.5L8 4.5M8 13.5L12.5 9C14 7.5 14 5 12.5 3.5C11 2 8.5 2 7 3.5L8 4.5M8 13.5V4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    {{ comment.likeCount > 0 ? comment.likeCount : '点赞' }}
+                  </button>
+                  <span class="dot">·</span>
+                  <button class="comment-action-btn" @click="startReply(comment)">
+                    <svg viewBox="0 0 16 16" fill="none">
+                      <path d="M8 2v6m0 0l3-3m-3 3L5 5M3 14h10a1 1 0 001-1V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    回复
+                  </button>
+                  <span v-if="comment.userId === currentUser.id" class="dot">·</span>
+                  <button v-if="comment.userId === currentUser.id" class="comment-action-btn delete-btn" @click="deleteComment(comment.id)">
+                    删除
+                  </button>
+                </div>
+                
+                <!-- 子评论（回复） -->
+                <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
+                  <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
+                    <img :src="reply.userAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + reply.username" class="reply-user-avatar" />
+                    
+                    <div class="reply-content-wrapper">
+                      <div class="reply-user-info">
+                        <span class="reply-user-name">{{ reply.username }}</span>
+                        <span v-if="reply.userId === author.id" class="author-badge">作者</span>
+                        <span v-if="getUserLevel(reply.userId) > 1" class="vip-badge">
+                          <svg viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 0l2.5 5 5.5.8-4 3.9.9 5.3L8 12.5 3.1 15l.9-5.3-4-3.9L5.5 5z"/>
+                          </svg>
+                          VIP
+                        </span>
+                        <span v-if="reply.replyToUsername" class="reply-to">
+                          回复 <span class="reply-target">@{{ reply.replyToUsername }}</span>
+                        </span>
+                      </div>
+                      
+                      <div class="reply-text" v-html="renderCommentContent(reply.content)"></div>
+                      
+                      <div class="reply-footer">
+                        <span class="reply-time">{{ formatTime(reply.createTime) }}</span>
+                        <span class="dot">·</span>
+                        <button class="comment-action-btn" @click="toggleCommentLike(reply)" :class="{ liked: reply.isLiked }">
+                          <svg viewBox="0 0 16 16" fill="none">
+                            <path d="M8 13.5L3.5 9C2 7.5 2 5 3.5 3.5C5 2 7.5 2 9 3.5L8 4.5M8 13.5L12.5 9C14 7.5 14 5 12.5 3.5C11 2 8.5 2 7 3.5L8 4.5M8 13.5V4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          {{ reply.likeCount > 0 ? reply.likeCount : '点赞' }}
+                        </button>
+                        <span class="dot">·</span>
+                        <button class="comment-action-btn" @click="startReply(reply, comment)">
+                          <svg viewBox="0 0 16 16" fill="none">
+                            <path d="M8 2v6m0 0l3-3m-3 3L5 5M3 14h10a1 1 0 001-1V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          回复
+                        </button>
+                        <span v-if="reply.userId === currentUser.id" class="dot">·</span>
+                        <button v-if="reply.userId === currentUser.id" class="comment-action-btn delete-btn" @click="deleteComment(reply.id)">
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -358,8 +446,14 @@ const isFollowing = ref(false)
 
 // 评论相关
 const commentInput = ref('')
+const commentTextarea = ref(null)
+const commentInputFocused = ref(false)
 const comments = ref([])
 const commentsSection = ref(null)
+const replyingTo = ref(null)  // 正在回复的评论
+const replyingToParent = ref(null)  // 回复的父评论（用于子评论回复）
+const isLoadingComments = ref(false)
+const isSubmittingComment = ref(false)
 
 // 相关推荐
 const relatedArticles = ref([])
@@ -375,8 +469,8 @@ const isAuthor = computed(() => {
   return currentUser.value.id === author.value.id
 })
 
-// 配置marked - 自定义代码块渲染器生成MacOS风格代码块
-const renderer = {
+// 配置marked - 文章专用渲染器（带复制按钮）
+const articleRenderer = {
   code(code, language) {
     // 确定语言
     const lang = language || 'plaintext'
@@ -396,7 +490,7 @@ const renderer = {
     // 将代码内容进行Base64编码，避免特殊字符问题
     const encodedCode = btoa(encodeURIComponent(code))
     
-    // 生成MacOS风格的HTML结构
+    // 生成MacOS风格的HTML结构（带复制按钮）
     return `
       <div class="code-block-macos">
         <div class="code-block-header">
@@ -419,11 +513,50 @@ const renderer = {
   }
 }
 
+// 全局配置使用文章渲染器
 marked.use({ 
-  renderer,
+  renderer: articleRenderer,
   breaks: true,
   gfm: true
 })
+
+// 评论专用渲染器（不带复制按钮）- 创建一个新的renderer对象
+const commentRenderer = new marked.Renderer()
+
+// 覆盖code方法
+commentRenderer.code = function(code, language) {
+  // 确定语言
+  const lang = language || 'plaintext'
+  
+  // 使用highlight.js进行语法高亮
+  let highlightedCode
+  try {
+    if (lang !== 'plaintext' && hljs.getLanguage(lang)) {
+      highlightedCode = hljs.highlight(code, { language: lang }).value
+    } else {
+      highlightedCode = hljs.highlightAuto(code).value
+    }
+  } catch (e) {
+    highlightedCode = code
+  }
+  
+  // 生成MacOS风格的HTML结构（不带复制按钮）
+  return `
+    <div class="code-block-macos comment-code-block">
+      <div class="code-block-header">
+        <div class="code-block-dots">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+        </div>
+        <div class="code-block-lang">${lang.toUpperCase()}</div>
+      </div>
+      <div class="code-block-content">
+        <pre><code class="hljs language-${lang}">${highlightedCode}</code></pre>
+      </div>
+    </div>
+  `
+}
 
 // 获取文章详情
 const fetchArticleDetail = async () => {
@@ -454,6 +587,9 @@ const fetchArticleDetail = async () => {
       // 获取相关推荐和猜你喜欢
       fetchRelatedArticles()
       fetchGuessYouLike()
+      
+      // 获取评论列表
+      fetchComments()
     }
   } catch (error) {
     console.error('获取文章详情失败：', error)
@@ -652,21 +788,177 @@ const scrollToComments = () => {
   commentsSection.value?.scrollIntoView({ behavior: 'smooth' })
 }
 
+// 获取评论列表
+const fetchComments = async () => {
+  try {
+    isLoadingComments.value = true
+    const articleId = route.params.id
+    const token = localStorage.getItem('token')
+    
+    const headers = token ? { authentication: token } : {}
+    
+    const response = await axios.get(`/api/article/${articleId}/comment`, { headers })
+    
+    if (response.data.code === 1) {
+      comments.value = response.data.data
+      console.log('评论列表加载成功:', comments.value)
+    }
+  } catch (error) {
+    console.error('获取评论列表失败：', error)
+  } finally {
+    isLoadingComments.value = false
+  }
+}
+
 // 提交评论
-const submitComment = () => {
+const submitComment = async () => {
   if (!commentInput.value.trim()) return
   
-  // TODO: 调用后端接口
-  comments.value.unshift({
-    id: Date.now(),
-    username: currentUser.value.username,
-    avatar: currentUser.value.avatar,
-    content: commentInput.value,
-    createTime: new Date()
-  })
-  
-  article.value.commentCount++
+  try {
+    isSubmittingComment.value = true
+    const articleId = route.params.id
+    const token = localStorage.getItem('token')
+    
+    if (!token) {
+      alert('请先登录')
+      router.push('/login')
+      return
+    }
+    
+    const payload = {
+      articleId: articleId,
+      content: commentInput.value.trim(),
+      replyId: replyingTo.value ? replyingTo.value.id : null
+    }
+    
+    const response = await axios.post(`/api/article/${articleId}/comment`, payload, {
+      headers: { authentication: token }
+    })
+    
+    if (response.data.code === 1) {
+      console.log('评论发布成功')
+      // 重新加载评论列表
+      await fetchComments()
+      // 清空输入框
+      commentInput.value = ''
+      replyingTo.value = null
+      replyingToParent.value = null
+      commentInputFocused.value = false
+    } else {
+      alert('评论发布失败：' + response.data.msg)
+    }
+  } catch (error) {
+    console.error('提交评论失败：', error)
+    alert('评论发布失败，请稍后重试')
+  } finally {
+    isSubmittingComment.value = false
+  }
+}
+
+// 取消评论
+const cancelComment = () => {
   commentInput.value = ''
+  replyingTo.value = null
+  replyingToParent.value = null
+  commentInputFocused.value = false
+}
+
+// 开始回复评论
+const startReply = (comment, parentComment = null) => {
+  replyingTo.value = comment
+  replyingToParent.value = parentComment || comment
+  commentInput.value = ''
+  
+  // 聚焦到输入框
+  nextTick(() => {
+    commentTextarea.value?.focus()
+    commentsSection.value?.scrollIntoView({ behavior: 'smooth' })
+  })
+}
+
+// 点赞/取消点赞评论
+const toggleCommentLike = async (comment) => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      alert('请先登录')
+      router.push('/login')
+      return
+    }
+    
+    const response = await axios.post(`/api/article/comment/${comment.id}/like`, {}, {
+      headers: { authentication: token }
+    })
+    
+    if (response.data.code === 1) {
+      // 更新评论的点赞状态和数量
+      comment.isLiked = response.data.data.liked
+      comment.likeCount = response.data.data.likeCount
+    } else {
+      alert('操作失败：' + response.data.msg)
+    }
+  } catch (error) {
+    console.error('点赞评论失败：', error)
+    alert('操作失败，请稍后重试')
+  }
+}
+
+// 删除评论
+const deleteComment = async (commentId) => {
+  if (!confirm('确定要删除这条评论吗？')) return
+  
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      alert('请先登录')
+      router.push('/login')
+      return
+    }
+    
+    const response = await axios.delete(`/api/article/comment/${commentId}`, {
+      headers: { authentication: token }
+    })
+    
+    if (response.data.code === 1) {
+      console.log('评论删除成功')
+      // 重新加载评论列表
+      await fetchComments()
+    } else {
+      alert('删除失败：' + response.data.msg)
+    }
+  } catch (error) {
+    console.error('删除评论失败：', error)
+    alert('删除失败，请稍后重试')
+  }
+}
+
+// 渲染评论内容（支持简单Markdown和代码块，使用MacOS风格，不带复制按钮）
+const renderCommentContent = (content) => {
+  if (!content) return ''
+  
+  console.log('原始评论内容:', content)
+  
+  // 直接使用marked.parse()并传递评论专用渲染器（不带复制按钮）
+  try {
+    const rendered = marked.parse(content, {
+      renderer: commentRenderer,
+      breaks: true,
+      gfm: true
+    })
+    console.log('渲染后的HTML:', rendered)
+    return rendered
+  } catch (e) {
+    console.error('渲染评论内容失败：', e)
+    // 如果渲染失败，返回转义后的纯文本
+    return content.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+}
+
+// 获取用户等级（模拟数据，实际应从后端获取）
+const getUserLevel = (userId) => {
+  // 这里简化处理，实际应该从用户信息中获取
+  // 暂时返回1（普通用户）
+  return 1
 }
 
 // 跳转到文章
@@ -1477,6 +1769,7 @@ onMounted(() => {
   margin: 0;
 }
 
+/* 评论输入框 */
 .comment-input-area {
   display: flex;
   gap: 16px;
@@ -1506,6 +1799,7 @@ onMounted(() => {
   resize: vertical;
   outline: none;
   transition: border-color 0.3s;
+  font-family: inherit;
 }
 
 .comment-input:focus {
@@ -1551,6 +1845,30 @@ onMounted(() => {
 .btn-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+}
+
+/* 加载和空状态 */
+.loading-comments {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 0;
+  color: #999;
+}
+
+.loading-comments .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f0f0f0;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .no-comments {
@@ -1567,10 +1885,16 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+/* 评论列表 */
+.comments-list {
+  display: flex;
+  flex-direction: column;
+}
+
 .comment-item {
   display: flex;
   gap: 16px;
-  padding: 20px 0;
+  padding: 24px 0;
   border-bottom: 1px solid #f0f0f0;
 }
 
@@ -1579,48 +1903,225 @@ onMounted(() => {
   height: 40px;
   border-radius: 50%;
   flex-shrink: 0;
+  object-fit: cover;
 }
 
 .comment-content-wrapper {
   flex: 1;
+  min-width: 0;
+}
+
+.comment-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .comment-user-name {
   font-size: 14px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 8px;
+}
+
+.author-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+.vip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  color: white;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+}
+
+.vip-badge svg {
+  width: 12px;
+  height: 12px;
+}
+
+.reply-to {
+  font-size: 13px;
+  color: #999;
+}
+
+.reply-target {
+  color: #667eea;
+  font-weight: 500;
 }
 
 .comment-text {
   font-size: 14px;
-  color: #666;
+  color: #333;
   line-height: 1.6;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  word-wrap: break-word;
+}
+
+/* 评论内容中的MacOS代码块 - 使用与正文相同的样式 */
+.comment-text :deep(.code-block-macos) {
+  margin: 12px 0 !important;
+  font-size: 14px !important;
+}
+
+/* 行内代码样式 */
+.comment-text :deep(p code),
+.comment-text :deep(li code) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+  font-size: 13px !important;
+  background: #f3f4f6 !important;
+  color: #e06c75 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
 }
 
 .comment-footer {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .comment-time {
-  font-size: 12px;
+  font-size: 13px;
   color: #999;
 }
 
-.comment-reply-btn {
+.dot {
+  color: #ddd;
   font-size: 12px;
-  color: #667eea;
+}
+
+.comment-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #999;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
 }
 
-.comment-reply-btn:hover {
-  text-decoration: underline;
+.comment-action-btn:hover {
+  background: #f0f0f0;
+  color: #667eea;
+}
+
+.comment-action-btn.liked {
+  color: #f56c6c;
+}
+
+.comment-action-btn.liked svg {
+  fill: #f56c6c;
+}
+
+.comment-action-btn.delete-btn:hover {
+  color: #f56c6c;
+  background: #fef0f0;
+}
+
+.comment-action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 回复列表 */
+.replies-list {
+  margin-top: 16px;
+  padding-left: 24px;
+  border-left: 2px solid #f0f0f0;
+}
+
+.reply-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px 0;
+  border-bottom: 1px solid #f8f8f8;
+}
+
+.reply-item:last-child {
+  border-bottom: none;
+}
+
+.reply-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.reply-content-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.reply-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.reply-user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+
+.reply-text {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  word-wrap: break-word;
+}
+
+/* 回复内容中的MacOS代码块 - 使用与正文相同的样式 */
+.reply-text :deep(.code-block-macos) {
+  margin: 10px 0 !important;
+  font-size: 13px !important;
+}
+
+/* 行内代码样式 */
+.reply-text :deep(p code),
+.reply-text :deep(li code) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+  font-size: 12px !important;
+  background: #f3f4f6 !important;
+  color: #e06c75 !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+}
+
+.reply-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reply-time {
+  font-size: 12px;
+  color: #999;
 }
 
 /* ==================== 右侧边栏 ==================== */

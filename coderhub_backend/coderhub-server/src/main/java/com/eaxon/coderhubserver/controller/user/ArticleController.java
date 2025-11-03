@@ -8,7 +8,11 @@ import com.eaxon.coderhubpojo.VO.ArticleVO;
 import com.eaxon.coderhubpojo.entity.Tag;
 import com.eaxon.coderhubserver.service.ArticleService;
 import com.eaxon.coderhubserver.service.ArticleLikeService;
+import com.eaxon.coderhubserver.service.ArticleCommentService;
+import com.eaxon.coderhubserver.service.ArticleCommentLikeService;
 import com.eaxon.coderhubserver.mapper.TagMapper;
+import com.eaxon.coderhubpojo.DTO.CommentPublishDTO;
+import com.eaxon.coderhubpojo.VO.CommentVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +37,12 @@ public class ArticleController {
 
     @Autowired
     private ArticleLikeService articleLikeService;
+
+    @Autowired
+    private ArticleCommentService commentService;
+
+    @Autowired
+    private ArticleCommentLikeService commentLikeService;
 
     @Autowired
     private TagMapper tagMapper;
@@ -152,6 +162,85 @@ public class ArticleController {
         log.info("检查用户{}是否点赞文章{}", userId, articleId);
         Boolean liked = articleLikeService.isLiked(userId, articleId);
         return Result.success(liked);
+    }
+
+    // ==================== 评论相关接口 ====================
+
+    /**
+     * 发布评论（包括顶级评论和回复）
+     */
+    @PostMapping("/{articleId}/comment")
+    @ApiOperation("发布评论")
+    public Result<String> publishComment(
+            @PathVariable String articleId,
+            @RequestBody CommentPublishDTO commentPublishDTO) {
+        // 从ThreadLocal获取当前登录用户ID
+        String userId = BaseContext.getCurrentId();
+        log.info("用户{}在文章{}发布评论", userId, articleId);
+
+        // 确保DTO中的articleId与路径参数一致
+        commentPublishDTO.setArticleId(articleId);
+        String commentId = commentService.publishComment(commentPublishDTO, userId);
+        return Result.success(commentId);
+    }
+
+    /**
+     * 获取文章的评论列表
+     */
+    @GetMapping("/{articleId}/comment")
+    @ApiOperation("获取文章评论列表")
+    public Result<List<CommentVO>> getCommentsByArticleId(@PathVariable String articleId) {
+        log.info("获取文章{}的评论列表", articleId);
+
+        // 尝试获取当前用户ID（用户可能未登录）
+        String userId = null;
+        try {
+            userId = BaseContext.getCurrentId();
+        } catch (Exception e) {
+            log.debug("用户未登录，无法判断点赞状态");
+        }
+
+        List<CommentVO> comments = commentService.getCommentsByArticleId(articleId, userId);
+        return Result.success(comments);
+    }
+
+    /**
+     * 删除评论
+     */
+    @DeleteMapping("/comment/{commentId}")
+    @ApiOperation("删除评论")
+    public Result<String> deleteComment(@PathVariable String commentId) {
+        String userId = BaseContext.getCurrentId();
+        log.info("用户{}删除评论{}", userId, commentId);
+
+        commentService.deleteComment(commentId, userId);
+        return Result.success();
+    }
+
+    /**
+     * 点赞/取消点赞评论
+     */
+    @PostMapping("/comment/{commentId}/like")
+    @ApiOperation("点赞/取消点赞评论")
+    public Result<Map<String, Object>> toggleCommentLike(@PathVariable String commentId) {
+        String userId = BaseContext.getCurrentId();
+        log.info("用户{}操作评论{}的点赞", userId, commentId);
+
+        Map<String, Object> result = commentLikeService.toggleLike(userId, commentId);
+        return Result.success(result);
+    }
+
+    /**
+     * 查询用户是否已点赞评论
+     */
+    @GetMapping("/comment/{commentId}/like/status")
+    @ApiOperation("查询是否已点赞评论")
+    public Result<Boolean> checkCommentLikeStatus(@PathVariable String commentId) {
+        String userId = BaseContext.getCurrentId();
+        log.info("查询用户{}是否点赞评论{}", userId, commentId);
+
+        Boolean isLiked = commentLikeService.isLiked(userId, commentId);
+        return Result.success(isLiked);
     }
 }
 
