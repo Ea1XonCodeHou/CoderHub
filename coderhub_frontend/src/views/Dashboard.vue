@@ -22,7 +22,7 @@
           v-for="item in menuItems" 
           :key="item.key"
           :class="['nav-item', { 'active': activeMenu === item.key }]"
-          @click="activeMenu = item.key"
+          @click="switchMenu(item.key)"
         >
           <svg class="nav-icon" v-html="item.icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"></svg>
           <span>{{ item.label }}</span>
@@ -97,13 +97,17 @@
         <CategoryManagement v-if="activeMenu === 'categories'" />
 
         <!-- 教程管理 -->
-        <div v-if="activeMenu === 'tutorials'" class="section">
-          <div class="section-header">
-            <h2>教程管理</h2>
-            <button class="btn-primary">创建教程</button>
-          </div>
-          <p class="empty-text">教程管理功能开发中...</p>
-        </div>
+        <TutorialManagement 
+          v-if="activeMenu === 'tutorials' && !selectedTutorial" 
+          @view-detail="handleViewTutorialDetail"
+        />
+
+        <!-- 教程详情 -->
+        <TutorialDetail 
+          v-if="activeMenu === 'tutorials' && selectedTutorial" 
+          :tutorial="selectedTutorial"
+          @back="handleBackToTutorialList"
+        />
 
         <!-- 通用设置 -->
         <div v-if="activeMenu === 'settings'" class="section">
@@ -139,15 +143,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import UserManagement from '@/components/admin/UserManagement.vue'
-import CategoryManagement from '@/components/admin/CategoryManagement.vue'
 import ArticleReview from '@/components/admin/ArticleReview.vue'
+import CategoryManagement from '@/components/admin/CategoryManagement.vue'
+import TutorialDetail from '@/components/admin/TutorialDetail.vue'
+import TutorialManagement from '@/components/admin/TutorialManagement.vue'
+import UserManagement from '@/components/admin/UserManagement.vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const activeMenu = ref('overview')
 const userInfo = ref({})
+const selectedTutorial = ref(null)
 
 // 菜单项
 const menuItems = ref([
@@ -245,6 +252,19 @@ const currentTitle = computed(() => {
   const item = menuItems.value.find(item => item.key === activeMenu.value)
   return item ? item.label : '仪表盘'
 })
+
+const handleViewTutorialDetail = (tutorial) => {
+  selectedTutorial.value = tutorial
+}
+
+const handleBackToTutorialList = () => {
+  selectedTutorial.value = null
+}
+
+const switchMenu = (menuKey) => {
+  activeMenu.value = menuKey
+  selectedTutorial.value = null
+}
 
 const backToHome = () => {
   router.push('/home')

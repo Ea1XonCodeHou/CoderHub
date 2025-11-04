@@ -1,4 +1,4 @@
-<template>
+lian<template>
   <div class="tutorial-container">
     <!-- 顶部导航栏 -->
     <nav class="navbar">
@@ -964,8 +964,9 @@ onMounted(() => {
 /* 搜索框 */
 .search-box {
   flex: 1;
-  max-width: 500px;
+  max-width: 400px;
   position: relative;
+  margin: 0 24px;
 }
 
 .search-icon {
@@ -973,25 +974,26 @@ onMounted(() => {
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   color: #94a3b8;
+  pointer-events: none;
 }
 
 .search-box input {
   width: 100%;
   height: 40px;
-  padding: 0 16px 0 44px;
-  border: 1px solid #e2e8f0;
+  padding: 0 16px 0 42px;
+  border: 2px solid transparent;
   border-radius: 20px;
   font-size: 14px;
   color: #2c3e50;
-  background: #f8f9fa;
-  transition: all 0.2s;
+  background: #f5f7fa;
+  transition: all 0.3s;
+  outline: none;
 }
 
 .search-box input:focus {
-  outline: none;
   border-color: #2c3e50;
   background: white;
   box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
@@ -1005,8 +1007,9 @@ onMounted(() => {
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .user-avatar {

@@ -136,3 +136,104 @@ export function updateCategoryStatus(id, status) {
   })
 }
 
+// ============= 教程管理 =============
+
+// 获取教程列表
+export function getTutorialList(params) {
+  return request({
+    url: '/admin/tutorial/list',
+    method: 'get',
+    params
+  })
+}
+
+// 创建教程
+export function createTutorial(data) {
+  return request({
+    url: '/admin/tutorial/create',
+    method: 'post',
+    data
+  })
+}
+
+// 更新教程
+export function updateTutorial(data) {
+  return request({
+    url: '/admin/tutorial/update',
+    method: 'put',
+    data
+  })
+}
+
+// 删除教程
+export function deleteTutorial(id) {
+  return request({
+    url: `/admin/tutorial/${id}`,
+    method: 'delete'
+  })
+}
+
+// ==================== 章节管理接口 ====================
+
+// 创建章节
+export function createChapter(data) {
+  return request({
+    url: '/admin/tutorial/chapter/create',
+    method: 'post',
+    data
+  })
+}
+
+// 获取章节列表
+export function getChapterList(tutorialId) {
+  return request({
+    url: '/admin/tutorial/chapter/list',
+    method: 'get',
+    params: { tutorialId }
+  })
+}
+
+// 上传文档
+export function uploadDocument(data) {
+  return request({
+    url: '/admin/tutorial/document/upload',
+    method: 'post',
+    data
+  })
+}
+
+// 获取文档列表
+export function getDocumentList(chapterId) {
+  return request({
+    url: '/admin/tutorial/document/list',
+    method: 'get',
+    params: { chapterId }
+  })
+}
+
+// 上传视频
+export function uploadVideo(data) {
+  return request({
+    url: '/admin/tutorial/video/upload',
+    method: 'post',
+    data
+  })
+}
+
+// 获取视频列表
+export function getVideoList(chapterId) {
+  return request({
+    url: '/admin/tutorial/video/list',
+    method: 'get',
+    params: { chapterId }
+  })
+}
+
+// 修改教程状态
+export function updateTutorialStatus(id, status) {
+  return request({
+    url: `/admin/tutorial/status/${id}/${status}`,
+    method: 'put'
+  })
+}
+

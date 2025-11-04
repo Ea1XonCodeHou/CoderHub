@@ -1,5 +1,12 @@
 package com.eaxon.coderhubserver.service.impl;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.eaxon.coderhubcommon.constant.JwtClaimsConstant;
 import com.eaxon.coderhubcommon.constant.MessageConstant;
 import com.eaxon.coderhubcommon.constant.StatusConstant;
@@ -9,7 +16,6 @@ import com.eaxon.coderhubcommon.properties.JwtProperties;
 import com.eaxon.coderhubcommon.utils.AccountGenerator;
 import com.eaxon.coderhubcommon.utils.JwtUtil;
 import com.eaxon.coderhubcommon.utils.MD5Util;
-import com.eaxon.coderhubcommon.context.BaseContext;
 import com.eaxon.coderhubpojo.DTO.UserAdminUpdateDTO;
 import com.eaxon.coderhubpojo.DTO.UserInfoUpdateDTO;
 import com.eaxon.coderhubpojo.DTO.UserLoginDTO;
@@ -24,16 +30,11 @@ import com.eaxon.coderhubserver.mapper.UserMapper;
 import com.eaxon.coderhubserver.service.UserService;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 public class UserServiceImpl implements UserService {
     @Autowired
     private UserMapper userMapper;
@@ -122,9 +123,22 @@ public class UserServiceImpl implements UserService {
         if (!MD5Util.verify(userLoginDTO.getPassword(), user.getPassword())) {
             throw new PasswordErrorException("密码错误，请重新输入");
         }
+        
+        // 根据用户角色选择不同的密钥和过期时间
         Map<String, Object> claims = new HashMap<>();
         claims.put(JwtClaimsConstant.USER_ID, user.getId());
-        String token = JwtUtil.createJWT(jwtProperties.getUserSecretKey(), jwtProperties.getUserTtl(), claims);
+        
+        String token;
+        if ("ADMIN".equals(user.getRole())) {
+            // 管理员使用 adminSecretKey
+            token = JwtUtil.createJWT(jwtProperties.getAdminSecretKey(), jwtProperties.getAdminTtl(), claims);
+            log.info("管理员登录，使用 adminSecretKey 生成token");
+        } else {
+            // 普通用户使用 userSecretKey
+            token = JwtUtil.createJWT(jwtProperties.getUserSecretKey(), jwtProperties.getUserTtl(), claims);
+            log.info("普通用户登录，使用 userSecretKey 生成token");
+        }
+        
         return UserLoginVO.builder()
                 .id(user.getId())
                 .account(user.getAccount())

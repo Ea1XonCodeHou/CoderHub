@@ -1,13 +1,16 @@
 package com.eaxon.coderhubserver.config;
 
-import com.eaxon.coderhubserver.interceptor.JwtTokenUserInterceptor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
+
+import com.eaxon.coderhubserver.interceptor.JwtTokenAdminInterceptor;
+import com.eaxon.coderhubserver.interceptor.JwtTokenUserInterceptor;
+
+import lombok.extern.slf4j.Slf4j;
 import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
@@ -25,6 +28,9 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 
     @Autowired
     private JwtTokenUserInterceptor jwtTokenUserInterceptor;
+    
+    @Autowired
+    private JwtTokenAdminInterceptor jwtTokenAdminInterceptor;
 
     /**
      * 注册自定义拦截器
@@ -35,6 +41,13 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
     protected void addInterceptors(InterceptorRegistry registry) {
         log.info("开始注册JWT拦截器...");
         
+        // 注册管理员端拦截器
+        registry.addInterceptor(jwtTokenAdminInterceptor)
+                .addPathPatterns("/admin/**")                   // 拦截所有/admin/**路径
+                .excludePathPatterns("/admin/login")            // 排除管理员登录接口
+                .excludePathPatterns("/common/**");             // 排除通用接口
+        
+        // 注册用户端拦截器
         registry.addInterceptor(jwtTokenUserInterceptor)
                 .addPathPatterns("/user/**")                    // 拦截所有/user/**路径
                 .addPathPatterns("/article/**")                 // 拦截所有/article/**路径

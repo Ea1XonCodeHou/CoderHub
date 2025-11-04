@@ -10,4 +10,11 @@ public class StatusConstant {
 
     //禁用
     public static final Integer DISABLE = 0;
+
+    //教程相关常量；
+    public static final Integer CREATING=0;
+    public static final Integer RELEASED=1;
+    public static final Integer WITHDREW=2;
+
+    public static final Integer NO_COUNT=0;
 }

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.VideoMapper">
+
+    <!-- 插入视频 -->
+    <insert id="insertVideo">
+        INSERT INTO video (
+            id, chapter_id, video_title, video_url,
+            cover_image, duration, file_size,
+            create_time, update_time
+        ) VALUES (
+            #{id}, #{chapterId}, #{videoTitle}, #{videoUrl},
+            #{coverImage}, #{duration}, #{fileSize},
+            #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <!-- 根据章节ID查询视频列表 -->
+    <select id="selectByChapterId" resultType="com.eaxon.coderhubpojo.entity.Video">
+        SELECT 
+            id, chapter_id as chapterId, video_title as videoTitle,
+            video_url as videoUrl, cover_image as coverImage,
+            duration, file_size as fileSize,
+            create_time as createTime, update_time as updateTime
+        FROM video
+        WHERE chapter_id = #{chapterId}
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 根据视频ID删除视频 -->
+    <delete id="deleteById">
+        DELETE FROM video WHERE id = #{videoId}
+    </delete>
+
+</mapper>

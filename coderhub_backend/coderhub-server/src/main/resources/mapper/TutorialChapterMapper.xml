@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.TutorialChapterMapper">
+
+    <!-- 插入章节 -->
+    <insert id="insertChapter">
+        INSERT INTO tutorial_chapter (
+            id, tutorial_id, chapter_order, chapter_title,
+            duration, is_free, status,
+            create_time, update_time
+        ) VALUES (
+            #{id}, #{tutorialId}, #{chapterOrder}, #{chapterTitle},
+            #{duration}, #{isFree}, #{status},
+            #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <!-- 根据教程ID查询章节列表 -->
+    <select id="selectByTutorialId" resultType="com.eaxon.coderhubpojo.entity.TutorialChapter">
+        SELECT 
+            id, tutorial_id as tutorialId, chapter_order as chapterOrder,
+            chapter_title as chapterTitle, duration,
+            is_free as isFree, status,
+            create_time as createTime, update_time as updateTime
+        FROM tutorial_chapter
+        WHERE tutorial_id = #{tutorialId}
+        ORDER BY chapter_order ASC
+    </select>
+
+    <!-- 根据章节ID查询章节 -->
+    <select id="selectById" resultType="com.eaxon.coderhubpojo.entity.TutorialChapter">
+        SELECT 
+            id, tutorial_id as tutorialId, chapter_order as chapterOrder,
+            chapter_title as chapterTitle, duration,
+            is_free as isFree, status,
+            create_time as createTime, update_time as updateTime
+        FROM tutorial_chapter
+        WHERE id = #{chapterId}
+    </select>
+
+    <!-- 更新教程的章节数量 -->
+    <update id="updateTutorialChapterCount">
+        UPDATE tutorial
+        SET chapter_count = (
+            SELECT COUNT(*) FROM tutorial_chapter WHERE tutorial_id = #{tutorialId}
+        )
+        WHERE id = #{tutorialId}
+    </update>
+
+</mapper>
