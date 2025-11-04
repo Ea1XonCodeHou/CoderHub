@@ -1,10 +1,11 @@
 package com.eaxon.coderhubserver.mapper;
 
-import com.eaxon.coderhubpojo.entity.Article;
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.List;
+import com.eaxon.coderhubpojo.entity.Article;
 
 /**
  * 文章Mapper接口
@@ -46,6 +47,11 @@ public interface ArticleMapper {
      * 增加阅读量
      */
     void incrementViewCount(String id);
+    
+    /**
+     * 直接更新浏览量（用于Redis同步）
+     */
+    void updateViewCountDirect(@Param("id") String id, @Param("viewCount") Long viewCount);
 
     /**
      * 根据用户ID查询文章
@@ -91,5 +97,12 @@ public interface ArticleMapper {
      * 统计用户发布的文章数量（已发布状态）
      */
     Integer countByUserId(String userId);
+    
+    /**
+     * 获取点赞数最多的文章（用于预热）
+     * @param limit 数量限制
+     * @return 文章列表
+     */
+    List<Article> getTopLikedArticles(@Param("limit") Integer limit);
 }
 

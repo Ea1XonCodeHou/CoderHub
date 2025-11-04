@@ -77,6 +77,13 @@
         SET view_count = view_count + 1
         WHERE id = #{id}
     </update>
+    
+    <!-- 直接更新浏览量（用于Redis同步） -->
+    <update id="updateViewCountDirect">
+        UPDATE article
+        SET view_count = #{viewCount}
+        WHERE id = #{id}
+    </update>
 
     <!-- 根据用户ID查询文章 -->
     <select id="getByUserId" resultType="com.eaxon.coderhubpojo.entity.Article">
@@ -142,6 +149,14 @@
         WHERE user_id = #{userId}
         AND status = 1
         AND audit_status = 1
+    </select>
+    
+    <!-- 获取点赞数最多的文章（用于预热） -->
+    <select id="getTopLikedArticles" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        WHERE status = 1 AND audit_status = 1
+        ORDER BY like_count DESC, view_count DESC
+        LIMIT #{limit}
     </select>
 
 </mapper>

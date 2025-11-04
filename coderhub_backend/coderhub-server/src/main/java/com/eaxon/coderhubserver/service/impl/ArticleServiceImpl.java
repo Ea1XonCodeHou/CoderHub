@@ -1,5 +1,18 @@
 package com.eaxon.coderhubserver.service.impl;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.eaxon.coderhubcommon.context.BaseContext;
 import com.eaxon.coderhubcommon.exception.BaseException;
 import com.eaxon.coderhubcommon.utils.AliOssUtil;
@@ -17,18 +30,9 @@ import com.eaxon.coderhubserver.mapper.CategoryMapper;
 import com.eaxon.coderhubserver.mapper.TagMapper;
 import com.eaxon.coderhubserver.mapper.UserMapper;
 import com.eaxon.coderhubserver.service.ArticleService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import com.eaxon.coderhubserver.service.RedisService;
 
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 文章Service实现类
@@ -54,6 +58,9 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Autowired
     private AliOssUtil aliOssUtil;
+    
+    @Autowired
+    private RedisService redisService;
 
     /**
      * 发布文章
@@ -97,6 +104,10 @@ public class ArticleServiceImpl implements ArticleService {
 
         // 4. 保存文章
         articleMapper.insert(article);
+        
+        // 4.5 初始化Redis浏览量为0
+        redisService.setViewCount(article.getId(), 0L);
+        log.debug("初始化Redis浏览量：articleId={}", article.getId());
 
         // 5. 处理标签
         List<Tag> tags = new ArrayList<>();
@@ -136,8 +147,29 @@ public class ArticleServiceImpl implements ArticleService {
         // 4. 查询标签
         List<Tag> tags = tagMapper.getByArticleId(articleId);
 
-        // 5. 异步增加阅读量（可优化为MQ异步）
-        articleMapper.incrementViewCount(articleId);
+        // 5. Redis浏览量+1（原子操作）
+        Long newViewCount = redisService.incrementViewCount(articleId);
+        
+        // 如果Redis返回null（Redis故障或key不存在），降级到MySQL
+        if (newViewCount == null) {
+            log.warn("Redis获取浏览量失败，降级到MySQL：articleId={}", articleId);
+            // 降级：直接更新MySQL
+            articleMapper.incrementViewCount(articleId);
+            // 从MySQL重新加载并写入Redis
+            Article reloadedArticle = articleMapper.getById(articleId);
+            newViewCount = reloadedArticle.getViewCount();
+            redisService.setViewCount(articleId, newViewCount);
+        } else if (newViewCount == 1) {
+            // Redis返回1，可能是新Key或数据丢失
+            // 从MySQL加载真实浏览量
+            Long dbViewCount = article.getViewCount();
+            if (dbViewCount > 0) {
+                // 数据库有值，说明Redis丢失了，重新设置
+                log.info("Redis浏览量丢失，从MySQL恢复：articleId={}, dbCount={}", articleId, dbViewCount);
+                newViewCount = dbViewCount + 1;
+                redisService.setViewCount(articleId, newViewCount);
+            }
+        }
 
         // 6. 构建VO
         ArticleDetailVO vo = ArticleDetailVO.builder()
@@ -152,7 +184,7 @@ public class ArticleServiceImpl implements ArticleService {
                 .categoryId(article.getCategoryId())
                 .categoryName(category != null ? category.getCategoryName() : null)
                 .tags(tags)
-                .viewCount(article.getViewCount() + 1)  // 返回最新阅读量
+                .viewCount(newViewCount)  // 使用Redis的最新浏览量
                 .likeCount(article.getLikeCount())
                 .commentCount(article.getCommentCount())
                 .collectCount(article.getCollectCount())
@@ -186,10 +218,33 @@ public class ArticleServiceImpl implements ArticleService {
             query.setStatus(status != null ? status : 1);  // 默认只查已发布
             articles = articleMapper.list(query);
         }
+        
+        if (articles == null || articles.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 批量获取文章ID列表
+        List<String> articleIds = articles.stream()
+                .map(Article::getId)
+                .collect(Collectors.toList());
+        
+        // 批量从Redis获取浏览量（MGET，一次性获取）
+        Map<String, Long> viewCountMap = redisService.batchGetViewCount(articleIds);
+        log.debug("批量获取浏览量：{} 篇文章，Redis返回 {} 条", articleIds.size(), viewCountMap.size());
 
         // 批量查询标签（优化N+1问题）
         return articles.stream().map(article -> {
             List<Tag> tags = tagMapper.getByArticleId(article.getId());
+            
+            // 使用Redis的浏览量，如果Redis没有则使用数据库的
+            Long viewCount = viewCountMap.get(article.getId());
+            if (viewCount == null) {
+                viewCount = article.getViewCount();
+                // Redis没有，异步设置到Redis
+                redisService.setViewCount(article.getId(), viewCount);
+            }
+            article.setViewCount(viewCount);
+            
             return buildArticleVO(article, tags);
         }).collect(Collectors.toList());
     }

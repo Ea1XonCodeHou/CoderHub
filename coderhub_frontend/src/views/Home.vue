@@ -23,7 +23,7 @@
           <li :class="{ 'active': activeTab === 'home' }" @click="activeTab = 'home'">
             <a href="#">博客首页</a>
           </li>
-          <li :class="{ 'active': activeTab === 'tutorial' }" @click="activeTab = 'tutorial'">
+          <li :class="{ 'active': activeTab === 'tutorial' }" @click="goToTutorial">
             <a href="#">教程</a>
           </li>
           <li :class="{ 'active': activeTab === 'project' }" @click="activeTab = 'project'">
@@ -271,9 +271,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const activeTab = ref('home')
@@ -467,6 +467,11 @@ const goToProfile = () => {
 // 跳转到文章编辑器
 const goToEditor = () => {
   router.push('/article/editor')
+}
+
+// 跳转到教程页面
+const goToTutorial = () => {
+  router.push('/tutorial')
 }
 
 // 获取用户统计信息

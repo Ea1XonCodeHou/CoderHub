@@ -281,7 +281,7 @@
           <div class="author-card-header">
             <!-- 头像容器（带VIP特效） -->
             <div class="avatar-container" :class="getAvatarClass(author.userLevel)">
-              <img :src="author.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + author.username" class="author-card-avatar" />
+            <img :src="author.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + author.username" class="author-card-avatar" />
               <!-- VIP 光环 (userLevel === 1) -->
               <div v-if="author.userLevel === 1" class="vip-ring"></div>
               <!-- SVIP 彩虹光环 (userLevel === 2) -->
@@ -327,11 +327,11 @@
                 <img :src="item.coverImage" :alt="item.title" />
               </div>
               <div class="recommend-item-content">
-                <h4 class="recommend-item-title">{{ item.title }}</h4>
-                <div class="recommend-item-meta">
-                  <span>{{ item.viewCount }} 阅读</span>
-                  <span class="dot">·</span>
-                  <span>{{ item.likeCount }} 点赞</span>
+              <h4 class="recommend-item-title">{{ item.title }}</h4>
+              <div class="recommend-item-meta">
+                <span>{{ item.viewCount }} 阅读</span>
+                <span class="dot">·</span>
+                <span>{{ item.likeCount }} 点赞</span>
                 </div>
               </div>
             </div>
@@ -674,7 +674,7 @@ const fetchAuthorInfo = async (userId) => {
     if (userResponse.data.code === 1) {
       author.value = userResponse.data.data
     }
-    
+      
     // 获取作者统计数据（真实数据）
     const statsResponse = await axios.get(`/api/user/${userId}/stats`, {
       headers: { authentication: token }
@@ -888,7 +888,7 @@ const submitComment = async () => {
       // 重新加载评论列表
       await fetchComments()
       // 清空输入框
-      commentInput.value = ''
+  commentInput.value = ''
       replyingTo.value = null
       replyingToParent.value = null
       commentInputFocused.value = false

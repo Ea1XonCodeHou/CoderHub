@@ -42,6 +42,12 @@ const router = createRouter({
       name: 'dashboard',
       component: () => import('@/views/Dashboard.vue'),
       meta: { requiresAuth: true, role: 'ADMIN' }
+    },
+    {
+      path: '/tutorial',
+      name: 'tutorial',
+      component: () => import('@/views/Tutorial.vue'),
+      meta: { requiresAuth: true, role: 'USER' }
     }
   ]
 })
