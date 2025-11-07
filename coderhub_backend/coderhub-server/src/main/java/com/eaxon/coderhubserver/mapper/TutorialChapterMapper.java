@@ -38,4 +38,16 @@ public interface TutorialChapterMapper {
      * @param tutorialId 教程ID
      */
     void updateTutorialChapterCount(@Param("tutorialId") String tutorialId);
+
+    /**
+     * 更新章节信息
+     * @param chapter 章节信息
+     */
+    void updateChapter(TutorialChapter chapter);
+    
+    /**
+     * 删除章节
+     * @param chapterId 章节ID
+     */
+    void deleteById(@Param("chapterId") String chapterId);
 }

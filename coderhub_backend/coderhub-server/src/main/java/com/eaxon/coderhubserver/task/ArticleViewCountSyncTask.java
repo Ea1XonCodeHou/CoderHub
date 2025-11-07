@@ -12,8 +12,8 @@ import com.eaxon.coderhubserver.service.RedisService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * ÎÄÕÂä¯ÀÀÁ¿Í¬²½¶¨Ê±ÈÎÎñ
- * Ã¿5·ÖÖÓ½«RedisÖĞµÄä¯ÀÀÁ¿Í¬²½µ½MySQL
+ * æ–‡ç« æµè§ˆé‡åŒæ­¥å®šæ—¶ä»»åŠ¡
+ * æ¯5åˆ†é’Ÿå°†Redisä¸­çš„æµè§ˆé‡åŒæ­¥åˆ°MySQL
  */
 @Component
 @Slf4j
@@ -26,54 +26,54 @@ public class ArticleViewCountSyncTask {
     private ArticleMapper articleMapper;
     
     /**
-     * Í¬²½Redisä¯ÀÀÁ¿µ½MySQL
-     * Ã¿5·ÖÖÓÖ´ĞĞÒ»´Î
+     * åŒæ­¥Redisæµè§ˆé‡åˆ°MySQL
+     * æ¯5åˆ†é’Ÿæ‰§è¡Œä¸€æ¬¡
      */
     @Scheduled(cron = "0 0/5 * * * ?")
     public void syncViewCountToDatabase() {
-        log.info("========== ¿ªÊ¼Í¬²½ä¯ÀÀÁ¿µ½Êı¾İ¿â ==========");
+        log.info("========== å¼€å§‹åŒæ­¥æµè§ˆé‡åˆ°æ•°æ®åº“ ==========");
         
         long startTime = System.currentTimeMillis();
         int successCount = 0;
         int failCount = 0;
         
         try {
-            // 1. É¨ÃèRedis»ñÈ¡ËùÓĞä¯ÀÀÁ¿Êı¾İ
+            // 1. æ‰«æRedisè·å–æ‰€æœ‰æµè§ˆé‡æ•°æ®
             Map<String, Long> viewCountMap = redisService.scanAllViewCounts();
             
             if (viewCountMap.isEmpty()) {
-                log.info("RedisÖĞÃ»ÓĞä¯ÀÀÁ¿Êı¾İĞèÒªÍ¬²½");
+                log.info("Redisä¸­æ²¡æœ‰æµè§ˆé‡æ•°æ®éœ€è¦åŒæ­¥");
                 return;
             }
             
-            log.info("É¨Ãèµ½ {} ÆªÎÄÕÂµÄä¯ÀÀÁ¿Êı¾İ", viewCountMap.size());
+            log.info("æ‰«æåˆ° {} ç¯‡æ–‡ç« çš„æµè§ˆé‡æ•°æ®", viewCountMap.size());
             
-            // 2. ÅúÁ¿¸üĞÂµ½MySQL
+            // 2. æ‰¹é‡æ›´æ–°åˆ°MySQL
             for (Map.Entry<String, Long> entry : viewCountMap.entrySet()) {
                 String articleId = entry.getKey();
                 Long viewCount = entry.getValue();
                 
                 try {
-                    // Ö±½Ó¸²¸ÇMySQLÖĞµÄä¯ÀÀÁ¿
+                    // ç›´æ¥è¦†ç›–MySQLä¸­çš„æµè§ˆé‡
                     articleMapper.updateViewCountDirect(articleId, viewCount);
                     successCount++;
                     
-                    log.debug("Í¬²½³É¹¦£ºarticleId={}, viewCount={}", articleId, viewCount);
+                    log.debug("åŒæ­¥æˆåŠŸï¼šarticleId={}, viewCount={}", articleId, viewCount);
                 } catch (Exception e) {
                     failCount++;
-                    log.error("Í¬²½Ê§°Ü£ºarticleId={}, viewCount={}", articleId, viewCount, e);
+                    log.error("åŒæ­¥å¤±è´¥ï¼šarticleId={}, viewCount={}", articleId, viewCount, e);
                 }
             }
             
             long endTime = System.currentTimeMillis();
             long costTime = endTime - startTime;
             
-            log.info("========== ä¯ÀÀÁ¿Í¬²½Íê³É ==========");
-            log.info("×ÜÊı: {}, ³É¹¦: {}, Ê§°Ü: {}, ºÄÊ±: {}ms", 
+            log.info("========== æµè§ˆé‡åŒæ­¥å®Œæˆ ==========");
+            log.info("æ€»æ•°: {}, æˆåŠŸ: {}, å¤±è´¥: {}, è€—æ—¶: {}ms", 
                     viewCountMap.size(), successCount, failCount, costTime);
             
         } catch (Exception e) {
-            log.error("ä¯ÀÀÁ¿Í¬²½ÈÎÎñÖ´ĞĞÊ§°Ü", e);
+            log.error("æµè§ˆé‡åŒæ­¥ä»»åŠ¡æ‰§è¡Œå¤±è´¥", e);
         }
     }
 }

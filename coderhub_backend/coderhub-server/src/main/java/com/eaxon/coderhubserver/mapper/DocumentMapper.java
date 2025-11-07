@@ -27,6 +27,13 @@ public interface DocumentMapper {
     List<Document> selectByChapterId(@Param("chapterId") String chapterId);
 
     /**
+     * 根据文档ID查询文档
+     * @param id 文档ID
+     * @return 文档信息
+     */
+    Document selectById(@Param("id") String id);
+
+    /**
      * 根据文档ID删除文档
      * @param documentId 文档ID
      */

@@ -55,4 +55,22 @@ public interface TutorialChapterService {
      * @return 视频列表
      */
     List<Video> getVideosByChapterId(String chapterId);
+
+    /**
+     * 删除文档
+     * @param id 文档ID
+     */
+    void deleteDocument(String id);
+
+    /**
+     * 删除视频
+     * @param id 视频ID
+     */
+    void deleteVideo(String id);
+
+    /**
+     * 更新章节信息
+     * @param chapter 章节信息
+     */
+    void updateChapter(TutorialChapter chapter);
 }

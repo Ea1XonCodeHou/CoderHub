@@ -28,6 +28,17 @@
         ORDER BY create_time ASC
     </select>
 
+    <!-- 根据文档ID查询文档 -->
+    <select id="selectById" resultType="com.eaxon.coderhubpojo.entity.Document">
+        SELECT 
+            id, chapter_id as chapterId, document_title as documentTitle,
+            document_url as documentUrl, document_type as documentType,
+            file_size as fileSize,
+            create_time as createTime, update_time as updateTime
+        FROM document
+        WHERE id = #{id}
+    </select>
+
     <!-- 根据文档ID删除文档 -->
     <delete id="deleteById">
         DELETE FROM document WHERE id = #{documentId}

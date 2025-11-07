@@ -6,11 +6,11 @@ spring:
     active: dev
   main:
     allow-circular-references: true
-  # 文件上传配置
+  # 文件上传配置 - 支持大文件（视频）
   servlet:
     multipart:
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 500MB      # 单个文件最大500MB
+      max-request-size: 500MB   # 整个请求最大500MB
   # Jackson日期格式配置
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
@@ -58,6 +58,13 @@ coder:
     access-key-id: ${coder.alioss.access-key-id}
     access-key-secret: ${coder.alioss.access-key-secret}
     bucket-name: ${coder.alioss.bucket-name}
+
+  # MinIO配置（大文件存储）
+  minio:
+    endpoint: ${coder.minio.endpoint}
+    access-key: ${coder.minio.access-key}
+    secret-key: ${coder.minio.secret-key}
+    bucket-name: ${coder.minio.bucket-name}
 
 langchain4j:
   open-ai:

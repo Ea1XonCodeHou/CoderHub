@@ -3,8 +3,11 @@ package com.eaxon.coderhubserver.controller.admin;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +19,7 @@ import com.eaxon.coderhubpojo.DTO.NewTutorialDTO;
 import com.eaxon.coderhubpojo.DTO.UploadDocumentDTO;
 import com.eaxon.coderhubpojo.DTO.UploadVideoDTO;
 import com.eaxon.coderhubpojo.VO.PageResult;
+import com.eaxon.coderhubpojo.VO.TutorialDeleteResult;
 import com.eaxon.coderhubpojo.entity.Document;
 import com.eaxon.coderhubpojo.entity.Tutorial;
 import com.eaxon.coderhubpojo.entity.TutorialChapter;
@@ -70,6 +74,32 @@ public class TutorialManagerController {
         log.info("新增教程：{}", newTutorialDTO);
         Tutorial tutorial = tutorialService.createNewTutorial(newTutorialDTO);
         return Result.success(tutorial);
+    }
+    
+    /**
+     * 更新教程
+     * @param tutorial 教程信息
+     * @return 更新结果
+     */
+    @PutMapping
+    @ApiOperation(value = "更新教程")
+    public Result<Void> updateTutorial(@RequestBody Tutorial tutorial) {
+        log.info("更新教程：{}", tutorial.getId());
+        tutorialService.updateTutorial(tutorial);
+        return Result.success();
+    }
+    
+    /**
+     * 删除教程
+     * @param id 教程ID
+     * @return 删除结果详情
+     */
+    @DeleteMapping("/{id}")
+    @ApiOperation(value = "删除教程")
+    public Result<TutorialDeleteResult> deleteTutorial(@PathVariable String id) {
+        log.info("删除教程：{}", id);
+        TutorialDeleteResult result = tutorialService.deleteTutorial(id);
+        return Result.success(result);
     }
     
     // ==================== 章节管理接口 ====================
@@ -150,5 +180,44 @@ public class TutorialManagerController {
         log.info("查询章节视频列表，章节ID：{}", chapterId);
         List<Video> videos = tutorialChapterService.getVideosByChapterId(chapterId);
         return Result.success(videos);
+    }
+
+    /**
+     * 删除文档
+     * @param id 文档ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/document/{id}")
+    @ApiOperation(value = "删除文档")
+    public Result<Void> deleteDocument(@PathVariable String id) {
+        log.info("删除文档，文档ID：{}", id);
+        tutorialChapterService.deleteDocument(id);
+        return Result.success();
+    }
+
+    /**
+     * 删除视频
+     * @param id 视频ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/video/{id}")
+    @ApiOperation(value = "删除视频")
+    public Result<Void> deleteVideo(@PathVariable String id) {
+        log.info("删除视频，视频ID：{}", id);
+        tutorialChapterService.deleteVideo(id);
+        return Result.success();
+    }
+
+    /**
+     * 更新章节信息
+     * @param chapter 章节信息
+     * @return 更新结果
+     */
+    @PutMapping("/chapter")
+    @ApiOperation(value = "更新章节信息")
+    public Result<Void> updateChapter(@RequestBody TutorialChapter chapter) {
+        log.info("更新章节信息：{}", chapter);
+        tutorialChapterService.updateChapter(chapter);
+        return Result.success();
     }
 }

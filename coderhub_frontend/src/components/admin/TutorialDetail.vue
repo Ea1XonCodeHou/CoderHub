@@ -255,6 +255,85 @@
       </div>
     </div>
 
+    <!-- 编辑章节对话框 -->
+    <div v-if="showEditChapterDialog" class="dialog-overlay" @click.self="closeEditChapterDialog">
+      <div class="dialog-container">
+        <div class="dialog-header">
+          <h3>编辑章节</h3>
+          <button class="btn-close" @click="closeEditChapterDialog">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="dialog-body">
+          <form @submit.prevent="submitEditChapter">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="required">章节序号</label>
+                <input 
+                  v-model.number="editChapterForm.chapterOrder" 
+                  type="number" 
+                  class="form-input" 
+                  min="1"
+                  placeholder="请输入章节序号"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="required">章节标题</label>
+                <input 
+                  v-model="editChapterForm.chapterTitle" 
+                  type="text" 
+                  class="form-input" 
+                  placeholder="请输入章节标题"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>预计时长（分钟）</label>
+                <input 
+                  v-model="editChapterForm.duration" 
+                  type="text" 
+                  class="form-input" 
+                  placeholder="例如：45 或 60-90"
+                />
+              </div>
+
+              <div class="form-group">
+                <label class="required">是否免费试看</label>
+                <select v-model.number="editChapterForm.isFree" class="form-select" required>
+                  <option :value="0">需要解锁</option>
+                  <option :value="1">免费试看</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="required">发布状态</label>
+                <select v-model.number="editChapterForm.status" class="form-select" required>
+                  <option :value="0">未发布</option>
+                  <option :value="1">已发布</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="dialog-footer">
+              <button type="button" class="btn-cancel" @click="closeEditChapterDialog">取消</button>
+              <button type="submit" class="btn-submit" :disabled="isSubmitting">
+                {{ isSubmitting ? '保存中...' : '保存修改' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- 上传文档对话框 -->
     <div v-if="showUploadDocumentDialog" class="dialog-overlay" @click.self="closeUploadDocumentDialog">
       <div class="dialog-container">
@@ -363,14 +442,24 @@
 
             <div class="form-group">
               <label class="required">上传视频文件</label>
-              <div class="upload-area" @click="$refs.videoFileInput.click()">
-                <div v-if="!videoForm.videoUrl" class="upload-placeholder">
+              <div class="upload-area" @click="!isUploadingVideo && $refs.videoFileInput.click()">
+                <div v-if="!videoForm.videoUrl && !isUploadingVideo" class="upload-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M15 10L19.5528 7.72361C20.2177 7.39116 21 7.87465 21 8.61803V15.382C21 16.1253 20.2177 16.6088 19.5528 16.2764L15 14M5 18H13C14.1046 18 15 17.1046 15 16V8C15 6.89543 14.1046 6 13 6H5C3.89543 6 3 6.89543 3 8V16C3 17.1046 3.89543 18 5 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <p>点击选择视频文件</p>
-                  <span>支持 MP4、AVI、MOV等格式</span>
+                  <span>支持 MP4、AVI、MOV等格式，最大500MB</span>
                 </div>
+                
+                <!-- 上传进度条 -->
+                <div v-else-if="isUploadingVideo" class="upload-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: videoUploadProgress + '%' }"></div>
+                  </div>
+                  <p class="progress-text">正在上传... {{ videoUploadProgress }}%</p>
+                  <span class="progress-hint">请勿关闭页面</span>
+                </div>
+                
                 <div v-else class="upload-success">
                   <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -385,6 +474,7 @@
                 accept="video/*"
                 style="display: none" 
                 @change="handleVideoFileUpload"
+                :disabled="isUploadingVideo"
               />
             </div>
 
@@ -402,8 +492,7 @@
 </template>
 
 <script setup>
-import { createChapter, getChapterList, getDocumentList, getVideoList, uploadDocument, uploadVideo } from '@/api/admin'
-import { uploadFile } from '@/api/user'
+import { createChapter, deleteDocument as deleteDocumentApi, deleteVideo as deleteVideoApi, getChapterList, getDocumentList, getVideoList, updateChapter, uploadDocument, uploadFile, uploadFileToMinio, uploadVideo } from '@/api/admin'
 import Toast from '@/components/Toast.vue'
 import { onMounted, reactive, ref } from 'vue'
 
@@ -435,12 +524,23 @@ const chapterVideos = ref({})
 
 // 对话框状态
 const showCreateChapterDialog = ref(false)
+const showEditChapterDialog = ref(false)
 const showUploadDocumentDialog = ref(false)
 const showUploadVideoDialog = ref(false)
 const isSubmitting = ref(false)
 
 // 当前操作的章节
 const currentChapter = ref(null)
+
+// 编辑章节表单
+const editChapterForm = reactive({
+  id: '',
+  chapterOrder: 1,
+  chapterTitle: '',
+  duration: '',
+  isFree: 0,
+  status: 1
+})
 
 // 章节表单
 const chapterForm = reactive({
@@ -470,6 +570,10 @@ const videoForm = reactive({
   duration: '',
   fileSize: 0
 })
+
+// 视频上传进度
+const videoUploadProgress = ref(0)
+const isUploadingVideo = ref(false)
 
 // 获取章节列表
 const fetchChapters = async () => {
@@ -613,6 +717,8 @@ const openUploadVideoDialog = (chapter) => {
 const closeUploadVideoDialog = () => {
   showUploadVideoDialog.value = false
   currentChapter.value = null
+  videoUploadProgress.value = 0
+  isUploadingVideo.value = false
   Object.assign(videoForm, {
     chapterId: '',
     videoTitle: '',
@@ -628,14 +734,37 @@ const handleVideoFileUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
 
+  // 检查文件类型
+  if (!file.type.startsWith('video/')) {
+    showMessage('error', '格式错误', '请上传视频文件')
+    return
+  }
+
+  // 显示文件大小
+  const fileSizeMB = (file.size / 1024 / 1024).toFixed(2)
+  console.log(`选择的视频文件：${file.name}，大小：${fileSizeMB}MB`)
+
   try {
-    const res = await uploadFile(file)
+    isUploadingVideo.value = true
+    videoUploadProgress.value = 0
+    
+    // 使用MinIO上传大文件
+    const res = await uploadFileToMinio(file, (progressEvent) => {
+      // 计算上传进度
+      videoUploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+      console.log(`上传进度：${videoUploadProgress.value}%`)
+    })
+    
     videoForm.videoUrl = res.data
     videoForm.fileSize = file.size
-    showMessage('success', '上传成功', '视频已上传')
+    
+    showMessage('success', '上传成功', `视频已上传（${fileSizeMB}MB）`)
   } catch (error) {
     console.error('视频上传失败：', error)
-    showMessage('error', '上传失败', '视频上传失败，请重试')
+    showMessage('error', '上传失败', error.message || '视频上传失败，请重试')
+    videoUploadProgress.value = 0
+  } finally {
+    isUploadingVideo.value = false
   }
 }
 
@@ -659,24 +788,94 @@ const handleUploadVideo = async () => {
 }
 
 // 删除文档
-const deleteDocument = (documentId) => {
-  // TODO: 实现删除功能
-  console.log('删除文档：', documentId)
-  showMessage('info', '提示', '删除功能待实现')
+const deleteDocument = async (documentId) => {
+  if (!confirm('确认删除该文档吗？删除后将同时删除OSS中的文件，且无法恢复！')) {
+    return
+  }
+
+  try {
+    await deleteDocumentApi(documentId)
+    showMessage('success', '成功', '文档删除成功')
+    
+    // 刷新当前章节的文档列表
+    const currentChapterId = Object.keys(chapterDocuments.value).find(chapterId => 
+      chapterDocuments.value[chapterId]?.some(doc => doc.id === documentId)
+    )
+    if (currentChapterId) {
+      await loadChapterResources(currentChapterId)
+    }
+  } catch (error) {
+    console.error('删除文档失败：', error)
+    showMessage('error', '删除失败', error.message || '删除文档失败，请重试')
+  }
 }
 
 // 删除视频
-const deleteVideo = (videoId) => {
-  // TODO: 实现删除功能
-  console.log('删除视频：', videoId)
-  showMessage('info', '提示', '删除功能待实现')
+const deleteVideo = async (videoId) => {
+  if (!confirm('确认删除该视频吗？删除后将同时删除OSS中的文件，且无法恢复！')) {
+    return
+  }
+
+  try {
+    await deleteVideoApi(videoId)
+    showMessage('success', '成功', '视频删除成功')
+    
+    // 刷新当前章节的视频列表
+    const currentChapterId = Object.keys(chapterVideos.value).find(chapterId => 
+      chapterVideos.value[chapterId]?.some(video => video.id === videoId)
+    )
+    if (currentChapterId) {
+      await loadChapterResources(currentChapterId)
+    }
+  } catch (error) {
+    console.error('删除视频失败：', error)
+    showMessage('error', '删除失败', error.message || '删除视频失败，请重试')
+  }
 }
 
 // 编辑章节
 const editChapter = (chapter) => {
-  // TODO: 实现编辑功能
-  console.log('编辑章节：', chapter)
-  showMessage('info', '提示', '编辑功能待实现')
+  // 填充编辑表单
+  editChapterForm.id = chapter.id
+  editChapterForm.chapterOrder = chapter.chapterOrder
+  editChapterForm.chapterTitle = chapter.chapterTitle
+  editChapterForm.duration = chapter.duration || ''
+  editChapterForm.isFree = chapter.isFree
+  editChapterForm.status = chapter.status
+  
+  // 打开编辑对话框
+  showEditChapterDialog.value = true
+}
+
+// 关闭编辑章节对话框
+const closeEditChapterDialog = () => {
+  showEditChapterDialog.value = false
+}
+
+// 提交编辑章节
+const submitEditChapter = async () => {
+  // 表单验证
+  if (!editChapterForm.chapterTitle.trim()) {
+    showMessage('warning', '提示', '请输入章节标题')
+    return
+  }
+
+  if (isSubmitting.value) return
+  isSubmitting.value = true
+
+  try {
+    await updateChapter(editChapterForm)
+    showMessage('success', '成功', '章节更新成功')
+    closeEditChapterDialog()
+    
+    // 重新加载章节列表
+    await fetchChapters()
+  } catch (error) {
+    console.error('更新章节失败：', error)
+    showMessage('error', '更新失败', error.message || '更新章节失败，请重试')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 // 工具函数
@@ -1347,7 +1546,8 @@ onMounted(() => {
 }
 
 .upload-placeholder,
-.upload-success {
+.upload-success,
+.upload-progress {
   text-align: center;
   padding: 20px;
 }
@@ -1374,6 +1574,39 @@ onMounted(() => {
 
 .upload-placeholder span,
 .upload-success span {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* 上传进度条 */
+.upload-progress {
+  padding: 30px 20px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin: 0 0 6px 0;
+}
+
+.progress-hint {
   font-size: 12px;
   color: #94a3b8;
 }

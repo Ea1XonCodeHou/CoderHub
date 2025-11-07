@@ -7,6 +7,73 @@
       :title="toastConfig.title"
       :message="toastConfig.message"
     />
+    
+    <!-- 删除确认对话框 -->
+    <div v-if="showDeleteConfirm" class="dialog-overlay" @click.self="showDeleteConfirm = false">
+      <div class="confirm-dialog">
+        <div class="confirm-icon danger">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3 class="confirm-title">确认删除教程？</h3>
+        <p class="confirm-message">
+          您即将删除教程《<strong>{{ deletingTutorial?.title }}</strong>》<br/>
+          此操作将会<span class="text-danger">级联删除所有章节、文档和视频资源</span>！
+        </p>
+        <div class="confirm-actions">
+          <button class="btn-cancel" @click="showDeleteConfirm = false">取消</button>
+          <button class="btn-danger" @click="confirmDelete" :disabled="isDeleting">
+            <span v-if="!isDeleting">确认删除</span>
+            <span v-else>删除中...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 删除结果对话框 -->
+    <div v-if="showDeleteResult" class="dialog-overlay" @click.self="showDeleteResult = false">
+      <div class="result-dialog">
+        <div class="result-icon success">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3 class="result-title">删除成功</h3>
+        <div class="result-details">
+          <div class="result-item">
+            <span class="result-label">教程名称：</span>
+            <span class="result-value">{{ deleteResult?.tutorialTitle }}</span>
+          </div>
+          <div class="result-stats">
+            <div class="stat-box">
+              <div class="stat-value">{{ deleteResult?.chapterCount || 0 }}</div>
+              <div class="stat-label">章节</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">{{ deleteResult?.documentCount || 0 }}</div>
+              <div class="stat-label">文档</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">{{ deleteResult?.videoCount || 0 }}</div>
+              <div class="stat-label">视频</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-value">{{ deleteResult?.ossFileCount || 0 }}</div>
+              <div class="stat-label">文件</div>
+            </div>
+          </div>
+          <div class="result-summary">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>共清理 <strong>{{ formatFileSize(deleteResult?.totalFileSize || 0) }}</strong> 的云存储空间</p>
+          </div>
+        </div>
+        <button class="btn-primary" @click="closeDeleteResult">我知道了</button>
+      </div>
+    </div>
+    
     <!-- 头部操作栏 -->
     <div class="section-header">
       <h2>教程管理</h2>
@@ -83,13 +150,13 @@
               <span class="chapter-tag">{{ tutorial.chapterCount }} 章节</span>
             </div>
             <div class="actions">
-              <button class="btn-icon" @click="handleEdit(tutorial)" title="编辑">
+              <button class="btn-icon" @click.stop="handleEdit(tutorial)" title="编辑">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M18.5 2.50023C18.8978 2.1024 19.4374 1.87891 20 1.87891C20.5626 1.87891 21.1022 2.1024 21.5 2.50023C21.8978 2.89805 22.1213 3.43762 22.1213 4.00023C22.1213 4.56284 21.8978 5.1024 21.5 5.50023L12 15.0002L8 16.0002L9 12.0002L18.5 2.50023Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
-              <button class="btn-icon danger" @click="handleDelete(tutorial)" title="删除">
+              <button class="btn-icon danger" @click.stop="handleDelete(tutorial)" title="删除">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -317,6 +384,15 @@ const isSubmitting = ref(false)
 const coverInput = ref(null)
 const avatarInput = ref(null)
 
+// 删除确认相关
+const showDeleteConfirm = ref(false)
+const deletingTutorial = ref(null)
+const isDeleting = ref(false)
+
+// 删除结果相关
+const showDeleteResult = ref(false)
+const deleteResult = ref(null)
+
 // Toast 提示
 const showToast = ref(false)
 const toastConfig = ref({
@@ -465,18 +541,46 @@ const handleEdit = (tutorial) => {
   showCreateDialog.value = true
 }
 
-// 删除教程
-const handleDelete = async (tutorial) => {
-  if (!confirm(`确定要删除教程《${tutorial.title}》吗？`)) return
+// 删除教程 - 打开确认对话框
+const handleDelete = (tutorial) => {
+  deletingTutorial.value = tutorial
+  showDeleteConfirm.value = true
+}
 
+// 确认删除
+const confirmDelete = async () => {
+  if (isDeleting.value) return
+  
+  isDeleting.value = true
   try {
-    await deleteTutorial(tutorial.id)
-    alert('删除成功')
+    const res = await deleteTutorial(deletingTutorial.value.id)
+    deleteResult.value = res.data
+    showDeleteConfirm.value = false
+    showDeleteResult.value = true
     fetchTutorials()
   } catch (error) {
     console.error('删除失败：', error)
-    alert('删除失败')
+    showMessage('error', '删除失败', error.message || '删除教程失败，请重试')
+    showDeleteConfirm.value = false
+  } finally {
+    isDeleting.value = false
   }
+}
+
+// 关闭删除结果对话框
+const closeDeleteResult = () => {
+  showDeleteResult.value = false
+  deleteResult.value = null
+  deletingTutorial.value = null
+}
+
+// 格式化文件大小
+const formatFileSize = (bytes) => {
+  if (!bytes || bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
 }
 
 // 关闭对话框
@@ -630,6 +734,7 @@ onMounted(() => {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.5;
 }
@@ -643,6 +748,7 @@ onMounted(() => {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
@@ -1163,6 +1269,218 @@ onMounted(() => {
 .btn-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* 删除确认对话框 */
+.confirm-dialog {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 480px;
+  width: 90%;
+  text-align: center;
+  animation: slideUp 0.3s;
+}
+
+.confirm-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.confirm-icon.danger {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
+}
+
+.confirm-icon svg {
+  width: 48px;
+  height: 48px;
+}
+
+.confirm-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 16px 0;
+}
+
+.confirm-message {
+  font-size: 15px;
+  color: #64748b;
+  line-height: 1.8;
+  margin: 0 0 32px 0;
+}
+
+.confirm-message strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.text-danger {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-danger {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.btn-danger:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 删除结果对话框 */
+.result-dialog {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 560px;
+  width: 90%;
+  text-align: center;
+  animation: slideUp 0.3s;
+}
+
+.result-icon {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.result-icon.success {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #059669;
+}
+
+.result-icon svg {
+  width: 52px;
+  height: 52px;
+}
+
+.result-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 32px 0;
+}
+
+.result-details {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.result-label {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.result-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.stat-box {
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px 8px;
+  transition: all 0.2s;
+}
+
+.stat-box:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #059669;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.result-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+}
+
+.result-summary svg {
+  width: 20px;
+  height: 20px;
+  color: #92400e;
+  flex-shrink: 0;
+}
+
+.result-summary p {
+  font-size: 14px;
+  color: #78350f;
+  margin: 0;
+}
+
+.result-summary strong {
+  color: #92400e;
+  font-weight: 700;
 }
 
 /* 响应式 */

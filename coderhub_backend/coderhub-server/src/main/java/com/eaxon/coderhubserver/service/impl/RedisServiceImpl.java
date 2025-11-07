@@ -17,7 +17,7 @@ import com.eaxon.coderhubserver.service.RedisService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Redis·şÎñÊµÏÖÀà
+ * RedisæœåŠ¡å®ç°ç±»
  */
 @Service
 @Slf4j
@@ -26,17 +26,17 @@ public class RedisServiceImpl implements RedisService {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
     
-    // ==================== ä¯ÀÀÁ¿Ïà¹Ø ====================
+    // ==================== æµè§ˆé‡ç›¸å…³ ====================
     
     @Override
     public Long incrementViewCount(String articleId) {
         try {
             String key = RedisConstant.ARTICLE_VIEW_COUNT + articleId;
             Long newCount = redisTemplate.opsForValue().increment(key, 1L);
-            log.debug("ÎÄÕÂ{}ä¯ÀÀÁ¿+1£¬µ±Ç°Öµ£º{}", articleId, newCount);
+            log.debug("æ–‡ç« {}æµè§ˆé‡+1ï¼Œå½“å‰å€¼ï¼š{}", articleId, newCount);
             return newCount;
         } catch (Exception e) {
-            log.error("RedisÔö¼Óä¯ÀÀÁ¿Ê§°Ü£ºarticleId={}", articleId, e);
+            log.error("Rediså¢åŠ æµè§ˆé‡å¤±è´¥ï¼šarticleId={}", articleId, e);
             return null;
         }
     }
@@ -49,7 +49,7 @@ public class RedisServiceImpl implements RedisService {
             if (value == null) {
                 return null;
             }
-            // ´¦Àí²»Í¬ÀàĞÍµÄ·µ»ØÖµ
+            // å¤„ç†ä¸åŒç±»å‹çš„è¿”å›å€¼
             if (value instanceof Integer) {
                 return ((Integer) value).longValue();
             } else if (value instanceof Long) {
@@ -58,7 +58,7 @@ public class RedisServiceImpl implements RedisService {
                 return Long.parseLong(value.toString());
             }
         } catch (Exception e) {
-            log.error("Redis»ñÈ¡ä¯ÀÀÁ¿Ê§°Ü£ºarticleId={}", articleId, e);
+            log.error("Redisè·å–æµè§ˆé‡å¤±è´¥ï¼šarticleId={}", articleId, e);
             return null;
         }
     }
@@ -72,15 +72,15 @@ public class RedisServiceImpl implements RedisService {
         }
         
         try {
-            // ¹¹½¨ËùÓĞµÄkey
+            // æ„å»ºæ‰€æœ‰çš„key
             List<String> keys = articleIds.stream()
                     .map(id -> RedisConstant.ARTICLE_VIEW_COUNT + id)
                     .collect(Collectors.toList());
             
-            // ÅúÁ¿»ñÈ¡£¨MGET£©
+            // æ‰¹é‡è·å–ï¼ˆMGETï¼‰
             List<Object> values = redisTemplate.opsForValue().multiGet(keys);
             
-            // ×é×°½á¹û
+            // ç»„è£…ç»“æœ
             for (int i = 0; i < articleIds.size(); i++) {
                 String articleId = articleIds.get(i);
                 Object value = values != null ? values.get(i) : null;
@@ -98,9 +98,9 @@ public class RedisServiceImpl implements RedisService {
                 }
             }
             
-            log.debug("ÅúÁ¿»ñÈ¡ä¯ÀÀÁ¿³É¹¦£¬¹²{}ÆªÎÄÕÂ", result.size());
+            log.debug("æ‰¹é‡è·å–æµè§ˆé‡æˆåŠŸï¼Œå…±{}ç¯‡æ–‡ç« ", result.size());
         } catch (Exception e) {
-            log.error("RedisÅúÁ¿»ñÈ¡ä¯ÀÀÁ¿Ê§°Ü", e);
+            log.error("Redisæ‰¹é‡è·å–æµè§ˆé‡å¤±è´¥", e);
         }
         
         return result;
@@ -110,11 +110,11 @@ public class RedisServiceImpl implements RedisService {
     public void setViewCount(String articleId, Long viewCount) {
         try {
             String key = RedisConstant.ARTICLE_VIEW_COUNT + articleId;
-            // ´æ´¢×Ö·û´®¸ñÊ½µÄÊı×Ö£¬ÕâÑù¿ÉÒÔÊ¹ÓÃ INCR ÃüÁî
+            // å­˜å‚¨å­—ç¬¦ä¸²æ ¼å¼çš„æ•°å­—ï¼Œè¿™æ ·å¯ä»¥ä½¿ç”¨ INCR å‘½ä»¤
             redisTemplate.opsForValue().set(key, String.valueOf(viewCount));
-            log.debug("ÉèÖÃÎÄÕÂ{}ä¯ÀÀÁ¿£º{}", articleId, viewCount);
+            log.debug("è®¾ç½®æ–‡ç« {}æµè§ˆé‡ï¼š{}", articleId, viewCount);
         } catch (Exception e) {
-            log.error("RedisÉèÖÃä¯ÀÀÁ¿Ê§°Ü£ºarticleId={}", articleId, e);
+            log.error("Redisè®¾ç½®æµè§ˆé‡å¤±è´¥ï¼šarticleId={}", articleId, e);
         }
     }
     
@@ -125,19 +125,19 @@ public class RedisServiceImpl implements RedisService {
         }
         
         try {
-            // Ê¹ÓÃPipelineÅúÁ¿ÉèÖÃ
+            // ä½¿ç”¨Pipelineæ‰¹é‡è®¾ç½®
             redisTemplate.executePipelined((org.springframework.data.redis.core.RedisCallback<Object>) connection -> {
                 viewCountMap.forEach((articleId, viewCount) -> {
                     String key = RedisConstant.ARTICLE_VIEW_COUNT + articleId;
-                    // ´æ´¢×Ö·û´®¸ñÊ½µÄÊı×Ö
+                    // å­˜å‚¨å­—ç¬¦ä¸²æ ¼å¼çš„æ•°å­—
                     redisTemplate.opsForValue().set(key, String.valueOf(viewCount));
                 });
                 return null;
             });
             
-            log.info("ÅúÁ¿ÉèÖÃä¯ÀÀÁ¿³É¹¦£¬¹²{}ÆªÎÄÕÂ", viewCountMap.size());
+            log.info("æ‰¹é‡è®¾ç½®æµè§ˆé‡æˆåŠŸï¼Œå…±{}ç¯‡æ–‡ç« ", viewCountMap.size());
         } catch (Exception e) {
-            log.error("RedisÅúÁ¿ÉèÖÃä¯ÀÀÁ¿Ê§°Ü", e);
+            log.error("Redisæ‰¹é‡è®¾ç½®æµè§ˆé‡å¤±è´¥", e);
         }
     }
     
@@ -146,10 +146,10 @@ public class RedisServiceImpl implements RedisService {
         Map<String, Long> result = new HashMap<>();
         
         try {
-            // Ê¹ÓÃSCANÃüÁî±éÀú£¨²»×èÈûRedis£©
+            // ä½¿ç”¨SCANå‘½ä»¤éå†ï¼ˆä¸é˜»å¡Redisï¼‰
             ScanOptions options = ScanOptions.scanOptions()
                     .match(RedisConstant.ARTICLE_VIEW_COUNT_PATTERN)
-                    .count(100)  // Ã¿´ÎÉ¨Ãè100¸ökey
+                    .count(100)  // æ¯æ¬¡æ‰«æ100ä¸ªkey
                     .build();
             
             Cursor<byte[]> cursor = redisTemplate.getConnectionFactory()
@@ -158,10 +158,10 @@ public class RedisServiceImpl implements RedisService {
             
             while (cursor.hasNext()) {
                 String key = new String(cursor.next());
-                // ÌáÈ¡articleId£ºarticle:view:count:{articleId}
+                // æå–articleIdï¼šarticle:view:count:{articleId}
                 String articleId = key.replace(RedisConstant.ARTICLE_VIEW_COUNT, "");
                 
-                // »ñÈ¡Öµ
+                // è·å–å€¼
                 Long viewCount = getViewCount(articleId);
                 if (viewCount != null) {
                     result.put(articleId, viewCount);
@@ -169,9 +169,9 @@ public class RedisServiceImpl implements RedisService {
             }
             
             cursor.close();
-            log.info("É¨ÃèRedisä¯ÀÀÁ¿Íê³É£¬¹²{}ÆªÎÄÕÂ", result.size());
+            log.info("æ‰«æRedisæµè§ˆé‡å®Œæˆï¼Œå…±{}ç¯‡æ–‡ç« ", result.size());
         } catch (Exception e) {
-            log.error("RedisÉ¨Ãèä¯ÀÀÁ¿Ê§°Ü", e);
+            log.error("Redisæ‰«ææµè§ˆé‡å¤±è´¥", e);
         }
         
         return result;

@@ -48,6 +48,24 @@ const router = createRouter({
       name: 'tutorial',
       component: () => import('@/views/Tutorial.vue'),
       meta: { requiresAuth: true, role: 'USER' }
+    },
+    {
+      path: '/tutorial/:id',
+      name: 'tutorial-detail',
+      component: () => import('@/views/TutorialDetailUser.vue'),
+      meta: { requiresAuth: true, role: 'USER' }
+    },
+    {
+      path: '/document/viewer',
+      name: 'document-viewer',
+      component: () => import('@/views/DocumentViewer.vue'),
+      meta: { requiresAuth: true, role: 'USER' }
+    },
+    {
+      path: '/minio-test',
+      name: 'minio-test',
+      component: () => import('@/views/MinioTest.vue'),
+      meta: { requiresAuth: true, role: 'ADMIN' }
     }
   ]
 })

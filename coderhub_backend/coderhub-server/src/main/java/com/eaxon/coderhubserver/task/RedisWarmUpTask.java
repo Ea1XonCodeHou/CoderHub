@@ -16,8 +16,8 @@ import com.eaxon.coderhubserver.service.RedisService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Redis»º´æÔ¤ÈÈÈÎÎñ
- * ·şÎñÆô¶¯Ê±£¬½«ÈÈÃÅÎÄÕÂµÄä¯ÀÀÁ¿¼ÓÔØµ½Redis
+ * Redisç¼“å­˜é¢„çƒ­ä»»åŠ¡
+ * æœåŠ¡å¯åŠ¨æ—¶ï¼Œå°†çƒ­é—¨æ–‡ç« çš„æµè§ˆé‡åŠ è½½åˆ°Redis
  */
 @Component
 @Slf4j
@@ -30,47 +30,47 @@ public class RedisWarmUpTask {
     private RedisService redisService;
     
     /**
-     * ·şÎñÆô¶¯Ê±Ö´ĞĞÔ¤ÈÈ
-     * ¼ÓÔØµãÔŞÊı×î¶àµÄÇ°100ÆªÎÄÕÂµÄä¯ÀÀÁ¿µ½Redis
+     * æœåŠ¡å¯åŠ¨æ—¶æ‰§è¡Œé¢„çƒ­
+     * åŠ è½½ç‚¹èµæ•°æœ€å¤šçš„å‰100ç¯‡æ–‡ç« çš„æµè§ˆé‡åˆ°Redis
      */
     @PostConstruct
     public void warmUpViewCounts() {
-        log.info("========== ¿ªÊ¼Redis»º´æÔ¤ÈÈ ==========");
+        log.info("========== å¼€å§‹Redisç¼“å­˜é¢„çƒ­ ==========");
         
         long startTime = System.currentTimeMillis();
         
         try {
-            // 1. ²éÑ¯µãÔŞÊı×î¶àµÄÇ°100ÆªÎÄÕÂ
+            // 1. æŸ¥è¯¢ç‚¹èµæ•°æœ€å¤šçš„å‰100ç¯‡æ–‡ç« 
             List<Article> hotArticles = articleMapper.getTopLikedArticles(100);
             
             if (hotArticles == null || hotArticles.isEmpty()) {
-                log.info("Ã»ÓĞÎÄÕÂÊı¾İĞèÒªÔ¤ÈÈ");
+                log.info("æ²¡æœ‰æ–‡ç« æ•°æ®éœ€è¦é¢„çƒ­");
                 return;
             }
             
-            log.info("²éÑ¯µ½ {} ÆªÈÈÃÅÎÄÕÂ", hotArticles.size());
+            log.info("æŸ¥è¯¢åˆ° {} ç¯‡çƒ­é—¨æ–‡ç« ", hotArticles.size());
             
-            // 2. ¹¹½¨ä¯ÀÀÁ¿Ó³Éä
+            // 2. æ„å»ºæµè§ˆé‡æ˜ å°„
             Map<String, Long> viewCountMap = new HashMap<>();
             for (Article article : hotArticles) {
                 viewCountMap.put(article.getId(), article.getViewCount());
             }
             
-            // 3. ÅúÁ¿Ğ´ÈëRedis
+            // 3. æ‰¹é‡å†™å…¥Redis
             redisService.batchSetViewCount(viewCountMap);
             
             long endTime = System.currentTimeMillis();
             long costTime = endTime - startTime;
             
-            log.info("========== Redis»º´æÔ¤ÈÈÍê³É ==========");
-            log.info("Ô¤ÈÈÎÄÕÂÊı: {}, ºÄÊ±: {}ms", hotArticles.size(), costTime);
+            log.info("========== Redisç¼“å­˜é¢„çƒ­å®Œæˆ ==========");
+            log.info("é¢„çƒ­æ–‡ç« æ•°: {}, è€—æ—¶: {}ms", hotArticles.size(), costTime);
             
-            // 4. ´òÓ¡Ç°10ÆªÈÈÃÅÎÄÕÂĞÅÏ¢
-            log.info("Ô¤ÈÈµÄÈÈÃÅÎÄÕÂTOP10:");
+            // 4. æ‰“å°å‰10ç¯‡çƒ­é—¨æ–‡ç« ä¿¡æ¯
+            log.info("é¢„çƒ­çš„çƒ­é—¨æ–‡ç« TOP10:");
             int count = Math.min(10, hotArticles.size());
             for (int i = 0; i < count; i++) {
                 Article article = hotArticles.get(i);
-                log.info("  {}. {} (µãÔŞ:{}, ä¯ÀÀ:{})", 
+                log.info("  {}. {} (ç‚¹èµ:{}, æµè§ˆ:{})", 
                         i + 1, 
                         article.getTitle(), 
                         article.getLikeCount(), 
@@ -78,7 +78,7 @@ public class RedisWarmUpTask {
             }
             
         } catch (Exception e) {
-            log.error("Redis»º´æÔ¤ÈÈÊ§°Ü", e);
+            log.error("Redisç¼“å­˜é¢„çƒ­å¤±è´¥", e);
         }
     }
 }

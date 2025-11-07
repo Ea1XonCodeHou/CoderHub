@@ -1,0 +1,1696 @@
+<template>
+  <div class="tutorial-detail-container">
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+      <div class="nav-content">
+        <!-- 返回按钮 -->
+        <button class="back-btn" @click="goBack">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          返回教程列表
+        </button>
+
+        <!-- Logo -->
+        <div class="nav-logo" @click="goToHome">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="8" fill="url(#gradient)" />
+            <path d="M12 14L20 10L28 14V26L20 30L12 26V14Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
+                <stop offset="0%" stop-color="#2c3e50" />
+                <stop offset="100%" stop-color="#34495e" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <span class="logo-text">CoderHub</span>
+        </div>
+
+        <!-- 右侧用户信息 -->
+        <div class="nav-right">
+          <div class="user-avatar">
+            <img :src="userInfo.avatar" alt="avatar" />
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 加载状态 -->
+    <div v-if="loading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>加载中...</p>
+    </div>
+
+    <!-- 主内容区 -->
+    <div v-else-if="tutorial" class="main-content">
+      <div class="content-grid">
+        <!-- 左侧主要内容 -->
+        <div class="left-column">
+          <!-- 课程信息卡片 -->
+          <div class="tutorial-header">
+        <div class="header-content">
+          <div class="header-left">
+            <img :src="tutorial.coverImage" :alt="tutorial.title" class="cover-image" />
+          </div>
+          <div class="header-right">
+            <h1 class="tutorial-title">{{ tutorial.title }}</h1>
+            <p class="tutorial-description">{{ tutorial.description }}</p>
+            
+            <!-- 讲师信息 -->
+            <div class="instructor-info">
+              <img :src="tutorial.instructorAvatar" :alt="tutorial.instructorName" class="instructor-avatar" />
+              <div class="instructor-details">
+                <span class="instructor-name">{{ tutorial.instructorName }}</span>
+                <span class="instructor-title">{{ tutorial.instructorDesc }}</span>
+              </div>
+            </div>
+
+            <!-- 课程统计 -->
+            <div class="tutorial-stats">
+              <div class="stat-item">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                <span>{{ formatNumber(tutorial.studentCount) }} 学员</span>
+              </div>
+              <div class="stat-item">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/>
+                </svg>
+                <span>{{ tutorial.rating }} 评分</span>
+              </div>
+              <div class="stat-item">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M2 3H8C9.06087 3 10.0783 3.42143 10.8284 4.17157C11.5786 4.92172 12 5.93913 12 7V21C12 20.2044 11.6839 19.4413 11.1213 18.8787C10.5587 18.3161 9.79565 18 9 18H2V3Z" stroke="currentColor" stroke-width="2"/>
+                  <path d="M22 3H16C14.9391 3 13.9217 3.42143 13.1716 4.17157C12.4214 4.92172 12 5.93913 12 7V21C12 20.2044 12.3161 19.4413 12.8787 18.8787C13.4413 18.3161 14.2044 18 15 18H22V3Z" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                <span>{{ tutorial.chapterCount }} 章节</span>
+              </div>
+              <div class="stat-item difficulty" :class="getDifficultyClass(tutorial.difficulty)">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                <span>{{ getDifficultyText(tutorial.difficulty) }}</span>
+              </div>
+            </div>
+
+            <!-- 价格和操作 -->
+            <div class="tutorial-actions">
+              <div class="price-info">
+                <span v-if="tutorial.price === 0" class="price free">免费</span>
+                <span v-else class="price">¥{{ tutorial.price }}</span>
+              </div>
+              <button class="btn-start" @click="scrollToChapters">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M5 3L19 12L5 21V3Z" fill="currentColor"/>
+                </svg>
+                开始学习
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 章节列表区域 -->
+      <div class="chapters-section" ref="chaptersRef">
+        <div class="section-header">
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            课程章节
+          </h2>
+          <span class="chapter-count">共 {{ chapters.length }} 个章节</span>
+        </div>
+
+        <!-- 章节列表 -->
+        <div class="chapters-list">
+          <div 
+            v-for="(chapter, index) in chapters" 
+            :key="chapter.id"
+            class="chapter-item"
+            :class="{ 'expanded': expandedChapters.includes(chapter.id) }"
+          >
+            <!-- 章节标题栏 -->
+            <div 
+              class="chapter-header" 
+              @click="toggleChapter(chapter.id)"
+              :class="{ 'locked': !isChapterFree(chapter) }"
+            >
+              <div class="chapter-left">
+                <span class="chapter-number">第 {{ index + 1 }} 章</span>
+                <h3 class="chapter-title">{{ chapter.chapterTitle }}</h3>
+                <span v-if="isChapterFree(chapter)" class="free-badge">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 13L9 17L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  免费试看
+                </span>
+                <span v-else class="locked-badge">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+                    <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  未解锁
+                </span>
+              </div>
+              <div class="chapter-right">
+                <span class="chapter-duration" v-if="chapter.duration">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  {{ chapter.duration }}
+                </span>
+                <svg class="expand-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- 章节内容（展开时显示） -->
+            <transition name="slide">
+              <div v-show="expandedChapters.includes(chapter.id)" class="chapter-content">
+                <div class="loading-resources" v-if="loadingResources[chapter.id]">
+                  <div class="mini-spinner"></div>
+                  <span>加载资源中...</span>
+                </div>
+
+                <div v-else class="resources-container">
+                  <!-- 文档列表 -->
+                  <div v-if="chapterDocuments[chapter.id]?.length > 0" class="resource-section">
+                    <h4 class="resource-title">
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M14 2V8H20" stroke="currentColor" stroke-width="2"/>
+                      </svg>
+                      课程文档
+                    </h4>
+                    <div class="resource-list">
+                      <div 
+                        v-for="doc in chapterDocuments[chapter.id]" 
+                        :key="doc.id"
+                        class="resource-item"
+                        :class="{ 'locked': !isChapterFree(chapter) }"
+                      >
+                        <div class="resource-icon document">
+                          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2"/>
+                          </svg>
+                        </div>
+                        <div class="resource-info">
+                          <span class="resource-name">{{ doc.documentTitle }}</span>
+                          <span class="resource-meta">{{ doc.documentType?.toUpperCase() }} · {{ formatFileSize(doc.fileSize) }}</span>
+                        </div>
+                        <div class="resource-actions">
+                          <button
+                            v-if="isChapterFree(chapter)"
+                            class="action-btn view-btn"
+                            @click.stop="viewDocument(doc, chapter)"
+                            title="预览文档"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
+                              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            查看
+                          </button>
+                          <button
+                            v-if="isChapterFree(chapter)"
+                            class="action-btn download-btn"
+                            @click.stop="downloadDocument(doc)"
+                            title="下载文档"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            下载
+                          </button>
+                          <div v-if="!isChapterFree(chapter)" class="locked-icon">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect x="5" y="11" width="14" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
+                              <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 视频列表 -->
+                  <div v-if="chapterVideos[chapter.id]?.length > 0" class="resource-section">
+                    <h4 class="resource-title">
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 3L19 12L5 21V3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                      </svg>
+                      课程视频
+                    </h4>
+                    <div class="resource-list">
+                      <div 
+                        v-for="video in chapterVideos[chapter.id]" 
+                        :key="video.id"
+                        class="resource-item"
+                        :class="{ 'locked': !isChapterFree(chapter) }"
+                        @click="playVideo(video, chapter)"
+                      >
+                        <div class="resource-icon video">
+                          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5 3L19 12L5 21V3Z" fill="currentColor"/>
+                          </svg>
+                        </div>
+                        <div class="resource-info">
+                          <span class="resource-name">{{ video.videoTitle }}</span>
+                          <span class="resource-meta">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                              <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            {{ video.duration }} · {{ formatFileSize(video.fileSize) }}
+                          </span>
+                        </div>
+                        <div class="resource-action">
+                          <span v-if="isChapterFree(chapter)">播放</span>
+                          <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="5" y="11" width="14" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
+                            <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="2"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 无资源提示 -->
+                  <div v-if="!chapterDocuments[chapter.id]?.length && !chapterVideos[chapter.id]?.length" class="no-resources">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <p>该章节暂无学习资源</p>
+                  </div>
+                </div>
+              </div>
+            </transition>
+          </div>
+        </div>
+      </div>
+
+      <!-- 评论区 -->
+      <div class="comments-section">
+        <div class="section-header">
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            课程评论
+          </h2>
+          <span class="comment-count">即将开放</span>
+        </div>
+        <div class="comments-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          <p>评论功能开发中，敬请期待...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧边栏 -->
+    <aside class="right-sidebar">
+      <!-- 人气教程推荐 -->
+      <div class="sidebar-card">
+        <h3 class="sidebar-title">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.657 18.657L13.414 14.414C12.2426 15.3158 10.7906 15.7925 9.30884 15.7645C7.82708 15.7366 6.39417 15.2057 5.25783 14.2617C4.12149 13.3178 3.34817 12.0164 3.06351 10.5688C2.77886 9.12122 2.9989 7.61532 3.69056 6.30453C4.38223 4.99374 5.50433 3.95569 6.87204 3.35538C8.23976 2.75507 9.77028 2.62668 11.2212 3.0012C12.6721 3.37573 13.9542 4.23738 14.8541 5.44682C15.754 6.65626 16.2172 8.14213 16.169 9.66C16.1554 10.4067 16.0165 11.1446 15.758 11.843L20 16.086L17.657 18.657ZM9.5 13.5C10.4283 13.5 11.3185 13.1313 11.9749 12.4749C12.6313 11.8185 13 10.9283 13 10C13 9.07174 12.6313 8.1815 11.9749 7.52513C11.3185 6.86875 10.4283 6.5 9.5 6.5C8.57174 6.5 7.6815 6.86875 7.02513 7.52513C6.36875 8.1815 6 9.07174 6 10C6 10.9283 6.36875 11.8185 7.02513 12.4749C7.6815 13.1313 8.57174 13.5 9.5 13.5Z" fill="currentColor"/>
+          </svg>
+          人气推荐
+        </h3>
+        <div class="recommended-courses">
+          <div 
+            v-for="course in mockRecommendedCourses" 
+            :key="course.id"
+            class="mini-course-card"
+            @click="viewCourse(course.id)"
+          >
+            <img :src="course.thumbnail" :alt="course.title" />
+            <div class="mini-course-info">
+              <h4>{{ course.title }}</h4>
+              <div class="mini-course-meta">
+                <span class="students">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  {{ formatNumber(course.students) }}
+                </span>
+                <span class="rating">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/>
+                  </svg>
+                  {{ course.rating }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coder推荐语 -->
+      <div class="sidebar-card">
+        <h3 class="sidebar-title">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          Coder推荐
+        </h3>
+        <div class="coder-testimonials">
+          <div 
+            v-for="testimonial in mockTestimonials" 
+            :key="testimonial.id"
+            class="testimonial-card"
+          >
+            <div class="testimonial-header">
+              <img :src="testimonial.avatar" :alt="testimonial.name" />
+              <div>
+                <h4>{{ testimonial.name }}</h4>
+                <p>{{ testimonial.title }}</p>
+              </div>
+            </div>
+            <p class="testimonial-text">"{{ testimonial.text }}"</p>
+            <div class="testimonial-footer">
+              <span>{{ testimonial.company }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+    <!-- 错误状态 -->
+    <div v-else class="error-container">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <p>课程不存在或已下架</p>
+      <button class="btn-back" @click="goBack">返回教程列表</button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { getChapterDocuments, getChapterVideos, getTutorialChapters, getTutorialDetail } from '@/api/user'
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
+const router = useRouter()
+const route = useRoute()
+
+const userInfo = ref({})
+const tutorial = ref(null)
+const chapters = ref([])
+const loading = ref(true)
+const chaptersRef = ref(null)
+
+// 章节展开状态
+const expandedChapters = ref([])
+// 章节资源加载状态
+const loadingResources = ref({})
+// 章节文档数据
+const chapterDocuments = ref({})
+// 章节视频数据
+const chapterVideos = ref({})
+
+// Mock 推荐课程数据
+const mockRecommendedCourses = ref([
+  {
+    id: 'rec-1',
+    title: 'Vue 3 全栈开发实战',
+    thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=250&fit=crop',
+    students: 15234,
+    rating: 4.8
+  },
+  {
+    id: 'rec-2',
+    title: 'Spring Boot 微服务架构',
+    thumbnail: 'https://images.unsplash.com/photo-1587620962725-abab7fe55159?w=400&h=250&fit=crop',
+    students: 12890,
+    rating: 4.9
+  },
+  {
+    id: 'rec-3',
+    title: 'Docker 容器化实践',
+    thumbnail: 'https://images.unsplash.com/photo-1605745341112-85968b19335b?w=400&h=250&fit=crop',
+    students: 9876,
+    rating: 4.7
+  }
+])
+
+// Mock Coder推荐语数据
+const mockTestimonials = ref([
+  {
+    id: 'test-1',
+    name: '张三',
+    avatar: 'https://i.pravatar.cc/150?img=1',
+    title: '全栈工程师',
+    company: '阿里巴巴',
+    text: '这个课程系统且全面，从基础到进阶都讲得非常清楚，强烈推荐给想要进阶的同学！'
+  },
+  {
+    id: 'test-2',
+    name: 'Lisa Wang',
+    avatar: 'https://i.pravatar.cc/150?img=5',
+    title: '资深架构师',
+    company: '腾讯',
+    text: '老师讲解深入浅出，项目实战性很强，学完后能独立完成企业级项目开发。'
+  },
+  {
+    id: 'test-3',
+    name: '李明',
+    avatar: 'https://i.pravatar.cc/150?img=8',
+    title: '技术总监',
+    company: '字节跳动',
+    text: '内容编排合理，代码规范性强，是我见过最好的实战教程之一！'
+  }
+])
+
+// 加载教程详情
+const loadTutorialDetail = async () => {
+  try {
+    const tutorialId = route.params.id
+    const res = await getTutorialDetail(tutorialId)
+    if (res.code === 1 && res.data) {
+      tutorial.value = res.data
+    }
+  } catch (error) {
+    console.error('加载教程详情失败：', error)
+  }
+}
+
+// 加载章节列表
+const loadChapters = async () => {
+  try {
+    const tutorialId = route.params.id
+    const res = await getTutorialChapters(tutorialId)
+    if (res.code === 1 && res.data) {
+      chapters.value = res.data
+    }
+  } catch (error) {
+    console.error('加载章节列表失败：', error)
+  }
+}
+
+// 判断章节是否免费
+const isChapterFree = (chapter) => {
+  return chapter.isFree === 1
+}
+
+// 切换章节展开/折叠
+const toggleChapter = async (chapterId) => {
+  const index = expandedChapters.value.indexOf(chapterId)
+  if (index > -1) {
+    // 折叠
+    expandedChapters.value.splice(index, 1)
+  } else {
+    // 展开
+    expandedChapters.value.push(chapterId)
+    // 加载该章节的资源
+    await loadChapterResources(chapterId)
+  }
+}
+
+// 加载章节资源（文档和视频）
+const loadChapterResources = async (chapterId) => {
+  if (loadingResources.value[chapterId]) return
+  
+  loadingResources.value[chapterId] = true
+  
+  try {
+    // 并行加载文档和视频
+    const [docsRes, videosRes] = await Promise.all([
+      getChapterDocuments(chapterId),
+      getChapterVideos(chapterId)
+    ])
+    
+    if (docsRes.code === 1) {
+      chapterDocuments.value[chapterId] = docsRes.data || []
+    }
+    
+    if (videosRes.code === 1) {
+      chapterVideos.value[chapterId] = videosRes.data || []
+    }
+  } catch (error) {
+    console.error('加载章节资源失败：', error)
+  } finally {
+    loadingResources.value[chapterId] = false
+  }
+}
+
+// 查看文档
+const viewDocument = (doc, chapter) => {
+  if (!isChapterFree(chapter)) {
+    alert('该章节需要解锁后才能查看')
+    return
+  }
+  
+  // 跳转到文档预览页面，使用 query 传递数据
+  router.push({
+    path: '/document/viewer',
+    query: {
+      documentId: doc.id,
+      chapterId: chapter.id,
+      tutorialId: tutorial.value.id
+    }
+  })
+}
+
+// 下载文档
+const downloadDocument = (doc) => {
+  // 在新标签页打开文档URL，触发浏览器下载
+  window.open(doc.documentUrl, '_blank')
+}
+
+// 播放视频
+const playVideo = (video, chapter) => {
+  if (!isChapterFree(chapter)) {
+    alert('该章节需要解锁后才能观看')
+    return
+  }
+  // TODO: 实现视频播放功能
+  console.log('播放视频：', video)
+  alert('视频播放功能开发中...')
+}
+
+// 格式化文件大小
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+}
+
+// 格式化数字
+const formatNumber = (num) => {
+  if (!num) return '0'
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + 'w'
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'k'
+  }
+  return num.toString()
+}
+
+// 获取难度文本
+const getDifficultyText = (difficulty) => {
+  const map = { 0: '入门', 1: '进阶', 2: '高级' }
+  return map[difficulty] || '未知'
+}
+
+// 获取难度样式类
+const getDifficultyClass = (difficulty) => {
+  const map = { 0: 'easy', 1: 'medium', 2: 'hard' }
+  return map[difficulty] || 'easy'
+}
+
+// 滚动到章节列表
+const scrollToChapters = () => {
+  chaptersRef.value?.scrollIntoView({ behavior: 'smooth' })
+}
+
+// 返回教程列表
+const goBack = () => {
+  router.push('/tutorial')
+}
+
+// 查看推荐课程
+const viewCourse = (courseId) => {
+  router.push(`/tutorial/${courseId}`)
+  // 刷新页面数据
+  loadTutorialDetail()
+  loadChapters()
+}
+
+// 返回首页
+const goToHome = () => {
+  router.push('/home')
+}
+
+// 页面加载
+onMounted(async () => {
+  const storedUserInfo = localStorage.getItem('userInfo')
+  if (storedUserInfo) {
+    userInfo.value = JSON.parse(storedUserInfo)
+  }
+
+  loading.value = true
+  await Promise.all([loadTutorialDetail(), loadChapters()])
+  loading.value = false
+})
+</script>
+
+<style scoped>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.tutorial-detail-container {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+/* ==================== 两栏布局 ==================== */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.left-column {
+  min-width: 0; /* 防止grid溢出 */
+}
+
+/* ==================== 导航栏 ==================== */
+.navbar {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.nav-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #64748b;
+  background: #f8f9fa;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  color: #2c3e50;
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+.back-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.nav-logo svg {
+  width: 36px;
+  height: 36px;
+}
+
+.logo-text {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+}
+
+.user-avatar img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+}
+
+/* ==================== 加载和错误状态 ==================== */
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+  padding: 40px;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #2c3e50;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-container p,
+.error-container p {
+  margin-top: 16px;
+  font-size: 16px;
+  color: #64748b;
+}
+
+.error-container svg {
+  width: 64px;
+  height: 64px;
+  color: #ef4444;
+}
+
+.btn-back {
+  margin-top: 24px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background: #2c3e50;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-back:hover {
+  background: #34495e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.3);
+}
+
+/* ==================== 主内容区 ==================== */
+.main-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+/* 课程头部 */
+.tutorial-header {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.header-content {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 32px;
+}
+
+.cover-image {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tutorial-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  line-height: 1.3;
+}
+
+.tutorial-description {
+  font-size: 16px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+/* 讲师信息 */
+.instructor-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.instructor-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+}
+
+.instructor-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.instructor-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.instructor-title {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* 课程统计 */
+.tutorial-stats {
+  display: flex;
+  gap: 24px;
+  padding: 16px 0;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.stat-item svg {
+  width: 20px;
+  height: 20px;
+  color: #fbbf24;
+}
+
+.stat-item.difficulty svg {
+  color: currentColor;
+}
+
+.stat-item.difficulty.easy {
+  color: #10b981;
+}
+
+.stat-item.difficulty.medium {
+  color: #f59e0b;
+}
+
+.stat-item.difficulty.hard {
+  color: #ef4444;
+}
+
+/* 价格和操作 */
+.tutorial-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.price-info .price {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.price-info .price.free {
+  color: #10b981;
+}
+
+.btn-start {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(44, 62, 80, 0.3);
+}
+
+.btn-start svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ==================== 章节区域 ==================== */
+.chapters-section {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f5f7fa;
+}
+
+.section-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.section-header h2 svg {
+  width: 28px;
+  height: 28px;
+  color: #64748b;
+}
+
+.chapter-count {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.chapters-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 章节项 */
+.chapter-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.chapter-item.expanded {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 章节标题栏 */
+.chapter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.chapter-header:hover {
+  background: rgba(44, 62, 80, 0.02);
+}
+
+.chapter-header.locked {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.chapter-header.locked:hover {
+  background: transparent;
+}
+
+.chapter-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+}
+
+.chapter-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: #94a3b8;
+  padding: 4px 12px;
+  background: white;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.chapter-item.expanded .chapter-number {
+  background: #f8f9fa;
+  color: #2c3e50;
+}
+
+.chapter-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+  flex: 1;
+}
+
+.chapter-header.locked .chapter-title {
+  color: #94a3b8;
+}
+
+.free-badge,
+.locked-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.free-badge {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.free-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.locked-badge {
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.1);
+}
+
+.locked-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.chapter-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.chapter-duration {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.chapter-duration svg {
+  width: 16px;
+  height: 16px;
+}
+
+.expand-icon {
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+  transition: transform 0.3s;
+}
+
+.chapter-item.expanded .expand-icon {
+  transform: rotate(180deg);
+}
+
+/* 章节内容 */
+.chapter-content {
+  padding: 0 24px 24px;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.slide-enter-to,
+.slide-leave-from {
+  max-height: 1000px;
+  opacity: 1;
+}
+
+/* 资源加载状态 */
+.loading-resources {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: #64748b;
+}
+
+.mini-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #2c3e50;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* 资源容器 */
+.resources-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.resource-section {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.resource-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 12px;
+}
+
+.resource-title svg {
+  width: 18px;
+  height: 18px;
+  color: #64748b;
+}
+
+/* 资源列表 */
+.resource-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resource-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resource-item:hover {
+  background: #f5f7fa;
+  transform: translateX(4px);
+}
+
+.resource-item.locked {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.resource-item.locked:hover {
+  background: white;
+  transform: none;
+}
+
+.resource-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.resource-icon.document {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.resource-icon.video {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.resource-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.resource-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.resource-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.resource-item.locked .resource-name {
+  color: #94a3b8;
+}
+
+.resource-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.resource-meta svg {
+  width: 12px;
+  height: 12px;
+}
+
+.resource-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.view-btn {
+  background: #2c3e50;
+  color: white;
+}
+
+.view-btn:hover {
+  background: #1a252f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.15);
+}
+
+.download-btn {
+  background: white;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+}
+
+.download-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.1);
+}
+
+.locked-icon {
+  display: flex;
+  align-items: center;
+  color: #94a3b8;
+}
+
+.locked-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.resource-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.resource-item.locked .resource-action {
+  color: #94a3b8;
+}
+
+.resource-action svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 无资源提示 */
+.no-resources {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #94a3b8;
+}
+
+.no-resources svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.no-resources p {
+  font-size: 14px;
+}
+
+/* ==================== 响应式 ==================== */
+@media (max-width: 1024px) {
+  .header-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==================== 评论区 ==================== */
+.comments-section {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 32px;
+  margin-top: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.comments-section .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.comments-section .section-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.comments-section .section-header svg {
+  width: 28px;
+  height: 28px;
+  color: #3b82f6;
+}
+
+.comment-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 6px 16px;
+  border-radius: 20px;
+}
+
+.comments-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.comments-placeholder svg {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.comments-placeholder p {
+  font-size: 16px;
+  color: #94a3b8;
+}
+
+/* ==================== 右侧边栏 ==================== */
+.right-sidebar {
+  position: sticky;
+  top: 88px;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.sidebar-title svg {
+  width: 20px;
+  height: 20px;
+  color: #f59e0b;
+}
+
+/* 推荐课程 */
+.recommended-courses {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mini-course-card {
+  display: flex;
+  gap: 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.mini-course-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.mini-course-card img {
+  width: 100px;
+  height: 60px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.mini-course-info {
+  flex: 1;
+  padding: 8px 12px 8px 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.mini-course-info h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+}
+
+.mini-course-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.mini-course-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mini-course-meta svg {
+  width: 14px;
+  height: 14px;
+}
+
+.mini-course-meta .students svg {
+  color: #6366f1;
+}
+
+.mini-course-meta .rating {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.mini-course-meta .rating svg {
+  fill: #f59e0b;
+}
+
+/* Coder推荐语 */
+.coder-testimonials {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.testimonial-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  border-left: 3px solid #3b82f6;
+}
+
+.testimonial-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.testimonial-header img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e2e8f0;
+}
+
+.testimonial-header h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.testimonial-header p {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.testimonial-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #475569;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
+.testimonial-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.testimonial-footer span {
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+@media (max-width: 768px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .right-sidebar {
+    position: static;
+  }
+
+  .main-content {
+    padding: 16px;
+  }
+
+  .tutorial-header {
+    padding: 20px;
+  }
+
+  .tutorial-title {
+    font-size: 24px;
+  }
+
+  .tutorial-stats {
+    flex-wrap: wrap;
+  }
+
+  .tutorial-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-start {
+    justify-content: center;
+  }
+}
+</style>

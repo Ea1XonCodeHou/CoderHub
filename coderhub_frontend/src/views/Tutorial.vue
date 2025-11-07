@@ -445,6 +445,7 @@ lian<template>
 </template>
 
 <script setup>
+import { getTutorialList } from '@/api/user'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -466,15 +467,11 @@ const mockData = ref({
 
 // 分类列表
 const categories = ref([
-  { id: 'all', name: '全部' },
-  { id: 'frontend', name: '前端开发' },
-  { id: 'backend', name: '后端开发' },
-  { id: 'mobile', name: '移动开发' },
-  { id: 'database', name: '数据库' },
-  { id: 'algorithm', name: '算法' },
-  { id: 'ai', name: '人工智能' },
-  { id: 'devops', name: 'DevOps' }
+  { id: 'all', name: '全部' }
 ])
+
+// 分类ID到名称的映射
+const categoryMap = ref(new Map())
 
 // 难度等级
 const difficultyLevels = ref([
@@ -489,249 +486,10 @@ const selectedCategory = ref('all')
 const selectedDifficulty = ref('all')
 const sortType = ref('hot')
 
-// Mock教程数据
-const courses = ref([
-  {
-    id: 1,
-    title: 'Vue 3 + TypeScript 全栈开发实战',
-    description: '从零开始学习Vue 3生态系统，掌握Composition API、TypeScript、Pinia状态管理，打造企业级项目。',
-    thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=250&fit=crop',
-    category: '前端开发',
-    categoryId: 'frontend',
-    difficulty: 'intermediate',
-    duration: '24小时',
-    rating: 4.9,
-    students: 12580,
-    chapters: 38,
-    price: 0,
-    tags: ['Vue 3', 'TypeScript', 'Vite'],
-    instructor: {
-      name: '张晓明',
-      title: '前端架构师',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1'
-    }
-  },
-  {
-    id: 2,
-    title: 'Spring Boot 3 微服务架构实战',
-    description: '深入学习Spring Boot 3最新特性，掌握微服务架构设计、分布式事务、服务治理等核心技能。',
-    thumbnail: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea?w=400&h=250&fit=crop',
-    category: '后端开发',
-    categoryId: 'backend',
-    difficulty: 'advanced',
-    duration: '32小时',
-    rating: 4.8,
-    students: 15230,
-    chapters: 45,
-    price: 299,
-    tags: ['Spring Boot', 'Java', '微服务'],
-    instructor: {
-      name: '李华',
-      title: 'Java高级工程师',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=2'
-    }
-  },
-  {
-    id: 3,
-    title: 'React Native 移动应用开发从入门到精通',
-    description: '一套代码，双端运行。学习React Native核心概念、原生模块集成、性能优化等实战技巧。',
-    thumbnail: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=250&fit=crop',
-    category: '移动开发',
-    categoryId: 'mobile',
-    difficulty: 'intermediate',
-    duration: '28小时',
-    rating: 4.7,
-    students: 8920,
-    chapters: 42,
-    price: 199,
-    tags: ['React Native', 'iOS', 'Android'],
-    instructor: {
-      name: '王芳',
-      title: '移动端技术专家',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=3'
-    }
-  },
-  {
-    id: 4,
-    title: 'MySQL 数据库性能优化实战指南',
-    description: '系统学习MySQL索引优化、查询优化、架构设计，提升数据库性能10倍以上。',
-    thumbnail: 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=400&h=250&fit=crop',
-    category: '数据库',
-    categoryId: 'database',
-    difficulty: 'advanced',
-    duration: '20小时',
-    rating: 4.9,
-    students: 11450,
-    chapters: 30,
-    price: 0,
-    tags: ['MySQL', 'SQL优化', '索引'],
-    instructor: {
-      name: '刘强',
-      title: '数据库架构师',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=4'
-    }
-  },
-  {
-    id: 5,
-    title: 'LeetCode算法刷题通关指南',
-    description: '精选200道经典算法题，涵盖数组、链表、树、图、动态规划等核心考点，助你面试无忧。',
-    thumbnail: 'https://images.unsplash.com/photo-1509228627152-72ae9ae6848d?w=400&h=250&fit=crop',
-    category: '算法',
-    categoryId: 'algorithm',
-    difficulty: 'intermediate',
-    duration: '40小时',
-    rating: 4.8,
-    students: 25630,
-    chapters: 50,
-    price: 0,
-    tags: ['算法', '数据结构', '面试'],
-    instructor: {
-      name: '陈伟',
-      title: '算法竞赛金牌教练',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=5'
-    }
-  },
-  {
-    id: 6,
-    title: 'PyTorch深度学习与计算机视觉',
-    description: '从神经网络基础到CNN、RNN、Transformer，实战图像分类、目标检测、图像分割项目。',
-    thumbnail: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=250&fit=crop',
-    category: '人工智能',
-    categoryId: 'ai',
-    difficulty: 'advanced',
-    duration: '36小时',
-    rating: 4.9,
-    students: 9870,
-    chapters: 48,
-    price: 399,
-    tags: ['PyTorch', '深度学习', 'CV'],
-    instructor: {
-      name: '赵敏',
-      title: 'AI研究员',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=6'
-    }
-  },
-  {
-    id: 7,
-    title: 'Docker + Kubernetes 容器化部署实战',
-    description: '掌握Docker镜像构建、Kubernetes集群搭建、服务编排、CI/CD流水线设计。',
-    thumbnail: 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=400&h=250&fit=crop',
-    category: 'DevOps',
-    categoryId: 'devops',
-    difficulty: 'intermediate',
-    duration: '22小时',
-    rating: 4.7,
-    students: 13240,
-    chapters: 35,
-    price: 199,
-    tags: ['Docker', 'Kubernetes', 'DevOps'],
-    instructor: {
-      name: '孙杰',
-      title: 'DevOps工程师',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=7'
-    }
-  },
-  {
-    id: 8,
-    title: 'JavaScript 从零到高级进阶',
-    description: '全面掌握ES6+语法、异步编程、函数式编程、设计模式，成为JavaScript专家。',
-    thumbnail: 'https://images.unsplash.com/photo-1579468118864-1b9ea3c0db4a?w=400&h=250&fit=crop',
-    category: '前端开发',
-    categoryId: 'frontend',
-    difficulty: 'beginner',
-    duration: '30小时',
-    rating: 4.8,
-    students: 28940,
-    chapters: 52,
-    price: 0,
-    tags: ['JavaScript', 'ES6+', '异步编程'],
-    instructor: {
-      name: '周琳',
-      title: '前端技术专家',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=8'
-    }
-  },
-  {
-    id: 9,
-    title: 'Node.js + Express 服务端开发',
-    description: '学习Node.js核心模块、Express框架、RESTful API设计、JWT认证、WebSocket实时通信。',
-    thumbnail: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=250&fit=crop',
-    category: '后端开发',
-    categoryId: 'backend',
-    difficulty: 'intermediate',
-    duration: '26小时',
-    rating: 4.6,
-    students: 10560,
-    chapters: 40,
-    price: 159,
-    tags: ['Node.js', 'Express', 'API'],
-    instructor: {
-      name: '吴刚',
-      title: 'Node.js开发专家',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=9'
-    }
-  },
-  {
-    id: 10,
-    title: 'Redis高性能缓存实战',
-    description: '深入Redis数据结构、持久化、主从复制、哨兵模式、集群搭建，解决高并发问题。',
-    thumbnail: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&h=250&fit=crop',
-    category: '数据库',
-    categoryId: 'database',
-    difficulty: 'intermediate',
-    duration: '18小时',
-    rating: 4.9,
-    students: 14720,
-    chapters: 28,
-    price: 0,
-    tags: ['Redis', '缓存', '高并发'],
-    instructor: {
-      name: '郑浩',
-      title: '缓存架构师',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=10'
-    }
-  },
-  {
-    id: 11,
-    title: 'Flutter跨平台应用开发',
-    description: '使用Dart和Flutter构建美观的移动应用，一次编写，多端运行。',
-    thumbnail: 'https://images.unsplash.com/photo-1512428559087-560fa5ceab42?w=400&h=250&fit=crop',
-    category: '移动开发',
-    categoryId: 'mobile',
-    difficulty: 'beginner',
-    duration: '24小时',
-    rating: 4.7,
-    students: 7890,
-    chapters: 36,
-    price: 179,
-    tags: ['Flutter', 'Dart', '跨平台'],
-    instructor: {
-      name: '冯丽',
-      title: 'Flutter布道师',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=11'
-    }
-  },
-  {
-    id: 12,
-    title: '大数据处理与Spark实战',
-    description: '掌握Hadoop生态、Spark核心API、数据清洗、实时计算，处理PB级数据。',
-    thumbnail: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=250&fit=crop',
-    category: '人工智能',
-    categoryId: 'ai',
-    difficulty: 'advanced',
-    duration: '34小时',
-    rating: 4.8,
-    students: 6540,
-    chapters: 44,
-    price: 349,
-    tags: ['Spark', 'Hadoop', '大数据'],
-    instructor: {
-      name: '韩雪',
-      title: '大数据架构师',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=12'
-    }
-  }
-])
+// 教程数据
+const courses = ref([])
+const loading = ref(false)
+const total = ref(0)
 
 // 学习路径推荐
 const learningPaths = ref([
@@ -756,6 +514,94 @@ const recentActivities = ref([
   { id: 3, text: '张晓明讲师直播答疑中', time: '1天前' },
   { id: 4, text: '618学习节优惠活动开启', time: '2天前' }
 ])
+
+// 加载分类列表
+const loadCategories = async () => {
+  try {
+    const res = await getCategoryList()
+    if (res.code === 1 && res.data) {
+      // 构建分类列表（只显示启用的一级分类）
+      const activeCategories = res.data
+        .filter(cat => cat.status === 1)
+        .map(cat => ({
+          id: cat.id,
+          name: cat.name
+        }))
+      
+      categories.value = [
+        { id: 'all', name: '全部' },
+        ...activeCategories
+      ]
+      
+      // 构建分类映射
+      categoryMap.value.clear()
+      res.data.forEach(cat => {
+        categoryMap.value.set(cat.id, cat.name)
+      })
+      
+      console.log('加载分类成功：', categories.value.length - 1, '个')
+    }
+  } catch (error) {
+    console.error('加载分类列表失败：', error)
+  }
+}
+
+// 加载教程列表
+const loadTutorials = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: 1,
+      pageSize: 100 // 先加载全部数据，前端自己做筛选和分页
+    }
+    
+    const res = await getTutorialList(params)
+    if (res.code === 1 && res.data) {
+      // 转换后端数据格式为前端需要的格式
+      courses.value = res.data.records.map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        thumbnail: item.coverImage || 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=250&fit=crop',
+        category: getCategoryName(item.categoryId),
+        categoryId: item.categoryId,
+        difficulty: getDifficultyKey(item.difficulty),
+        duration: '待更新', // 后端暂无此字段
+        rating: item.rating || 0,
+        students: item.studentCount || 0,
+        chapters: item.chapterCount || 0,
+        price: item.price || 0,
+        tags: [], // 后端暂无标签
+        instructor: {
+          name: item.instructorName || '匿名',
+          title: item.instructorDesc || '讲师',
+          avatar: item.instructorAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+        }
+      }))
+      total.value = res.data.total
+      mockData.value.totalCourses = res.data.total
+    }
+  } catch (error) {
+    console.error('加载教程列表失败：', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 将后端难度值转换为前端需要的 key
+const getDifficultyKey = (difficulty) => {
+  const map = {
+    0: 'beginner',
+    1: 'intermediate',
+    2: 'advanced'
+  }
+  return map[difficulty] || 'beginner'
+}
+
+// 获取分类名称
+const getCategoryName = (categoryId) => {
+  return categoryMap.value.get(categoryId) || '未分类'
+}
 
 // 过滤后的课程列表
 const filteredCourses = computed(() => {
@@ -830,8 +676,7 @@ const selectDifficulty = (id) => {
 
 const viewCourse = (id) => {
   console.log('查看课程:', id)
-  // 这里可以跳转到课程详情页
-  // router.push(`/tutorial/${id}`)
+  router.push(`/tutorial/${id}`)
 }
 
 const resetFilters = () => {
@@ -860,10 +705,13 @@ const formatNumber = (num) => {
 }
 
 // 页面加载
-onMounted(() => {
+onMounted(async () => {
   const storedUserInfo = localStorage.getItem('userInfo')
   if (storedUserInfo) {
     userInfo.value = JSON.parse(storedUserInfo)
+    // 先加载分类，再加载教程
+    await loadCategories()
+    await loadTutorials()
   } else {
     router.push('/')
   }

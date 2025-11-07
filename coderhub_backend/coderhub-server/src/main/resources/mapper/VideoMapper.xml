@@ -28,6 +28,17 @@
         ORDER BY create_time ASC
     </select>
 
+    <!-- 根据视频ID查询视频 -->
+    <select id="selectById" resultType="com.eaxon.coderhubpojo.entity.Video">
+        SELECT 
+            id, chapter_id as chapterId, video_title as videoTitle,
+            video_url as videoUrl, cover_image as coverImage,
+            duration, file_size as fileSize,
+            create_time as createTime, update_time as updateTime
+        FROM video
+        WHERE id = #{id}
+    </select>
+
     <!-- 根据视频ID删除视频 -->
     <delete id="deleteById">
         DELETE FROM video WHERE id = #{videoId}

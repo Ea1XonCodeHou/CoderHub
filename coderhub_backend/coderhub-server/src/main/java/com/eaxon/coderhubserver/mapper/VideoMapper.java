@@ -27,6 +27,13 @@ public interface VideoMapper {
     List<Video> selectByChapterId(@Param("chapterId") String chapterId);
 
     /**
+     * 根据视频ID查询视频
+     * @param id 视频ID
+     * @return 视频信息
+     */
+    Video selectById(@Param("id") String id);
+
+    /**
      * 根据视频ID删除视频
      * @param videoId 视频ID
      */

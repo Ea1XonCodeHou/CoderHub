@@ -53,4 +53,47 @@
         ORDER BY create_time DESC
     </select>
 
+    <!-- 根据ID查询教程详情 -->
+    <select id="selectById" resultType="com.eaxon.coderhubpojo.entity.Tutorial">
+        SELECT 
+            id, title, description, cover_image as coverImage,
+            category_id as categoryId, difficulty,
+            instructor_name as instructorName, 
+            instructor_avatar as instructorAvatar, 
+            instructor_desc as instructorDesc,
+            price, status,
+            view_count as viewCount, 
+            like_count as likeCount, 
+            recommend_count as recommendCount, 
+            student_count as studentCount,
+            rating, chapter_count as chapterCount,
+            create_user as createUser, 
+            create_time as createTime, 
+            update_time as updateTime
+        FROM tutorial
+        WHERE id = #{id}
+    </select>
+
+    <!-- 更新教程 -->
+    <update id="updateTutorial">
+        UPDATE tutorial
+        SET title = #{title},
+            description = #{description},
+            cover_image = #{coverImage},
+            category_id = #{categoryId},
+            difficulty = #{difficulty},
+            instructor_name = #{instructorName},
+            instructor_avatar = #{instructorAvatar},
+            instructor_desc = #{instructorDesc},
+            price = #{price},
+            status = #{status},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除教程 -->
+    <delete id="deleteById">
+        DELETE FROM tutorial WHERE id = #{id}
+    </delete>
+
 </mapper>

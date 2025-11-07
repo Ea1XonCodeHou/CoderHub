@@ -12,11 +12,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.5.22",
-    "vue-router": "^4.2.5",
     "axios": "^1.6.0",
+    "highlight.js": "^11.9.0",
     "marked": "^11.0.0",
-    "highlight.js": "^11.9.0"
+    "pdfjs-dist": "^3.11.174",
+    "vue": "^3.5.22",
+    "vue-router": "^4.2.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",

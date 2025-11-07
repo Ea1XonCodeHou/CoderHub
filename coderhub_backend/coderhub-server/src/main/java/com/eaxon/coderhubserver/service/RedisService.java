@@ -4,50 +4,50 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Redis·şÎñ½Ó¿Ú
- * ·â×°³£ÓÃµÄRedis²Ù×÷
+ * RedisæœåŠ¡æ¥å£
+ * å°è£…å¸¸ç”¨çš„Redisæ“ä½œ
  */
 public interface RedisService {
     
-    // ==================== ä¯ÀÀÁ¿Ïà¹Ø ====================
+    // ==================== æµè§ˆé‡ç›¸å…³ ====================
     
     /**
-     * Ôö¼ÓÎÄÕÂä¯ÀÀÁ¿£¨Ô­×Ó²Ù×÷£©
-     * @param articleId ÎÄÕÂID
-     * @return Ôö¼ÓºóµÄä¯ÀÀÁ¿
+     * å¢åŠ æ–‡ç« æµè§ˆé‡ï¼ˆåŸå­æ“ä½œï¼‰
+     * @param articleId æ–‡ç« ID
+     * @return å¢åŠ åçš„æµè§ˆé‡
      */
     Long incrementViewCount(String articleId);
     
     /**
-     * »ñÈ¡ÎÄÕÂä¯ÀÀÁ¿
-     * @param articleId ÎÄÕÂID
-     * @return ä¯ÀÀÁ¿£¬Èç¹û²»´æÔÚ·µ»Ønull
+     * è·å–æ–‡ç« æµè§ˆé‡
+     * @param articleId æ–‡ç« ID
+     * @return æµè§ˆé‡ï¼Œå¦‚æœä¸å­˜åœ¨è¿”å›null
      */
     Long getViewCount(String articleId);
     
     /**
-     * ÅúÁ¿»ñÈ¡ÎÄÕÂä¯ÀÀÁ¿
-     * @param articleIds ÎÄÕÂIDÁĞ±í
-     * @return ÎÄÕÂID -> ä¯ÀÀÁ¿ µÄÓ³Éä
+     * æ‰¹é‡è·å–æ–‡ç« æµè§ˆé‡
+     * @param articleIds æ–‡ç« IDåˆ—è¡¨
+     * @return æ–‡ç« ID -> æµè§ˆé‡ çš„æ˜ å°„
      */
     Map<String, Long> batchGetViewCount(List<String> articleIds);
     
     /**
-     * ÉèÖÃÎÄÕÂä¯ÀÀÁ¿£¨ÓÃÓÚÔ¤ÈÈ£©
-     * @param articleId ÎÄÕÂID
-     * @param viewCount ä¯ÀÀÁ¿
+     * è®¾ç½®æ–‡ç« æµè§ˆé‡ï¼ˆç”¨äºé¢„çƒ­ï¼‰
+     * @param articleId æ–‡ç« ID
+     * @param viewCount æµè§ˆé‡
      */
     void setViewCount(String articleId, Long viewCount);
     
     /**
-     * ÅúÁ¿ÉèÖÃÎÄÕÂä¯ÀÀÁ¿£¨ÓÃÓÚÔ¤ÈÈ£©
-     * @param viewCountMap ÎÄÕÂID -> ä¯ÀÀÁ¿ µÄÓ³Éä
+     * æ‰¹é‡è®¾ç½®æ–‡ç« æµè§ˆé‡ï¼ˆç”¨äºé¢„çƒ­ï¼‰
+     * @param viewCountMap æ–‡ç« ID -> æµè§ˆé‡ çš„æ˜ å°„
      */
     void batchSetViewCount(Map<String, Long> viewCountMap);
     
     /**
-     * É¨ÃèËùÓĞä¯ÀÀÁ¿Key
-     * @return ËùÓĞä¯ÀÀÁ¿µÄÎÄÕÂID -> ä¯ÀÀÁ¿Ó³Éä
+     * æ‰«ææ‰€æœ‰æµè§ˆé‡Key
+     * @return æ‰€æœ‰æµè§ˆé‡çš„æ–‡ç« ID -> æµè§ˆé‡æ˜ å°„
      */
     Map<String, Long> scanAllViewCounts();
 }

@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.eaxon.coderhubcommon.utils.AliOssUtil;
 import com.eaxon.coderhubpojo.DTO.NewChapterDTO;
 import com.eaxon.coderhubpojo.DTO.UploadDocumentDTO;
 import com.eaxon.coderhubpojo.DTO.UploadVideoDTO;
@@ -37,6 +38,9 @@ public class TutorialChapterServiceImpl implements TutorialChapterService {
 
     @Autowired
     private VideoMapper videoMapper;
+
+    @Autowired
+    private AliOssUtil aliOssUtil;
 
     /**
      * 创建新章节
@@ -150,5 +154,101 @@ public class TutorialChapterServiceImpl implements TutorialChapterService {
     public List<Video> getVideosByChapterId(String chapterId) {
         log.info("查询章节视频列表，章节ID：{}", chapterId);
         return videoMapper.selectByChapterId(chapterId);
+    }
+
+    /**
+     * 删除文档
+     */
+    @Override
+    @Transactional
+    public void deleteDocument(String id) {
+        log.info("删除文档，文档ID：{}", id);
+
+        // 查询文档信息
+        Document document = documentMapper.selectById(id);
+        if (document == null) {
+            throw new RuntimeException("文档不存在");
+        }
+
+        // 从OSS删除文件
+        try {
+            if (document.getDocumentUrl() != null && !document.getDocumentUrl().isEmpty()) {
+                // 从完整URL中提取文件路径
+                // 例如: https://bucket.oss-cn-hangzhou.aliyuncs.com/tutorial/doc/xxx.pdf
+                // 提取: tutorial/doc/xxx.pdf
+                String fileUrl = document.getDocumentUrl();
+                int lastSlashIndex = fileUrl.indexOf(".com/");
+                if (lastSlashIndex != -1) {
+                    String objectName = fileUrl.substring(lastSlashIndex + 5); // 跳过 ".com/"
+                    log.info("从OSS删除文档文件：{}", objectName);
+                    aliOssUtil.delete(objectName);
+                }
+            }
+        } catch (Exception e) {
+            log.error("删除OSS文件失败：{}", e.getMessage());
+            // 即使OSS删除失败，也继续删除数据库记录
+        }
+
+        // 从数据库删除
+        documentMapper.deleteById(id);
+        log.info("文档删除成功");
+    }
+
+    /**
+     * 删除视频
+     */
+    @Override
+    @Transactional
+    public void deleteVideo(String id) {
+        log.info("删除视频，视频ID：{}", id);
+
+        // 查询视频信息
+        Video video = videoMapper.selectById(id);
+        if (video == null) {
+            throw new RuntimeException("视频不存在");
+        }
+
+        // 从OSS删除文件
+        try {
+            if (video.getVideoUrl() != null && !video.getVideoUrl().isEmpty()) {
+                // 从完整URL中提取文件路径
+                String videoUrl = video.getVideoUrl();
+                int lastSlashIndex = videoUrl.indexOf(".com/");
+                if (lastSlashIndex != -1) {
+                    String objectName = videoUrl.substring(lastSlashIndex + 5);
+                    log.info("从OSS删除视频文件：{}", objectName);
+                    aliOssUtil.delete(objectName);
+                }
+            }
+        } catch (Exception e) {
+            log.error("删除OSS文件失败：{}", e.getMessage());
+            // 即使OSS删除失败，也继续删除数据库记录
+        }
+
+        // 从数据库删除
+        videoMapper.deleteById(id);
+        log.info("视频删除成功");
+    }
+
+    /**
+     * 更新章节信息
+     */
+    @Override
+    @Transactional
+    public void updateChapter(TutorialChapter chapter) {
+        log.info("更新章节信息：{}", chapter);
+
+        // 验证章节是否存在
+        TutorialChapter existingChapter = tutorialChapterMapper.selectById(chapter.getId());
+        if (existingChapter == null) {
+            throw new RuntimeException("章节不存在");
+        }
+
+        // 更新时间
+        chapter.setUpdateTime(LocalDateTime.now());
+
+        // 更新数据库
+        tutorialChapterMapper.updateChapter(chapter);
+        log.info("章节更新成功");
     }
 }

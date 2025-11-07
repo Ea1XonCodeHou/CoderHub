@@ -343,7 +343,7 @@ const toggleExpand = (categoryId) => {
 // 获取分类列表
 const fetchCategories = async () => {
   try {
-    const response = await axios.get('/api/admin/category/list')
+    const response = await axios.get('/api/category/list')
     if (response.data.code === 1) {
       categoryList.value = response.data.data
     }
@@ -361,6 +361,21 @@ const handleCategoryClick = (categoryId) => {
 // 文章列表
 const articles = ref([])
 
+// 获取所有相关分类ID（包括子分类）
+const getAllRelatedCategoryIds = (categoryId) => {
+  if (categoryId === 'all') return null
+  
+  // 检查是否为父分类
+  const subCategories = getSubCategories(categoryId)
+  if (subCategories.length > 0) {
+    // 是父分类，返回父分类ID + 所有子分类ID
+    return [categoryId, ...subCategories.map(c => c.id)]
+  }
+  
+  // 是子分类或叶子分类，只返回自己的ID
+  return [categoryId]
+}
+
 // 获取文章列表
 const fetchArticles = async () => {
   try {
@@ -369,6 +384,10 @@ const fetchArticles = async () => {
     
     // 如果选择了分类，添加分类ID参数
     if (selectedCategory.value !== 'all') {
+      const categoryIds = getAllRelatedCategoryIds(selectedCategory.value)
+      // 由于后端接口只接受单个categoryId，我们需要修改策略
+      // 方案：客户端过滤或让后端支持多个categoryId
+      // 这里先使用客户端过滤方案
       params.categoryId = selectedCategory.value
     }
     
@@ -380,7 +399,26 @@ const fetchArticles = async () => {
     })
     
     if (response.data.code === 1) {
-      articles.value = response.data.data
+      let articleList = response.data.data
+      
+      // 如果选择的是父分类，需要额外获取子分类的文章
+      if (selectedCategory.value !== 'all') {
+        const subCategories = getSubCategories(selectedCategory.value)
+        if (subCategories.length > 0) {
+          // 获取所有子分类的文章
+          for (const subCat of subCategories) {
+            const subResponse = await axios.get('/api/article/list', {
+              params: { categoryId: subCat.id },
+              headers: { authentication: token }
+            })
+            if (subResponse.data.code === 1) {
+              articleList = [...articleList, ...subResponse.data.data]
+            }
+          }
+        }
+      }
+      
+      articles.value = articleList
     }
   } catch (error) {
     console.error('获取文章列表失败：', error)

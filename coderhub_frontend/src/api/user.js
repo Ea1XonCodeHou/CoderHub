@@ -84,3 +84,51 @@ export function uploadFile(file) {
   })
 }
 
+// 分页查询教程列表
+export function getTutorialList(params) {
+  return request({
+    url: '/tutorial/page',
+    method: 'get',
+    params
+  })
+}
+
+// 获取所有分类列表
+export function getCategoryList() {
+  return request({
+    url: '/tutorial/categories',
+    method: 'get'
+  })
+}
+
+// 获取教程详情
+export function getTutorialDetail(id) {
+  return request({
+    url: `/tutorial/${id}`,
+    method: 'get'
+  })
+}
+
+// 获取教程章节列表
+export function getTutorialChapters(tutorialId) {
+  return request({
+    url: `/tutorial/${tutorialId}/chapters`,
+    method: 'get'
+  })
+}
+
+// 获取章节文档列表
+export function getChapterDocuments(chapterId) {
+  return request({
+    url: `/tutorial/chapter/${chapterId}/documents`,
+    method: 'get'
+  })
+}
+
+// 获取章节视频列表
+export function getChapterVideos(chapterId) {
+  return request({
+    url: `/tutorial/chapter/${chapterId}/videos`,
+    method: 'get'
+  })
+}

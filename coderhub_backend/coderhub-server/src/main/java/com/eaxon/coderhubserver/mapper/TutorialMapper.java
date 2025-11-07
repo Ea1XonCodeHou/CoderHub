@@ -25,4 +25,24 @@ public interface TutorialMapper {
      * @return
      */
     Page<Tutorial> pageQuery(@Param("status") Integer status, @Param("categoryId") Long categoryId);
+    
+    /**
+     * 根据ID查询教程详情
+     * @param id 教程ID
+     * @return 教程信息
+     */
+    Tutorial selectById(@Param("id") String id);
+    
+    /**
+     * 更新教程
+     * @param tutorial 教程信息
+     */
+    @AutoFill(OperationType.UPDATE)
+    void updateTutorial(Tutorial tutorial);
+    
+    /**
+     * 删除教程
+     * @param id 教程ID
+     */
+    void deleteById(@Param("id") String id);
 }

@@ -159,7 +159,7 @@ export function createTutorial(data) {
 // 更新教程
 export function updateTutorial(data) {
   return request({
-    url: '/admin/tutorial/update',
+    url: '/admin/tutorial',
     method: 'put',
     data
   })
@@ -229,6 +229,31 @@ export function getVideoList(chapterId) {
   })
 }
 
+// 删除文档
+export function deleteDocument(id) {
+  return request({
+    url: `/admin/tutorial/document/${id}`,
+    method: 'delete'
+  })
+}
+
+// 删除视频
+export function deleteVideo(id) {
+  return request({
+    url: `/admin/tutorial/video/${id}`,
+    method: 'delete'
+  })
+}
+
+// 更新章节信息
+export function updateChapter(chapter) {
+  return request({
+    url: '/admin/tutorial/chapter',
+    method: 'put',
+    data: chapter
+  })
+}
+
 // 修改教程状态
 export function updateTutorialStatus(id, status) {
   return request({
@@ -237,3 +262,36 @@ export function updateTutorialStatus(id, status) {
   })
 }
 
+// ==================== 通用文件上传接口 ====================
+
+// 上传文件到OSS（小文件）
+export function uploadFile(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  
+  return request({
+    url: '/common/upload',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+// 上传大文件到MinIO（视频等）
+export function uploadFileToMinio(file, onUploadProgress) {
+  const formData = new FormData()
+  formData.append('file', file)
+  
+  return request({
+    url: '/common/upload/minio',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    timeout: 600000,  // 10分钟超时（大文件上传）
+    onUploadProgress: onUploadProgress  // 进度回调
+  })
+}

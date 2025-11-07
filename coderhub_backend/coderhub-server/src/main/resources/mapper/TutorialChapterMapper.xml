@@ -48,4 +48,21 @@
         WHERE id = #{tutorialId}
     </update>
 
+    <!-- 更新章节信息 -->
+    <update id="updateChapter">
+        UPDATE tutorial_chapter
+        SET chapter_order = #{chapterOrder},
+            chapter_title = #{chapterTitle},
+            duration = #{duration},
+            is_free = #{isFree},
+            status = #{status},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除章节 -->
+    <delete id="deleteById">
+        DELETE FROM tutorial_chapter WHERE id = #{chapterId}
+    </delete>
+
 </mapper>
