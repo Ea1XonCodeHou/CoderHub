@@ -62,10 +62,10 @@ const router = createRouter({
       meta: { requiresAuth: true, role: 'USER' }
     },
     {
-      path: '/minio-test',
-      name: 'minio-test',
-      component: () => import('@/views/MinioTest.vue'),
-      meta: { requiresAuth: true, role: 'ADMIN' }
+      path: '/video/player',
+      name: 'video-player',
+      component: () => import('@/views/VideoPlayer.vue'),
+      meta: { requiresAuth: true, role: 'USER' }
     }
   ]
 })

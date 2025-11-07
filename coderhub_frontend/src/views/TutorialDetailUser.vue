@@ -250,9 +250,8 @@
                       <div 
                         v-for="video in chapterVideos[chapter.id]" 
                         :key="video.id"
-                        class="resource-item"
+                        class="resource-item video-item"
                         :class="{ 'locked': !isChapterFree(chapter) }"
-                        @click="playVideo(video, chapter)"
                       >
                         <div class="resource-icon video">
                           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -269,12 +268,28 @@
                             {{ video.duration }} · {{ formatFileSize(video.fileSize) }}
                           </span>
                         </div>
-                        <div class="resource-action">
-                          <span v-if="isChapterFree(chapter)">播放</span>
-                          <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="5" y="11" width="14" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
-                            <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="2"/>
-                          </svg>
+                        <div class="resource-actions">
+                          <template v-if="isChapterFree(chapter)">
+                            <button class="btn-play" @click.stop="playVideo(video, chapter)" title="播放视频">
+                              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M5 3L19 12L5 21V3Z" fill="currentColor"/>
+                              </svg>
+                              播放
+                            </button>
+                            <button class="btn-download" @click.stop="downloadVideo(video)" title="下载视频">
+                              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 5V13M12 13L9 10M12 13L15 10M5 16L5 17C5 18.1046 5.89543 19 7 19L17 19C18.1046 19 19 18.1046 19 17V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                              下载
+                            </button>
+                          </template>
+                          <div v-else class="locked-badge">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect x="5" y="11" width="14" height="10" rx="1" stroke="currentColor" stroke-width="2"/>
+                              <path d="M7 11V7C7 5.67392 7.52678 4.40215 8.46447 3.46447C9.40215 2.52678 10.6739 2 12 2C13.3261 2 14.5979 2.52678 15.5355 3.46447C16.4732 4.40215 17 5.67392 17 7V11" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            <span>已锁定</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -577,9 +592,33 @@ const playVideo = (video, chapter) => {
     alert('该章节需要解锁后才能观看')
     return
   }
-  // TODO: 实现视频播放功能
-  console.log('播放视频：', video)
-  alert('视频播放功能开发中...')
+  
+  // 跳转到视频播放页面
+  router.push({
+    path: '/video/player',
+    query: {
+      videoId: video.id,
+      chapterId: chapter.id,
+      tutorialId: tutorial.value.id
+    }
+  })
+}
+
+// 下载视频
+const downloadVideo = async (video) => {
+  try {
+    // 创建一个隐藏的a标签来触发下载
+    const link = document.createElement('a')
+    link.href = video.videoUrl
+    link.download = video.videoTitle + '.mp4'
+    link.target = '_blank'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } catch (error) {
+    console.error('下载失败：', error)
+    alert('下载失败，请重试')
+  }
 }
 
 // 格式化文件大小
@@ -1311,6 +1350,68 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* 视频播放和下载按钮 */
+.btn-play,
+.btn-download {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-play svg,
+.btn-download svg {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-play {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-play:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-download {
+  background: white;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+}
+
+.btn-download:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.15);
+}
+
+.locked-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.locked-badge svg {
+  width: 14px;
+  height: 14px;
 }
 
 .action-btn {
