@@ -66,6 +66,12 @@ const router = createRouter({
       name: 'video-player',
       component: () => import('@/views/VideoPlayer.vue'),
       meta: { requiresAuth: true, role: 'USER' }
+    },
+    {
+      path: '/ai/assistant',
+      name: 'ai-assistant',
+      component: () => import('@/views/AIAssistant.vue'),
+      meta: { requiresAuth: true, role: 'USER' }
     }
   ]
 })

@@ -22,8 +22,6 @@ CREATE TABLE `document` (
     
     -- 索引
     INDEX `idx_chapter_id` (`chapter_id`),
-    INDEX `idx_sort_order` (`sort_order`),
-    
     -- 外键约束
     FOREIGN KEY (`chapter_id`) REFERENCES `tutorial_chapter`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='教程文档表';

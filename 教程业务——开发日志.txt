@@ -1,0 +1,70 @@
+? 开发顺序建议
+阶段一：后端基础架构 (管理端优先)
+Step 1: 数据库设计 ?
+ 编写 tutorial_table.sql
+ 编写 tutorial_chapter_table.sql
+ 编写 tutorial_comment_table.sql
+ 编写 tutorial_user_action_table.sql
+ (可选) tutorial_tag_relation_table.sql
+Step 2: 实体类和Mapper (coderhub-pojo + coderhub-server)
+ Tutorial.java 实体类
+ TutorialChapter.java 实体类
+ TutorialComment.java 实体类
+ TutorialUserAction.java 实体类
+ 对应的 Mapper 接口和 XML
+Step 3: 管理端 - 教程CRUD (后端)
+ AdminTutorialController - 教程管理接口
+POST /api/admin/tutorial/add - 创建教程
+PUT /api/admin/tutorial/update - 更新教程
+DELETE /api/admin/tutorial/delete/{id} - 删除教程
+GET /api/admin/tutorial/list - 教程列表(分页)
+PUT /api/admin/tutorial/status - 上架/下架
+Step 4: 管理端 - 章节CRUD (后端)
+ AdminTutorialChapterController - 章节管理接口
+POST /api/admin/tutorial/chapter/add - 添加章节
+PUT /api/admin/tutorial/chapter/update - 更新章节
+DELETE /api/admin/tutorial/chapter/delete/{id} - 删除章节
+GET /api/admin/tutorial/chapter/list/{tutorialId} - 章节列表
+PUT /api/admin/tutorial/chapter/order - 调整章节排序
+阶段二：用户端基础功能 (后端)
+Step 5: 用户端 - 教程浏览 (后端)
+ TutorialController - 用户端接口
+GET /api/tutorial/list - 教程列表(支持分类/难度/排序筛选)
+GET /api/tutorial/{id} - 教程详情
+GET /api/tutorial/{id}/chapters - 章节列表
+POST /api/tutorial/{id}/view - 浏览量+1 (Redis优化)
+Step 6: 用户端 - 互动功能 (后端)
+ TutorialActionController - 用户行为接口
+POST /api/tutorial/{id}/like - 点赞/取消点赞
+POST /api/tutorial/{id}/recommend - 推荐/取消推荐
+GET /api/tutorial/{id}/actions - 获取当前用户行为状态
+Step 7: 用户端 - 讨论区 (后端)
+ TutorialCommentController - 评论接口
+POST /api/tutorial/{id}/comment/add - 发表评论
+GET /api/tutorial/{id}/comment/list - 评论列表(分页)
+DELETE /api/tutorial/comment/delete/{id} - 删除评论
+POST /api/tutorial/comment/{id}/like - 评论点赞
+阶段三：管理端前端
+Step 8: 管理端 - 教程管理页面
+ TutorialManagement.vue (类似 ArticleReview.vue)
+教程列表展示(表格)
+新增教程表单
+编辑教程功能
+上架/下架操作
+Step 9: 管理端 - 章节管理页面
+ TutorialChapterEditor.vue
+章节列表(可拖拽排序)
+添加章节(区分视频/文档)
+文件/视频上传功能
+阶段四：用户端前端
+Step 10: 用户端 - 教程列表优化
+ 连接真实API (替换 mock data)
+ 实现分页加载
+ 实现筛选和排序
+Step 11: 用户端 - 教程详情页
+ TutorialDetail.vue (新页面)
+教程信息展示
+章节列表
+视频/文档播放器
+点赞/推荐/收藏按钮
+讨论区组件

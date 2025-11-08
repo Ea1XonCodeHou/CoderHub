@@ -1,5 +1,8 @@
 server:
   port: 8080
+  # 配置 Tomcat 字符编码
+  tomcat:
+    uri-encoding: UTF-8
 
 spring:
   profiles:

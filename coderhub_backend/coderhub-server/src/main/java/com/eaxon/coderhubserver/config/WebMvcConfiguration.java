@@ -1,8 +1,16 @@
 package com.eaxon.coderhubserver.config;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
@@ -56,6 +64,58 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                 .excludePathPatterns("/common/**");             // 排除通用接口（文件上传等）
         
         log.info("JWT拦截器注册完成");
+    }
+
+    /**
+     * 配置异步支持（用于响应式流式输出）
+     */
+    @Override
+    protected void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+        log.info("开始配置异步任务执行器...");
+        
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(50);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("async-stream-");
+        executor.initialize();
+        
+        configurer.setTaskExecutor(executor);
+        configurer.setDefaultTimeout(180000); // 3分钟超时
+        
+        log.info("异步任务执行器配置完成");
+    }
+
+    /**
+     * 配置 CORS（跨域资源共享）
+     */
+    @Override
+    protected void addCorsMappings(CorsRegistry registry) {
+        log.info("开始配置CORS跨域...");
+        
+        registry.addMapping("/**")
+                .allowedOrigins("http://localhost:5173", "http://localhost:3000")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+        
+        log.info("CORS跨域配置完成");
+    }
+
+    /**
+     * 扩展消息转换器，确保使用 UTF-8 编码（不覆盖默认转换器）
+     */
+    @Override
+    protected void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        log.info("开始扩展消息转换器（UTF-8编码）...");
+        
+        // 在现有转换器前面添加 UTF-8 字符串转换器
+        StringHttpMessageConverter stringConverter = new StringHttpMessageConverter(StandardCharsets.UTF_8);
+        stringConverter.setWriteAcceptCharset(false); // 禁止写入 Accept-Charset
+        converters.add(0, stringConverter);
+        
+        log.info("消息转换器扩展完成");
     }
 
     /**

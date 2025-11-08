@@ -29,7 +29,7 @@
           <li>
             <a href="#">项目</a>
           </li>
-          <li>
+          <li @click="goToAIChat">
             <a href="#">智能体</a>
           </li>
         </ul>
@@ -523,6 +523,11 @@ const goToEditor = () => {
 // 跳转到教程页面
 const goToTutorial = () => {
   router.push('/tutorial')
+}
+
+// 跳转到AI聊天页面
+const goToAIChat = () => {
+  router.push('/ai/assistant')
 }
 
 // 搜索功能
