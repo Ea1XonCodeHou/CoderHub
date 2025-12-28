@@ -1,67 +1,7 @@
-lian<template>
+<template>
   <div class="tutorial-container">
-    <!-- 顶部导航栏 -->
-    <nav class="navbar">
-      <div class="nav-content">
-        <!-- Logo区域 -->
-        <div class="nav-logo" @click="goToHome">
-          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="40" height="40" rx="8" fill="url(#gradient)" />
-            <path d="M12 14L20 10L28 14V26L20 30L12 26V14Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-            <defs>
-              <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stop-color="#2c3e50" />
-                <stop offset="100%" stop-color="#34495e" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <span class="logo-text">CoderHub</span>
-        </div>
-
-        <!-- 导航菜单 -->
-        <ul class="nav-menu">
-          <li @click="goToHome">
-            <a href="#">博客首页</a>
-          </li>
-          <li class="active">
-            <a href="#">教程</a>
-          </li>
-          <li>
-            <a href="#">项目</a>
-          </li>
-          <li>
-            <a href="#">智能体</a>
-          </li>
-        </ul>
-
-        <!-- 搜索框 -->
-        <div class="search-box">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M21 21L16.65 16.65M19 11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11C3 6.58172 6.58172 3 11 3C15.4183 3 19 6.58172 19 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <input 
-            type="text" 
-            placeholder="搜索教程..." 
-            v-model="searchKeyword"
-            @input="handleSearch"
-          />
-        </div>
-
-        <!-- 右侧操作区 -->
-        <div class="nav-right">
-          <!-- 用户头像 -->
-          <div class="user-avatar" @click="toggleUserMenu">
-            <img :src="userInfo.avatar" alt="avatar" />
-            <div v-if="showUserMenu" class="user-menu">
-              <a href="#" class="menu-item" @click.prevent="goToProfile">个人主页</a>
-              <a href="#" class="menu-item">我的学习</a>
-              <a href="#" class="menu-item">设置</a>
-              <a href="#" class="menu-item" @click.prevent="handleLogout">退出登录</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
+    <!-- 公用导航栏 -->
+    <NavBar :showWriteBtn="false" @search="handleNavSearch" />
 
     <!-- Hero区域 - 大图横幅 -->
     <section class="hero-section">
@@ -448,12 +388,18 @@ lian<template>
 import { getTutorialList } from '@/api/user'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import NavBar from '@/components/NavBar.vue'
 
 const router = useRouter()
 
 // 用户信息
 const userInfo = ref({})
-const showUserMenu = ref(false)
+
+// 处理导航栏搜索
+const handleNavSearch = (keyword) => {
+  searchKeyword.value = keyword
+  handleSearch()
+}
 
 // 搜索关键词
 const searchKeyword = ref('')
@@ -642,25 +588,6 @@ const filteredCourses = computed(() => {
 })
 
 // 方法
-const goToHome = () => {
-  router.push('/home')
-}
-
-const goToProfile = () => {
-  showUserMenu.value = false
-  router.push('/profile')
-}
-
-const toggleUserMenu = () => {
-  showUserMenu.value = !showUserMenu.value
-}
-
-const handleLogout = () => {
-  showUserMenu.value = false
-  localStorage.removeItem('token')
-  localStorage.removeItem('userInfo')
-  router.push('/')
-}
 
 const handleSearch = () => {
   // 搜索会自动触发computed重新计算
@@ -730,177 +657,6 @@ onMounted(async () => {
   background: #f5f7fa;
 }
 
-/* ==================== 导航栏 ==================== */
-.navbar {
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.nav-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 24px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-  gap: 40px;
-}
-
-.nav-logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.nav-logo svg {
-  width: 36px;
-  height: 36px;
-}
-
-.logo-text {
-  font-size: 20px;
-  font-weight: 700;
-  color: #2c3e50;
-}
-
-.nav-menu {
-  display: flex;
-  gap: 32px;
-  list-style: none;
-  flex-shrink: 0;
-}
-
-.nav-menu li {
-  position: relative;
-  cursor: pointer;
-}
-
-.nav-menu li a {
-  display: block;
-  padding: 8px 0;
-  font-size: 15px;
-  color: #64748b;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.nav-menu li.active a {
-  color: #2c3e50;
-  font-weight: 600;
-}
-
-.nav-menu li.active::after {
-  content: '';
-  position: absolute;
-  bottom: -20px;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: #2c3e50;
-}
-
-.nav-menu li:hover a {
-  color: #2c3e50;
-}
-
-/* 搜索框 */
-.search-box {
-  flex: 1;
-  max-width: 400px;
-  position: relative;
-  margin: 0 24px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  color: #94a3b8;
-  pointer-events: none;
-}
-
-.search-box input {
-  width: 100%;
-  height: 40px;
-  padding: 0 16px 0 42px;
-  border: 2px solid transparent;
-  border-radius: 20px;
-  font-size: 14px;
-  color: #2c3e50;
-  background: #f5f7fa;
-  transition: all 0.3s;
-  outline: none;
-}
-
-.search-box input:focus {
-  border-color: #2c3e50;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
-}
-
-.search-box input::placeholder {
-  color: #94a3b8;
-}
-
-/* 导航右侧 */
-.nav-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-shrink: 0;
-  margin-left: auto;
-}
-
-.user-avatar {
-  position: relative;
-  cursor: pointer;
-}
-
-.user-avatar img {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px solid #e2e8f0;
-  transition: all 0.2s;
-}
-
-.user-avatar:hover img {
-  border-color: #2c3e50;
-  transform: scale(1.05);
-}
-
-.user-menu {
-  position: absolute;
-  top: 48px;
-  right: 0;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 8px 0;
-  min-width: 150px;
-}
-
-.menu-item {
-  display: block;
-  padding: 10px 16px;
-  font-size: 14px;
-  color: #2c3e50;
-  text-decoration: none;
-  transition: background 0.2s;
-}
-
-.menu-item:hover {
-  background: #f5f7fa;
-}
 
 /* ==================== Hero区域 ==================== */
 .hero-section {
@@ -1778,14 +1534,6 @@ onMounted(async () => {
   .hero-stats {
     flex-direction: column;
     gap: 20px;
-  }
-
-  .nav-menu {
-    display: none;
-  }
-
-  .search-box {
-    max-width: none;
   }
 
   .filter-container {

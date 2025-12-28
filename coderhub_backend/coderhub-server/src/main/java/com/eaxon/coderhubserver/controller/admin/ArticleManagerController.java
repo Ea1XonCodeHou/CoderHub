@@ -10,20 +10,18 @@ import com.eaxon.coderhubserver.mapper.TagMapper;
 import com.eaxon.coderhubserver.mapper.UserMapper;
 import com.eaxon.coderhubpojo.entity.Category;
 import com.eaxon.coderhubpojo.entity.User;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 @RequestMapping("/admin/article")
 @Slf4j
-@Api(tags = "管理端-文章管理接口")
+@io.swagger.v3.oas.annotations.tags.Tag(name = "管理端-文章管理接口")
 public class ArticleManagerController {
     
     @Autowired
@@ -42,7 +40,7 @@ public class ArticleManagerController {
      * 获取待审核文章列表
      */
     @GetMapping("/pending")
-    @ApiOperation("获取待审核文章列表")
+    @Operation(summary = "获取待审核文章列表")
     public Result<List<ArticleVO>> getPendingArticles() {
         log.info("获取待审核文章列表");
         List<Article> articles = articleMapper.getPendingArticles();
@@ -54,7 +52,7 @@ public class ArticleManagerController {
      * 获取已发布文章列表
      */
     @GetMapping("/published")
-    @ApiOperation("获取已发布文章列表")
+    @Operation(summary = "获取已发布文章列表")
     public Result<List<ArticleVO>> getPublishedArticles() {
         log.info("获取已发布文章列表");
         List<Article> articles = articleMapper.getPublishedArticles();
@@ -66,7 +64,7 @@ public class ArticleManagerController {
      * 获取文章详情（含Markdown内容URL）
      */
     @GetMapping("/{id}")
-    @ApiOperation("获取文章详情")
+    @Operation(summary = "获取文章详情")
     public Result<ArticleVO> getArticleDetail(@PathVariable String id) {
         log.info("获取文章详情：id={}", id);
         Article article = articleMapper.getById(id);
@@ -111,7 +109,7 @@ public class ArticleManagerController {
      * 审核文章（通过）
      */
     @PutMapping("/approve/{id}")
-    @ApiOperation("审核通过")
+    @Operation(summary = "审核通过")
     public Result<String> approveArticle(@PathVariable String id) {
         log.info("审核通过文章：id={}", id);
         
@@ -143,7 +141,7 @@ public class ArticleManagerController {
      * 审核文章（拒绝）
      */
     @PutMapping("/reject/{id}")
-    @ApiOperation("审核拒绝")
+    @Operation(summary = "审核拒绝")
     public Result<String> rejectArticle(@PathVariable String id, @RequestParam String reason) {
         log.info("审核拒绝文章：id={}, reason={}", id, reason);
         articleMapper.updateAuditStatus(id, 2, reason, 3);  // status=3表示审核未通过
@@ -154,7 +152,7 @@ public class ArticleManagerController {
      * 修复所有分类的文章数量统计
      */
     @PutMapping("/fix-category-count")
-    @ApiOperation("修复分类文章数量")
+    @Operation(summary = "修复分类文章数量")
     public Result<String> fixCategoryCount() {
         log.info("开始修复分类文章数量统计");
         

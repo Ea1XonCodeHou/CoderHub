@@ -16,13 +16,13 @@ import com.eaxon.coderhubcommon.result.Result;
 import com.eaxon.coderhubcommon.utils.AliOssUtil;
 import com.eaxon.coderhubcommon.utils.MinioUtil;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/common")
-@Api(tags = "通用工具接口")
+@Tag(name = "通用工具接口")
 @Slf4j
 public class CommonController {
     @Autowired
@@ -36,7 +36,7 @@ public class CommonController {
      * 适用于小文件：图片、PDF文档等
      */
     @PostMapping("/upload")
-    @ApiOperation(value = "文件上传接口（OSS）")
+    @Operation(summary = "文件上传接口（OSS）")
     public Result<String> upload(MultipartFile file){
         log.info("开始向阿里云上传文件：{}",file);
         try {
@@ -59,7 +59,7 @@ public class CommonController {
      * 适用于大文件：视频、大型文档等
      */
     @PostMapping("/upload/minio")
-    @ApiOperation(value = "大文件上传接口（MinIO）")
+    @Operation(summary = "大文件上传接口（MinIO）")
     public Result<String> uploadToMinio(MultipartFile file){
         log.info("开始向MinIO上传大文件：{}, 大小：{} MB", 
                 file.getOriginalFilename(), 

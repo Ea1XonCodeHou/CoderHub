@@ -1,7 +1,6 @@
 package com.eaxon.coderhubpojo.VO;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,10 +14,9 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@ApiModel(description = "分页查询结果")
+@Schema(description = "分页查询结果")
 public class PageResult<T> implements Serializable {
 
     private Long total;
     private List<T> records;
 }
-

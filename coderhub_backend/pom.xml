@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.3</version>
+        <version>3.2.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     
@@ -29,21 +29,20 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <spring-boot.version>2.7.3</spring-boot.version>
-        <mybatis-spring-boot.version>2.2.2</mybatis-spring-boot.version>
+        <spring-boot.version>3.2.5</spring-boot.version>
+        <mybatis-spring-boot.version>3.0.3</mybatis-spring-boot.version>
         <mysql-connector.version>8.0.33</mysql-connector.version>
-        <lombok.version>1.18.24</lombok.version>
-        <slf4j.version>1.7.36</slf4j.version>
-        <swagger.version>2.9.2</swagger.version>
-        <swagger-bootstrap-ui.version>1.9.6</swagger-bootstrap-ui.version>
-        <druid.version>1.2.16</druid.version>
-        <jjwt.version>0.9.1</jjwt.version>
-        <jaxb-api.version>2.3.1</jaxb-api.version>
-        <aliyun-sdk-oss.version>3.17.1</aliyun-sdk-oss.version>
-        <pagehelper.version>1.4.6</pagehelper.version>
-        <aspectj>1.9.4</aspectj>
-        <langchain4j.version>1.0.0-alpha1</langchain4j.version>
+        <lombok.version>1.18.30</lombok.version>
+        <slf4j.version>2.0.12</slf4j.version>
+        <springdoc.version>2.3.0</springdoc.version>
+        <druid.version>1.2.21</druid.version>
+        <jjwt.version>0.12.5</jjwt.version>
+        <aliyun-sdk-oss.version>3.17.4</aliyun-sdk-oss.version>
+        <pagehelper.version>2.1.0</pagehelper.version>
+        <aspectj.version>1.9.21</aspectj.version>
+        <langchain4j.version>0.35.0</langchain4j.version>
         <okhttp.version>4.12.0</okhttp.version>
+        <minio.version>8.5.9</minio.version>
     </properties>
 
     <!-- 依赖版本统一管理 -->
@@ -56,7 +55,14 @@
                 <version>${spring-boot.version}</version>
             </dependency>
 
-            <!-- MyBatis Spring Boot Starter -->
+            <!-- Spring Boot WebFlux（用于响应式流式输出） -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-webflux</artifactId>
+                <version>${spring-boot.version}</version>
+            </dependency>
+
+            <!-- MyBatis Spring Boot Starter (Spring Boot 3.x 兼容版本) -->
             <dependency>
                 <groupId>org.mybatis.spring.boot</groupId>
                 <artifactId>mybatis-spring-boot-starter</artifactId>
@@ -65,8 +71,8 @@
 
             <!-- MySQL驱动 -->
             <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
+                <groupId>com.mysql</groupId>
+                <artifactId>mysql-connector-j</artifactId>
                 <version>${mysql-connector.version}</version>
             </dependency>
 
@@ -85,46 +91,37 @@
                 <version>${slf4j.version}</version>
             </dependency>
 
-            <!-- Swagger2 (包含@ApiOperation注解) -->
+            <!-- SpringDoc OpenAPI (替代 Swagger2，支持 Spring Boot 3.x) -->
             <dependency>
-                <groupId>io.springfox</groupId>
-                <artifactId>springfox-swagger2</artifactId>
-                <version>${swagger.version}</version>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
             </dependency>
 
-            <!-- Swagger UI -->
-            <dependency>
-                <groupId>io.springfox</groupId>
-                <artifactId>springfox-swagger-ui</artifactId>
-                <version>${swagger.version}</version>
-            </dependency>
-
-            <!-- Swagger Bootstrap UI (更美观的UI界面) -->
-            <dependency>
-                <groupId>com.github.xiaoymin</groupId>
-                <artifactId>swagger-bootstrap-ui</artifactId>
-                <version>${swagger-bootstrap-ui.version}</version>
-            </dependency>
-
-            <!-- Druid数据库连接池 -->
+            <!-- Druid数据库连接池 (Spring Boot 3.x 兼容版本) -->
             <dependency>
                 <groupId>com.alibaba</groupId>
-                <artifactId>druid-spring-boot-starter</artifactId>
+                <artifactId>druid-spring-boot-3-starter</artifactId>
                 <version>${druid.version}</version>
             </dependency>
 
-            <!-- JWT -->
+            <!-- JWT (新版本 jjwt，Spring Boot 3.x 兼容) -->
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt</artifactId>
+                <artifactId>jjwt-api</artifactId>
                 <version>${jjwt.version}</version>
             </dependency>
-
-            <!-- JAXB API (Java 8+需要) -->
             <dependency>
-                <groupId>javax.xml.bind</groupId>
-                <artifactId>jaxb-api</artifactId>
-                <version>${jaxb-api.version}</version>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
             </dependency>
 
             <!-- 阿里云OSS SDK -->
@@ -134,7 +131,14 @@
                 <version>${aliyun-sdk-oss.version}</version>
             </dependency>
 
-            <!-- PageHelper 分页插件 -->
+            <!-- MinIO客户端 -->
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
+            </dependency>
+
+            <!-- PageHelper 分页插件 (Spring Boot 3.x 兼容版本) -->
             <dependency>
                 <groupId>com.github.pagehelper</groupId>
                 <artifactId>pagehelper-spring-boot-starter</artifactId>
@@ -172,16 +176,16 @@
             <dependency>
                 <groupId>org.aspectj</groupId>
                 <artifactId>aspectjrt</artifactId>
-                <version>${aspectj}</version>
+                <version>${aspectj.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.aspectj</groupId>
                 <artifactId>aspectjweaver</artifactId>
-                <version>${aspectj}</version>
+                <version>${aspectj.version}</version>
             </dependency>
 
-            <!-- LangChain4j 核心库（不使用 Spring Boot Starter） -->
+            <!-- LangChain4j 核心库（稳定版本，支持流式输出） -->
             <dependency>
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j</artifactId>

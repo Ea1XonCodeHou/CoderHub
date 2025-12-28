@@ -21,15 +21,15 @@ import com.eaxon.coderhubserver.service.CategoryService;
 import com.eaxon.coderhubserver.service.TutorialChapterService;
 import com.eaxon.coderhubserver.service.TutorialService;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/tutorial")
 @Slf4j
-@Api(tags = "用户端教程接口")
+@Tag(name = "用户端教程接口")
 public class TutorialController {
 
     @Autowired
@@ -50,15 +50,15 @@ public class TutorialController {
      * @return 教程分页列表
      */
     @GetMapping("/page")
-    @ApiOperation("分页查询教程列表")
+    @Operation(summary = "分页查询教程列表")
     public Result<PageResult<Tutorial>> page(
-            @ApiParam(value = "页码", example = "1") 
+            @Parameter(description = "页码", example = "1") 
             @RequestParam(defaultValue = "1") Integer page,
             
-            @ApiParam(value = "每页数量", example = "12") 
+            @Parameter(description = "每页数量", example = "12") 
             @RequestParam(defaultValue = "12") Integer pageSize,
             
-            @ApiParam(value = "分类ID", required = false) 
+            @Parameter(description = "分类ID", required = false) 
             @RequestParam(required = false) Long categoryId) {
         
         log.info("用户端分页查询教程：page={}, pageSize={}, categoryId={}", page, pageSize, categoryId);
@@ -75,7 +75,7 @@ public class TutorialController {
      * @return 分类列表
      */
     @GetMapping("/categories")
-    @ApiOperation("获取所有分类列表")
+    @Operation(summary = "获取所有分类列表")
     public Result<List<CategoryVO>> getCategories() {
         log.info("用户端查询分类列表");
         List<CategoryVO> categories = categoryService.getAllCategories();
@@ -89,9 +89,9 @@ public class TutorialController {
      * @return 教程详情
      */
     @GetMapping("/{id}")
-    @ApiOperation("获取教程详情")
+    @Operation(summary = "获取教程详情")
     public Result<Tutorial> getById(
-            @ApiParam(value = "教程ID", required = true) 
+            @Parameter(description = "教程ID", required = true) 
             @PathVariable String id) {
         log.info("用户端查询教程详情：id={}", id);
         Tutorial tutorial = tutorialService.getById(id);
@@ -105,9 +105,9 @@ public class TutorialController {
      * @return 章节列表
      */
     @GetMapping("/{tutorialId}/chapters")
-    @ApiOperation("获取教程章节列表")
+    @Operation(summary = "获取教程章节列表")
     public Result<List<TutorialChapter>> getChapters(
-            @ApiParam(value = "教程ID", required = true) 
+            @Parameter(description = "教程ID", required = true) 
             @PathVariable String tutorialId) {
         log.info("用户端查询教程章节：tutorialId={}", tutorialId);
         List<TutorialChapter> chapters = tutorialChapterService.getChaptersByTutorialId(tutorialId);
@@ -121,9 +121,9 @@ public class TutorialController {
      * @return 文档列表
      */
     @GetMapping("/chapter/{chapterId}/documents")
-    @ApiOperation("获取章节文档列表")
+    @Operation(summary = "获取章节文档列表")
     public Result<List<Document>> getChapterDocuments(
-            @ApiParam(value = "章节ID", required = true) 
+            @Parameter(description = "章节ID", required = true) 
             @PathVariable String chapterId) {
         log.info("用户端查询章节文档：chapterId={}", chapterId);
         List<Document> documents = tutorialChapterService.getDocumentsByChapterId(chapterId);
@@ -137,9 +137,9 @@ public class TutorialController {
      * @return 视频列表
      */
     @GetMapping("/chapter/{chapterId}/videos")
-    @ApiOperation("获取章节视频列表")
+    @Operation(summary = "获取章节视频列表")
     public Result<List<Video>> getChapterVideos(
-            @ApiParam(value = "章节ID", required = true) 
+            @Parameter(description = "章节ID", required = true) 
             @PathVariable String chapterId) {
         log.info("用户端查询章节视频：chapterId={}", chapterId);
         List<Video> videos = tutorialChapterService.getVideosByChapterId(chapterId);

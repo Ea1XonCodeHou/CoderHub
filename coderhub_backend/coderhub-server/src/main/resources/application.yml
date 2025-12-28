@@ -12,8 +12,8 @@ spring:
   # 文件上传配置 - 支持大文件（视频）
   servlet:
     multipart:
-      max-file-size: 500MB      # 单个文件最大500MB
-      max-request-size: 500MB   # 整个请求最大500MB
+      max-file-size: 500MB
+      max-request-size: 500MB
   # Jackson日期格式配置
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
@@ -69,18 +69,27 @@ coder:
     secret-key: ${coder.minio.secret-key}
     bucket-name: ${coder.minio.bucket-name}
 
+# LangChain4j AI 配置
 langchain4j:
   open-ai:
     chat-model:
       api-key: ${langchain4j.open-ai.chat-model.api-key}
-      base-url: https://api.siliconflow.cn/v1
-      model-name: Qwen/Qwen3-VL-235B-A22B-Instruct
-      log-requests: true
-      log-responses: true
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      model-name: qwen-plus
+      log-requests: false
+      log-responses: false
 
     streaming-chat-model:
       api-key: ${langchain4j.open-ai.streaming-chat-model.api-key}
-      base-url: https://api.siliconflow.cn/v1
-      model-name: Qwen/Qwen3-VL-235B-A22B-Instruct
-      log-requests: true
-      log-responses: true
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      model-name: qwen-plus
+      log-requests: false
+      log-responses: false
+
+# SpringDoc OpenAPI 配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true

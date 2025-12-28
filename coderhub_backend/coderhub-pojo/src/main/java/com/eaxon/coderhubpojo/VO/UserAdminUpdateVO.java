@@ -1,7 +1,6 @@
 package com.eaxon.coderhubpojo.VO;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +15,7 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@ApiModel(description = "管理端修改用户信息返回数据")
+@Schema(description = "管理端修改用户信息返回数据")
 public class UserAdminUpdateVO implements Serializable {
     private String id;
     private String account;
@@ -26,4 +25,3 @@ public class UserAdminUpdateVO implements Serializable {
     private Integer userLevel;
     private Integer status;
 }
-

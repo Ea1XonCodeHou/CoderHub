@@ -21,10 +21,10 @@
             <artifactId>lombok</artifactId>
         </dependency>
 
-        <!-- Swagger注解支持 -->
+        <!-- SpringDoc OpenAPI 注解支持 -->
         <dependency>
-            <groupId>io.springfox</groupId>
-            <artifactId>springfox-swagger2</artifactId>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
     </dependencies>
 

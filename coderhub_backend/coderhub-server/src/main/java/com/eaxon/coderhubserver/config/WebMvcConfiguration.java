@@ -18,17 +18,17 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupp
 import com.eaxon.coderhubserver.interceptor.JwtTokenAdminInterceptor;
 import com.eaxon.coderhubserver.interceptor.JwtTokenUserInterceptor;
 
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
 import lombok.extern.slf4j.Slf4j;
-import springfox.documentation.builders.ApiInfoBuilder;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.plugins.Docket;
 
 /**
  * Web MVC配置类
- * 注册拦截器、配置Swagger等
+ * 注册拦截器、配置OpenAPI文档、CORS等
+ * 
+ * 升级到 Spring Boot 3.x，使用 SpringDoc OpenAPI 替代 Swagger2
  */
 @Configuration
 @Slf4j
@@ -42,8 +42,6 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 
     /**
      * 注册自定义拦截器
-     *
-     * @param registry
      */
     @Override
     protected void addInterceptors(InterceptorRegistry registry) {
@@ -51,17 +49,17 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
         
         // 注册管理员端拦截器
         registry.addInterceptor(jwtTokenAdminInterceptor)
-                .addPathPatterns("/admin/**")                   // 拦截所有/admin/**路径
-                .excludePathPatterns("/admin/login")            // 排除管理员登录接口
-                .excludePathPatterns("/common/**");             // 排除通用接口
+                .addPathPatterns("/admin/**")
+                .excludePathPatterns("/admin/login")
+                .excludePathPatterns("/common/**");
         
         // 注册用户端拦截器
         registry.addInterceptor(jwtTokenUserInterceptor)
-                .addPathPatterns("/user/**")                    // 拦截所有/user/**路径
-                .addPathPatterns("/article/**")                 // 拦截所有/article/**路径
-                .excludePathPatterns("/user/login")             // 排除登录接口
-                .excludePathPatterns("/user/register")          // 排除注册接口
-                .excludePathPatterns("/common/**");             // 排除通用接口（文件上传等）
+                .addPathPatterns("/user/**")
+                .addPathPatterns("/article/**")
+                .excludePathPatterns("/user/login")
+                .excludePathPatterns("/user/register")
+                .excludePathPatterns("/common/**");
         
         log.info("JWT拦截器注册完成");
     }
@@ -94,9 +92,10 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
         log.info("开始配置CORS跨域...");
         
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173", "http://localhost:3000")
+                .allowedOriginPatterns("http://localhost:*", "http://127.0.0.1:*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
+                .exposedHeaders("Content-Type", "Cache-Control", "Connection")
                 .allowCredentials(true)
                 .maxAge(3600);
         
@@ -104,68 +103,53 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
     }
 
     /**
-     * 扩展消息转换器，确保使用 UTF-8 编码（不覆盖默认转换器）
+     * 扩展消息转换器，确保使用 UTF-8 编码
      */
     @Override
     protected void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
         log.info("开始扩展消息转换器（UTF-8编码）...");
         
-        // 在现有转换器前面添加 UTF-8 字符串转换器
         StringHttpMessageConverter stringConverter = new StringHttpMessageConverter(StandardCharsets.UTF_8);
-        stringConverter.setWriteAcceptCharset(false); // 禁止写入 Accept-Charset
+        stringConverter.setWriteAcceptCharset(false);
         converters.add(0, stringConverter);
         
         log.info("消息转换器扩展完成");
     }
 
     /**
-     * 通过Swagger生成接口文档
-     *
-     * @return
+     * 配置 OpenAPI 文档（替代 Swagger2 Docket）
      */
     @Bean
-    public Docket docket() {
-        log.info("开始构建Swagger API文档...");
+    public OpenAPI customOpenAPI() {
+        log.info("开始构建OpenAPI文档...");
         
-        ApiInfo apiInfo = new ApiInfoBuilder()
-                .title("CoderHub技术博客平台接口文档")
-                .version("1.0")
-                .description("CoderHub后端API接口文档")
-                .build();
-        
-        Docket docket = new Docket(DocumentationType.SWAGGER_2)
-                .apiInfo(apiInfo)
-                .select()
-                .apis(RequestHandlerSelectors.basePackage("com.eaxon.coderhubserver.controller"))
-                .paths(PathSelectors.any())
-                .build();
-        
-        log.info("Swagger API文档构建完成");
-        return docket;
+        return new OpenAPI()
+                .info(new Info()
+                        .title("CoderHub 技术博客平台接口文档")
+                        .version("2.0")
+                        .description("CoderHub 后端 API 接口文档 - 基于 Spring Boot 3.x")
+                        .contact(new Contact()
+                                .name("CoderHub Team")
+                                .email("support@coderhub.com"))
+                        .license(new License()
+                                .name("Apache 2.0")
+                                .url("https://www.apache.org/licenses/LICENSE-2.0")));
     }
 
     /**
      * 设置静态资源映射
-     * 主要用于Swagger UI的静态资源访问
-     *
-     * @param registry
      */
     @Override
     protected void addResourceHandlers(ResourceHandlerRegistry registry) {
         log.info("开始配置静态资源映射...");
         
-        // Swagger UI 资源映射
-        registry.addResourceHandler("/doc.html")
-                .addResourceLocations("classpath:/META-INF/resources/");
+        // SpringDoc OpenAPI UI 资源映射
+        registry.addResourceHandler("/swagger-ui/**")
+                .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui/");
         
         registry.addResourceHandler("/webjars/**")
                 .addResourceLocations("classpath:/META-INF/resources/webjars/");
         
-        // Swagger2 资源映射
-        registry.addResourceHandler("swagger-ui.html")
-                .addResourceLocations("classpath:/META-INF/resources/");
-        
         log.info("静态资源映射配置完成");
     }
 }
-

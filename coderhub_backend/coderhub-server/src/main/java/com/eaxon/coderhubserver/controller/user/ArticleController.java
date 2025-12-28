@@ -13,8 +13,7 @@ import com.eaxon.coderhubserver.service.ArticleCommentLikeService;
 import com.eaxon.coderhubserver.mapper.TagMapper;
 import com.eaxon.coderhubpojo.DTO.CommentPublishDTO;
 import com.eaxon.coderhubpojo.VO.CommentVO;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +28,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/article")
 @Slf4j
-@Api(tags = "文章相关接口")
+@io.swagger.v3.oas.annotations.tags.Tag(name = "文章相关接口")
 public class ArticleController {
 
     @Autowired
@@ -51,7 +50,7 @@ public class ArticleController {
      * 发布文章
      */
     @PostMapping("/publish")
-    @ApiOperation("发布文章")
+    @Operation(summary = "发布文章")
     public Result<ArticleVO> publishArticle(@RequestBody ArticlePublishDTO dto) {
         log.info("发布文章：{}", dto.getTitle());
         ArticleVO vo = articleService.publishArticle(dto);
@@ -62,7 +61,7 @@ public class ArticleController {
      * 获取文章详情
      */
     @GetMapping("/{articleId}")
-    @ApiOperation("获取文章详情")
+    @Operation(summary = "获取文章详情")
     public Result<ArticleDetailVO> getArticleDetail(@PathVariable String articleId) {
         log.info("获取文章详情：articleId={}", articleId);
         ArticleDetailVO vo = articleService.getArticleDetail(articleId);
@@ -73,7 +72,7 @@ public class ArticleController {
      * 获取文章列表
      */
     @GetMapping("/list")
-    @ApiOperation("获取文章列表")
+    @Operation(summary = "获取文章列表")
     public Result<List<ArticleVO>> getArticleList(
             @RequestParam(required = false) String categoryId,
             @RequestParam(required = false) String tagId,
@@ -88,7 +87,7 @@ public class ArticleController {
      * 删除文章
      */
     @DeleteMapping("/{articleId}")
-    @ApiOperation("删除文章")
+    @Operation(summary = "删除文章")
     public Result<String> deleteArticle(@PathVariable String articleId) {
         log.info("删除文章：articleId={}", articleId);
         articleService.deleteArticle(articleId);
@@ -99,7 +98,7 @@ public class ArticleController {
      * 搜索标签（用于自动完成）
      */
     @GetMapping("/tags/search")
-    @ApiOperation("搜索标签")
+    @Operation(summary = "搜索标签")
     public Result<List<Tag>> searchTags(@RequestParam String keyword) {
         log.info("搜索标签：keyword={}", keyword);
         List<Tag> tags = tagMapper.searchByKeyword(keyword);
@@ -110,7 +109,7 @@ public class ArticleController {
      * 获取热门标签
      */
     @GetMapping("/tags/hot")
-    @ApiOperation("获取热门标签")
+    @Operation(summary = "获取热门标签")
     public Result<List<Tag>> getHotTags(@RequestParam(defaultValue = "20") Integer limit) {
         log.info("获取热门标签：limit={}", limit);
         List<Tag> tags = tagMapper.getHotTags(limit);
@@ -121,7 +120,7 @@ public class ArticleController {
      * 点赞/取消点赞文章（toggle）
      */
     @PostMapping("/{articleId}/like")
-    @ApiOperation("点赞/取消点赞文章")
+    @Operation(summary = "点赞/取消点赞文章")
     public Result<Map<String, Object>> toggleLike(@PathVariable String articleId) {
         // 从ThreadLocal获取当前登录用户ID
         String userId = BaseContext.getCurrentId();
@@ -145,7 +144,7 @@ public class ArticleController {
      * 获取文章点赞数
      */
     @GetMapping("/{articleId}/like/count")
-    @ApiOperation("获取文章点赞数")
+    @Operation(summary = "获取文章点赞数")
     public Result<Integer> getLikeCount(@PathVariable String articleId) {
         log.info("获取文章{}的点赞数", articleId);
         Integer count = articleLikeService.getLikeCount(articleId);
@@ -156,7 +155,7 @@ public class ArticleController {
      * 检查用户是否已点赞文章
      */
     @GetMapping("/{articleId}/like/status")
-    @ApiOperation("检查用户是否已点赞文章")
+    @Operation(summary = "检查用户是否已点赞文章")
     public Result<Boolean> checkLikeStatus(@PathVariable String articleId) {
         String userId = BaseContext.getCurrentId();
         log.info("检查用户{}是否点赞文章{}", userId, articleId);
@@ -170,7 +169,7 @@ public class ArticleController {
      * 发布评论（包括顶级评论和回复）
      */
     @PostMapping("/{articleId}/comment")
-    @ApiOperation("发布评论")
+    @Operation(summary = "发布评论")
     public Result<String> publishComment(
             @PathVariable String articleId,
             @RequestBody CommentPublishDTO commentPublishDTO) {
@@ -188,7 +187,7 @@ public class ArticleController {
      * 获取文章的评论列表
      */
     @GetMapping("/{articleId}/comment")
-    @ApiOperation("获取文章评论列表")
+    @Operation(summary = "获取文章评论列表")
     public Result<List<CommentVO>> getCommentsByArticleId(@PathVariable String articleId) {
         log.info("获取文章{}的评论列表", articleId);
 
@@ -208,7 +207,7 @@ public class ArticleController {
      * 删除评论
      */
     @DeleteMapping("/comment/{commentId}")
-    @ApiOperation("删除评论")
+    @Operation(summary = "删除评论")
     public Result<String> deleteComment(@PathVariable String commentId) {
         String userId = BaseContext.getCurrentId();
         log.info("用户{}删除评论{}", userId, commentId);
@@ -221,7 +220,7 @@ public class ArticleController {
      * 点赞/取消点赞评论
      */
     @PostMapping("/comment/{commentId}/like")
-    @ApiOperation("点赞/取消点赞评论")
+    @Operation(summary = "点赞/取消点赞评论")
     public Result<Map<String, Object>> toggleCommentLike(@PathVariable String commentId) {
         String userId = BaseContext.getCurrentId();
         log.info("用户{}操作评论{}的点赞", userId, commentId);
@@ -234,7 +233,7 @@ public class ArticleController {
      * 查询用户是否已点赞评论
      */
     @GetMapping("/comment/{commentId}/like/status")
-    @ApiOperation("查询是否已点赞评论")
+    @Operation(summary = "查询是否已点赞评论")
     public Result<Boolean> checkCommentLikeStatus(@PathVariable String commentId) {
         String userId = BaseContext.getCurrentId();
         log.info("查询用户{}是否点赞评论{}", userId, commentId);
@@ -243,4 +242,3 @@ public class ArticleController {
         return Result.success(isLiked);
     }
 }
-

@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * JWT令牌校验拦截器 - 用户端
@@ -66,4 +66,3 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
         }
     }
 }
-

@@ -27,14 +27,14 @@ import com.eaxon.coderhubpojo.entity.Video;
 import com.eaxon.coderhubserver.service.TutorialChapterService;
 import com.eaxon.coderhubserver.service.TutorialService;
 
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/admin/tutorial")
 @Slf4j
-@Api(tags = "管理端-教程管理接口")
+@Tag(name = "管理端-教程管理接口")
 public class TutorialManagerController {
     @Autowired
     private TutorialService tutorialService;
@@ -51,7 +51,7 @@ public class TutorialManagerController {
      * @return
      */
     @GetMapping("/list")
-    @ApiOperation(value = "分页查询教程列表")
+    @Operation(summary = "分页查询教程列表")
     public Result<PageResult<Tutorial>> getTutorialList(
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer pageSize,
@@ -69,7 +69,7 @@ public class TutorialManagerController {
      * @return
      */
     @PostMapping("/create")
-    @ApiOperation(value = "新增教程接口")
+    @Operation(summary = "新增教程接口")
     public Result<Tutorial> createNewTutorial(@RequestBody NewTutorialDTO newTutorialDTO){
         log.info("新增教程：{}", newTutorialDTO);
         Tutorial tutorial = tutorialService.createNewTutorial(newTutorialDTO);
@@ -82,7 +82,7 @@ public class TutorialManagerController {
      * @return 更新结果
      */
     @PutMapping
-    @ApiOperation(value = "更新教程")
+    @Operation(summary = "更新教程")
     public Result<Void> updateTutorial(@RequestBody Tutorial tutorial) {
         log.info("更新教程：{}", tutorial.getId());
         tutorialService.updateTutorial(tutorial);
@@ -95,7 +95,7 @@ public class TutorialManagerController {
      * @return 删除结果详情
      */
     @DeleteMapping("/{id}")
-    @ApiOperation(value = "删除教程")
+    @Operation(summary = "删除教程")
     public Result<TutorialDeleteResult> deleteTutorial(@PathVariable String id) {
         log.info("删除教程：{}", id);
         TutorialDeleteResult result = tutorialService.deleteTutorial(id);
@@ -110,7 +110,7 @@ public class TutorialManagerController {
      * @return 创建的章节
      */
     @PostMapping("/chapter/create")
-    @ApiOperation(value = "新增章节")
+    @Operation(summary = "新增章节")
     public Result<TutorialChapter> createChapter(@RequestBody NewChapterDTO newChapterDTO) {
         log.info("新增章节：{}", newChapterDTO);
         TutorialChapter chapter = tutorialChapterService.createChapter(newChapterDTO);
@@ -123,7 +123,7 @@ public class TutorialManagerController {
      * @return 章节列表
      */
     @GetMapping("/chapter/list")
-    @ApiOperation(value = "查询教程章节列表")
+    @Operation(summary = "查询教程章节列表")
     public Result<List<TutorialChapter>> getChapterList(@RequestParam String tutorialId) {
         log.info("查询教程章节列表，教程ID：{}", tutorialId);
         List<TutorialChapter> chapters = tutorialChapterService.getChaptersByTutorialId(tutorialId);
@@ -136,7 +136,7 @@ public class TutorialManagerController {
      * @return 创建的文档
      */
     @PostMapping("/document/upload")
-    @ApiOperation(value = "上传文档到章节")
+    @Operation(summary = "上传文档到章节")
     public Result<Document> uploadDocument(@RequestBody UploadDocumentDTO uploadDocumentDTO) {
         log.info("上传文档：{}", uploadDocumentDTO);
         Document document = tutorialChapterService.uploadDocument(uploadDocumentDTO);
@@ -149,7 +149,7 @@ public class TutorialManagerController {
      * @return 文档列表
      */
     @GetMapping("/document/list")
-    @ApiOperation(value = "查询章节文档列表")
+    @Operation(summary = "查询章节文档列表")
     public Result<List<Document>> getDocumentList(@RequestParam String chapterId) {
         log.info("查询章节文档列表，章节ID：{}", chapterId);
         List<Document> documents = tutorialChapterService.getDocumentsByChapterId(chapterId);
@@ -162,7 +162,7 @@ public class TutorialManagerController {
      * @return 创建的视频
      */
     @PostMapping("/video/upload")
-    @ApiOperation(value = "上传视频到章节")
+    @Operation(summary = "上传视频到章节")
     public Result<Video> uploadVideo(@RequestBody UploadVideoDTO uploadVideoDTO) {
         log.info("上传视频：{}", uploadVideoDTO);
         Video video = tutorialChapterService.uploadVideo(uploadVideoDTO);
@@ -175,7 +175,7 @@ public class TutorialManagerController {
      * @return 视频列表
      */
     @GetMapping("/video/list")
-    @ApiOperation(value = "查询章节视频列表")
+    @Operation(summary = "查询章节视频列表")
     public Result<List<Video>> getVideoList(@RequestParam String chapterId) {
         log.info("查询章节视频列表，章节ID：{}", chapterId);
         List<Video> videos = tutorialChapterService.getVideosByChapterId(chapterId);
@@ -188,7 +188,7 @@ public class TutorialManagerController {
      * @return 删除结果
      */
     @DeleteMapping("/document/{id}")
-    @ApiOperation(value = "删除文档")
+    @Operation(summary = "删除文档")
     public Result<Void> deleteDocument(@PathVariable String id) {
         log.info("删除文档，文档ID：{}", id);
         tutorialChapterService.deleteDocument(id);
@@ -201,7 +201,7 @@ public class TutorialManagerController {
      * @return 删除结果
      */
     @DeleteMapping("/video/{id}")
-    @ApiOperation(value = "删除视频")
+    @Operation(summary = "删除视频")
     public Result<Void> deleteVideo(@PathVariable String id) {
         log.info("删除视频，视频ID：{}", id);
         tutorialChapterService.deleteVideo(id);
@@ -214,7 +214,7 @@ public class TutorialManagerController {
      * @return 更新结果
      */
     @PutMapping("/chapter")
-    @ApiOperation(value = "更新章节信息")
+    @Operation(summary = "更新章节信息")
     public Result<Void> updateChapter(@RequestBody TutorialChapter chapter) {
         log.info("更新章节信息：{}", chapter);
         tutorialChapterService.updateChapter(chapter);

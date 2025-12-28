@@ -1,7 +1,6 @@
 package com.eaxon.coderhubpojo.DTO;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -10,6 +9,7 @@ import java.io.Serializable;
  * 用户分页查询DTO
  */
 @Data
+@Schema(description = "用户分页查询参数")
 public class UserPageQueryDTO implements Serializable {
     private Integer page = 1;
     private Integer pageSize = 10;
@@ -21,4 +21,3 @@ public class UserPageQueryDTO implements Serializable {
     private Integer userLevel;
     private Integer status;
 }
-

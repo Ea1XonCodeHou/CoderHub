@@ -2,14 +2,14 @@ package com.eaxon.coderhubpojo.DTO;
 
 import java.io.Serializable;
 
-import io.swagger.annotations.ApiModel;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
  * 上传文档DTO
  */
 @Data
-@ApiModel(description = "上传文档请求数据")
+@Schema(description = "上传文档请求数据")
 public class UploadDocumentDTO implements Serializable {
 
     private static final long serialVersionUID = 1L;

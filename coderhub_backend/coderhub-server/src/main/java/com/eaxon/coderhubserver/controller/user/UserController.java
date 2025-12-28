@@ -12,8 +12,8 @@ import com.eaxon.coderhubpojo.entity.User;
 import com.eaxon.coderhubserver.mapper.ArticleMapper;
 import com.eaxon.coderhubserver.service.UserFollowService;
 import com.eaxon.coderhubserver.service.UserService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +25,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/user")
 @Slf4j
-@Api(tags = "用户相关接口")
+@Tag(name = "用户相关接口")
 public class UserController {
 
     @Autowired
@@ -43,7 +43,7 @@ public class UserController {
      * @return 注册结果
      */
     @PostMapping("/register")
-    @ApiOperation("用户注册")
+    @Operation(summary = "用户注册")
     public Result<String> userRegister(@RequestBody UserRegisterDTO userRegisterDTO) {
         log.info("用户注册：phone={}, email={}", userRegisterDTO.getPhone(), userRegisterDTO.getEmail());
         
@@ -57,7 +57,7 @@ public class UserController {
      * 用户登录
      */
     @PostMapping("/login")
-    @ApiOperation("用户登录")
+    @Operation(summary = "用户登录")
     public Result<UserLoginVO> userLogin(@RequestBody UserLoginDTO userLoginDTO){
         log.info("用户登录: {}",userLoginDTO);
         UserLoginVO userLoginVO=userService.userLogin(userLoginDTO);
@@ -70,7 +70,7 @@ public class UserController {
      * 修改用户信息
      */
     @PutMapping("/updateInfo")
-    @ApiOperation("修改用户信息")
+    @Operation(summary = "修改用户信息")
     public Result<UserInfoUpdateVO> userUpdateInfo(@RequestBody UserInfoUpdateDTO userInfoUpdateDTO){
         log.info("修改用户信息：{}", userInfoUpdateDTO);
         UserInfoUpdateVO userInfoUpdateVO = userService.update(userInfoUpdateDTO);
@@ -82,7 +82,7 @@ public class UserController {
      * 根据ID获取用户信息
      */
     @GetMapping("/{userId}")
-    @ApiOperation("获取用户信息")
+    @Operation(summary = "获取用户信息")
     public Result<UserLoginVO> getUserById(@PathVariable String userId) {
         log.info("获取用户信息：userId={}", userId);
         User user = userService.getUserById(userId);
@@ -98,7 +98,7 @@ public class UserController {
      * 获取用户统计信息（文章数、关注数、粉丝数）
      */
     @GetMapping("/{userId}/stats")
-    @ApiOperation("获取用户统计信息")
+    @Operation(summary = "获取用户统计信息")
     public Result<UserStatsVO> getUserStats(@PathVariable String userId) {
         log.info("获取用户统计信息：userId={}", userId);
         
@@ -132,7 +132,7 @@ public class UserController {
      * 关注/取消关注用户
      */
     @PostMapping("/{userId}/follow")
-    @ApiOperation("关注/取消关注用户")
+    @Operation(summary = "关注/取消关注用户")
     public Result<Map<String, Object>> toggleFollow(@PathVariable String userId) {
         String currentUserId = BaseContext.getCurrentId();
         log.info("用户{}关注/取消关注用户{}", currentUserId, userId);
@@ -153,7 +153,7 @@ public class UserController {
      * 检查是否已关注某用户
      */
     @GetMapping("/{userId}/follow/status")
-    @ApiOperation("检查是否已关注某用户")
+    @Operation(summary = "检查是否已关注某用户")
     public Result<Boolean> checkFollowStatus(@PathVariable String userId) {
         String currentUserId = BaseContext.getCurrentId();
         log.info("检查用户{}是否关注用户{}", currentUserId, userId);
