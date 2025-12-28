@@ -39,7 +39,7 @@ import java.util.Map;
 @RequestMapping("/ai")
 @Slf4j
 @Tag(name = "AI智能对话接口", description = "提供流式AI对话、模型管理等功能")
-@CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173"}, allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"}, allowCredentials = "true")
 public class AIController {
 
     @Autowired
@@ -55,10 +55,10 @@ public class AIController {
      * 返回 SSE 流，前端使用 EventSource 或 fetch 接收
      */
     @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @Operation(summary = "流式对话接口（POST）", description = "发送消息并获取AI流式响应")
+    @Operation(summary = "流式对话接口（POST）", description = "发送消息并获取AI流式响应，支持conversationId持久化")
     public Flux<ServerSentEvent<String>> streamChatPost(@RequestBody ChatRequestDTO request) {
-        log.info("收到流式对话请求 [POST]，消息: {}, 模型: {}", 
-                request.getMessage(), request.getModel());
+        log.info("收到流式对话请求 [POST]，消息: {}, 模型: {}, conversationId: {}", 
+                request.getMessage(), request.getModel(), request.getConversationId());
         
         String sessionId = request.getSessionId() != null ? 
                 request.getSessionId() : java.util.UUID.randomUUID().toString();

@@ -114,9 +114,16 @@ export const useChatStore = defineStore('chat', () => {
    */
   function startNewChat() {
     messages.value = []
-    currentChatId.value = generateId()
+    currentChatId.value = null // 新对话没有ID，发送消息时创建
     streamingContent.value = ''
     isStreaming.value = false
+  }
+
+  /**
+   * 设置当前会话ID
+   */
+  function setCurrentChatId(id) {
+    currentChatId.value = id
   }
   
   /**
@@ -216,7 +223,8 @@ export const useChatStore = defineStore('chat', () => {
       currentModel.value = savedModel
     }
     
-    currentChatId.value = generateId()
+    // 初始化时不设置会话ID，让用户发送消息时从后端创建
+    currentChatId.value = null
   }
   
   /**
@@ -248,6 +256,7 @@ export const useChatStore = defineStore('chat', () => {
     updateLastAssistantMessage,
     deleteMessage,
     startNewChat,
+    setCurrentChatId,
     loadChat,
     setStreaming,
     appendStreamingContent,

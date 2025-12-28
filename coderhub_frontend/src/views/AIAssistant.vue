@@ -414,8 +414,8 @@ import { useRouter } from 'vue-router'
 import { useChatStore } from '@/stores/chatStore'
 import { useChatStream } from '@/composables/useChatStream'
 import { useMarkdownRenderer } from '@/composables/useMarkdownRenderer'
-import { useChatHistory } from '@/composables/useLocalStorage'
 import NavBar from '@/components/NavBar.vue'
+import conversationApi from '@/api/conversationApi'
 
 // Router
 const router = useRouter()
@@ -438,12 +438,9 @@ const {
 
 const { render: renderMarkdown } = useMarkdownRenderer()
 
-const { 
-  conversations: chatHistory, 
-  saveConversation, 
-  deleteConversation: removeConversation,
-  formatTime 
-} = useChatHistory()
+// 会话历史（从服务器加载）
+const chatHistory = ref([])
+const isLoadingHistory = ref(false)
 
 // ==================== 响应式状态 ====================
 const inputText = ref('')
@@ -513,25 +510,49 @@ async function sendMessage() {
   const text = inputText.value.trim()
   if (!text || isStreaming.value) return
 
-  // 添加用户消息
-  chatStore.addUserMessage(text)
   inputText.value = ''
   resetTextareaHeight()
-  scrollToBottom()
 
   try {
-    // 构建历史消息
-    const history = messages.value.slice(-10).map(m => ({
-      role: m.role,
-      content: m.content
-    }))
+    // 如果没有当前会话，先创建一个
+    let convId = currentChatId.value
+    console.log('当前会话ID:', convId)
+    
+    if (!convId) {
+      console.log('创建新会话...')
+      const newConv = await conversationApi.createConversation({ model: selectedModel.value })
+      console.log('创建会话响应:', newConv)
+      
+      if (!newConv || !newConv.id) {
+        throw new Error('创建会话失败，未返回会话ID')
+      }
+      
+      convId = newConv.id
+      console.log('新会话ID:', convId)
+      chatStore.setCurrentChatId(convId)
+      // 刷新会话列表
+      await loadConversations()
+    }
 
-    // 发送流式请求
+    console.log('添加消息到会话:', convId, { role: 'user', content: text })
+    // 保存用户消息到数据库
+    await conversationApi.addMessage(convId, {
+      role: 'user',
+      content: text
+    })
+
+    // 添加用户消息到本地显示
+    chatStore.addUserMessage(text)
+    scrollToBottom()
+
+    const startTime = Date.now()
+
+    // 发送流式请求，传入 conversationId 让后端自动加载上下文
     await streamSendMessage({
       message: text,
       model: selectedModel.value,
       temperature: 0.7,
-      history: history.slice(0, -1), // 不包含刚添加的用户消息
+      conversationId: convId, // 传入会话ID
       onToken: () => {
         scrollToBottom()
       },
@@ -541,25 +562,36 @@ async function sendMessage() {
       },
       onToolResult: (toolCall, recommendations) => {
         console.log('工具调用完成:', toolCall, '推荐数:', recommendations?.length)
-        // 保存工具调用信息供后续使用
         lastToolCall.value = toolCall
         scrollToBottom()
       },
-      onComplete: (fullContent, tokenUsage, recommendations) => {
-        // 添加 AI 回复到消息列表，附带推荐内容和工具调用信息
+      onComplete: async (fullContent, tokenUsage, recommendations) => {
+        const durationMs = Date.now() - startTime
+
+        // 保存AI回复到数据库
+        const toolCallJson = lastToolCall.value ? JSON.stringify(lastToolCall.value) : null
+        const recommendationsJson = recommendations?.length > 0 ? JSON.stringify(recommendations) : null
+        
+        await conversationApi.addMessage(convId, {
+          role: 'assistant',
+          content: fullContent,
+          model: selectedModel.value,
+          toolCalls: toolCallJson,
+          recommendations: recommendationsJson,
+          tokenCount: tokenUsage?.outputTokens,
+          durationMs: durationMs
+        })
+
+        // 添加 AI 回复到本地显示
         chatStore.addAssistantMessage(fullContent, {
           recommendations: recommendations || [],
           toolCall: lastToolCall.value || null
         })
-        // 重置工具调用状态
+        
         lastToolCall.value = null
         
-        // 保存对话到历史
-        saveConversation({
-          id: currentChatId.value,
-          messages: messages.value,
-          model: selectedModel.value
-        })
+        // 刷新会话列表（更新预览和时间）
+        await loadConversations()
         
         scrollToBottom()
       },
@@ -620,6 +652,21 @@ function regenerateMessage(index) {
 }
 
 /**
+ * 加载用户的会话列表
+ */
+async function loadConversations() {
+  try {
+    isLoadingHistory.value = true
+    const conversations = await conversationApi.getConversations()
+    chatHistory.value = conversations || []
+  } catch (error) {
+    console.error('加载会话列表失败:', error)
+  } finally {
+    isLoadingHistory.value = false
+  }
+}
+
+/**
  * 开始新对话
  */
 function startNewChat() {
@@ -627,20 +674,53 @@ function startNewChat() {
 }
 
 /**
- * 加载对话
+ * 加载对话（从数据库）
  */
-function loadConversation(chat) {
-  chatStore.loadChat(chat)
-  nextTick(() => scrollToBottom())
+async function loadConversation(chat) {
+  try {
+    const conversationDetail = await conversationApi.getConversation(chat.id)
+    if (conversationDetail) {
+      // 转换消息格式
+      const messages = conversationDetail.messages?.map(msg => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        model: msg.model,
+        toolCall: msg.toolCalls,
+        recommendations: msg.recommendations,
+        timestamp: msg.createdAt
+      })) || []
+      
+      chatStore.loadChat({
+        id: chat.id,
+        messages: messages,
+        model: conversationDetail.model
+      })
+      
+      nextTick(() => scrollToBottom())
+    }
+  } catch (error) {
+    console.error('加载会话详情失败:', error)
+    showToast('加载会话失败', 'error')
+  }
 }
 
 /**
  * 删除对话
  */
-function deleteConversation(id) {
-  removeConversation(id)
-  if (currentChatId.value === id) {
-    startNewChat()
+async function deleteConversation(id) {
+  try {
+    await conversationApi.deleteConversation(id)
+    // 从列表中移除
+    chatHistory.value = chatHistory.value.filter(c => c.id !== id)
+    
+    if (currentChatId.value === id) {
+      startNewChat()
+    }
+    showToast('删除成功', 'success')
+  } catch (error) {
+    console.error('删除会话失败:', error)
+    showToast('删除失败', 'error')
   }
 }
 
@@ -734,6 +814,53 @@ function formatNumber(num) {
 }
 
 /**
+ * 格式化时间
+ * 支持多种日期格式：ISO字符串、LocalDateTime数组、时间戳等
+ */
+function formatTime(dateInput) {
+  if (!dateInput) return ''
+  
+  let date
+  
+  // 处理 Java LocalDateTime 序列化为数组的情况 [year, month, day, hour, minute, second, nano]
+  if (Array.isArray(dateInput)) {
+    const [year, month, day, hour = 0, minute = 0, second = 0] = dateInput
+    date = new Date(year, month - 1, day, hour, minute, second)
+  } 
+  // 处理 ISO 字符串格式（如 "2025-12-28T21:01:17"）
+  else if (typeof dateInput === 'string') {
+    // 如果没有时区信息，添加本地时区
+    date = new Date(dateInput.includes('Z') ? dateInput : dateInput + '+08:00')
+  }
+  // 处理时间戳
+  else if (typeof dateInput === 'number') {
+    date = new Date(dateInput)
+  }
+  else {
+    date = new Date(dateInput)
+  }
+  
+  // 检查日期是否有效
+  if (isNaN(date.getTime())) {
+    console.warn('无效的日期格式:', dateInput)
+    return ''
+  }
+  
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return '刚刚'
+  if (diffMins < 60) return `${diffMins}分钟前`
+  if (diffHours < 24) return `${diffHours}小时前`
+  if (diffDays < 7) return `${diffDays}天前`
+  
+  return date.toLocaleDateString('zh-CN')
+}
+
+/**
  * 获取使用的工具列表（用于显示工具标签）
  */
 function getUsedTools(toolCall) {
@@ -765,7 +892,7 @@ function getUsedTools(toolCall) {
 }
 
 // ==================== 生命周期 ====================
-onMounted(() => {
+onMounted(async () => {
   // 初始化 store
   chatStore.initialize()
   
@@ -774,6 +901,9 @@ onMounted(() => {
   if (savedModel) {
     selectedModel.value = savedModel
   }
+  
+  // 加载会话列表
+  await loadConversations()
   
   // 聚焦输入框
   if (inputRef.value) {

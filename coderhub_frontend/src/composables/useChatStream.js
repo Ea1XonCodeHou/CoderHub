@@ -82,6 +82,7 @@ export function useChatStream() {
     model = 'qwen-plus',
     temperature = 0.7,
     history = [],
+    conversationId = null, // 新增：持久化会话ID
     onToken = null,
     onComplete = null,
     onError = null,
@@ -105,6 +106,7 @@ export function useChatStream() {
         message,
         model,
         temperature,
+        conversationId, // 持久化会话ID
         history: history.map(msg => ({
           role: msg.role,
           content: msg.content
@@ -112,11 +114,15 @@ export function useChatStream() {
         sessionId: generateSessionId()
       }
 
+      // 获取 token
+      const token = localStorage.getItem('token')
+      
       const response = await fetch(`${API_BASE_URL}/ai/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'text/event-stream'
+          'Accept': 'text/event-stream',
+          'authentication': token || ''  // 添加 token 到请求头
         },
         body: JSON.stringify(requestBody),
         signal: abortController.value.signal

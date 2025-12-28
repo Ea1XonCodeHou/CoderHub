@@ -57,6 +57,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
         registry.addInterceptor(jwtTokenUserInterceptor)
                 .addPathPatterns("/user/**")
                 .addPathPatterns("/article/**")
+                .addPathPatterns("/ai/**")  // 添加AI对话路径
                 .excludePathPatterns("/user/login")
                 .excludePathPatterns("/user/register")
                 .excludePathPatterns("/common/**");

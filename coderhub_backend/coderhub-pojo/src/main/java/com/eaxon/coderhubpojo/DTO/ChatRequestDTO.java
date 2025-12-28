@@ -35,6 +35,9 @@ public class ChatRequestDTO {
     @Schema(description = "会话ID，用于关联对话上下文")
     private String sessionId;
 
+    @Schema(description = "持久化会话ID（数据库存储）")
+    private String conversationId;
+
     @Schema(description = "系统提示词（可选）")
     private String systemPrompt;
 

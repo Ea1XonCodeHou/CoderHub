@@ -17,7 +17,9 @@ import com.eaxon.coderhubpojo.DTO.ChatRequestDTO;
 import com.eaxon.coderhubpojo.DTO.ChatStreamEvent;
 import com.eaxon.coderhubpojo.DTO.ChatStreamEvent.RecommendItem;
 import com.eaxon.coderhubpojo.DTO.ChatStreamEvent.ToolCall;
+import com.eaxon.coderhubpojo.entity.AIMessage;
 import com.eaxon.coderhubserver.agent.CoderHubTools;
+import com.eaxon.coderhubserver.mapper.AIMessageMapper;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -59,6 +61,12 @@ public class AIService {
 
     @Autowired
     private CoderHubTools coderHubTools;
+
+    @Autowired
+    private AIMessageMapper messageMapper;
+
+    /** 上下文窗口最大消息数 */
+    private static final int MAX_CONTEXT_MESSAGES = 20;
 
     /**
      * 流式模型缓存
@@ -350,8 +358,21 @@ public class AIService {
                 request.getSystemPrompt() : SYSTEM_PROMPT_WITH_TOOLS;
         messages.add(SystemMessage.from(systemPrompt));
         
-        // 2. 添加历史对话
-        if (request.getHistory() != null && !request.getHistory().isEmpty()) {
+        // 2. 从数据库加载历史对话（如果有 conversationId）
+        String conversationId = request.getConversationId();
+        if (conversationId != null && !conversationId.isEmpty()) {
+            List<AIMessage> dbMessages = messageMapper.getRecentMessages(conversationId, MAX_CONTEXT_MESSAGES);
+            for (AIMessage dbMsg : dbMessages) {
+                if ("user".equalsIgnoreCase(dbMsg.getRole())) {
+                    messages.add(UserMessage.from(dbMsg.getContent()));
+                } else if ("assistant".equalsIgnoreCase(dbMsg.getRole())) {
+                    messages.add(AiMessage.from(dbMsg.getContent()));
+                }
+            }
+            log.debug("从数据库加载了 {} 条历史消息", dbMessages.size());
+        } 
+        // 兼容旧的 history 参数
+        else if (request.getHistory() != null && !request.getHistory().isEmpty()) {
             for (ChatRequestDTO.ChatMessage historyMsg : request.getHistory()) {
                 if ("user".equalsIgnoreCase(historyMsg.getRole())) {
                     messages.add(UserMessage.from(historyMsg.getContent()));
