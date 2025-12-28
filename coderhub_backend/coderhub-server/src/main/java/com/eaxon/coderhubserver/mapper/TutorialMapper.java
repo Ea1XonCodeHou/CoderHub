@@ -1,5 +1,7 @@
 package com.eaxon.coderhubserver.mapper;
 
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -45,4 +47,19 @@ public interface TutorialMapper {
      * @param id 教程ID
      */
     void deleteById(@Param("id") String id);
+    
+    /**
+     * 根据关键词搜索教程（用于AI工具调用）
+     * @param keyword 搜索关键词
+     * @param limit 返回数量限制
+     * @return 教程列表
+     */
+    List<Tutorial> searchByKeyword(@Param("keyword") String keyword, @Param("limit") Integer limit);
+    
+    /**
+     * 获取热门教程（按学习人数排序）
+     * @param limit 返回数量限制
+     * @return 教程列表
+     */
+    List<Tutorial> getHotTutorials(@Param("limit") Integer limit);
 }

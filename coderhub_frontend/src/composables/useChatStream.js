@@ -3,9 +3,10 @@
  * 
  * 功能：
  * 1. 使用 fetch + ReadableStream 接收 SSE 流
- * 2. 解析事件类型（thinking, message, done, error）
+ * 2. 解析事件类型（thinking, tool_calling, tool_result, message, done, error）
  * 3. 提供响应式的流式内容状态
  * 4. 支持取消/中断流式响应
+ * 5. 支持工具调用状态和推荐内容
  * 
  * @author CoderHub
  */
@@ -55,6 +56,11 @@ export function useChatStream() {
   const currentError = ref(null)
   const isThinking = ref(false)
   const abortController = shallowRef(null)
+  
+  // 工具调用状态
+  const isToolCalling = ref(false)
+  const toolCallStatus = ref(null) // { toolName, displayName, icon, parameters, status, resultCount }
+  const recommendations = ref([]) // 推荐内容列表
 
   /**
    * 发送消息并接收流式响应
@@ -67,6 +73,8 @@ export function useChatStream() {
    * @param {Function} options.onToken - 收到 token 的回调
    * @param {Function} options.onComplete - 完成的回调
    * @param {Function} options.onError - 错误的回调
+   * @param {Function} options.onToolCall - 工具调用的回调
+   * @param {Function} options.onToolResult - 工具结果的回调
    * @returns {Promise<string>} - 完整的响应内容
    */
   async function sendMessage({
@@ -76,13 +84,18 @@ export function useChatStream() {
     history = [],
     onToken = null,
     onComplete = null,
-    onError = null
+    onError = null,
+    onToolCall = null,
+    onToolResult = null
   }) {
     // 重置状态
     isStreaming.value = true
     streamingContent.value = ''
     currentError.value = null
     isThinking.value = true
+    isToolCalling.value = false
+    toolCallStatus.value = null
+    recommendations.value = []
 
     // 创建 AbortController 用于取消请求
     abortController.value = new AbortController()
@@ -139,10 +152,38 @@ export function useChatStream() {
           switch (event.type) {
             case 'thinking':
               isThinking.value = true
+              isToolCalling.value = false
+              break
+            
+            // 工具调用中
+            case 'tool_calling':
+              isThinking.value = false
+              isToolCalling.value = true
+              if (event.data?.toolCall) {
+                toolCallStatus.value = event.data.toolCall
+              }
+              if (onToolCall) {
+                onToolCall(event.data?.toolCall)
+              }
+              break
+            
+            // 工具调用完成
+            case 'tool_result':
+              isToolCalling.value = false
+              if (event.data?.toolCall) {
+                toolCallStatus.value = event.data.toolCall
+              }
+              if (event.data?.recommendations) {
+                recommendations.value = event.data.recommendations
+              }
+              if (onToolResult) {
+                onToolResult(event.data?.toolCall, event.data?.recommendations)
+              }
               break
               
             case 'message':
               isThinking.value = false
+              isToolCalling.value = false
               if (event.data?.content) {
                 streamingContent.value += event.data.content
                 if (onToken) {
@@ -154,8 +195,13 @@ export function useChatStream() {
             case 'done':
               isStreaming.value = false
               isThinking.value = false
+              isToolCalling.value = false
+              // 如果完成事件带有推荐内容
+              if (event.data?.recommendations) {
+                recommendations.value = event.data.recommendations
+              }
               if (onComplete) {
-                onComplete(streamingContent.value, event.data?.tokenUsage)
+                onComplete(streamingContent.value, event.data?.tokenUsage, recommendations.value)
               }
               break
               
@@ -164,6 +210,7 @@ export function useChatStream() {
               currentError.value = errorMsg
               isStreaming.value = false
               isThinking.value = false
+              isToolCalling.value = false
               if (onError) {
                 onError(errorMsg)
               }
@@ -184,6 +231,7 @@ export function useChatStream() {
       currentError.value = errorMessage
       isStreaming.value = false
       isThinking.value = false
+      isToolCalling.value = false
       
       if (onError) {
         onError(errorMessage)
@@ -305,6 +353,7 @@ export function useChatStream() {
     }
     isStreaming.value = false
     isThinking.value = false
+    isToolCalling.value = false
   }
 
   /**
@@ -314,6 +363,8 @@ export function useChatStream() {
     cancelStream()
     streamingContent.value = ''
     currentError.value = null
+    toolCallStatus.value = null
+    recommendations.value = []
   }
 
   /**
@@ -330,6 +381,11 @@ export function useChatStream() {
     currentError,
     isThinking,
     
+    // 工具调用状态
+    isToolCalling,
+    toolCallStatus,
+    recommendations,
+    
     // 方法
     sendMessage,
     sendMessageGet,
@@ -339,4 +395,3 @@ export function useChatStream() {
 }
 
 export default useChatStream
-

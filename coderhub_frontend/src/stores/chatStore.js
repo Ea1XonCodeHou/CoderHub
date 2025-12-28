@@ -62,15 +62,31 @@ export const useChatStore = defineStore('chat', () => {
   
   /**
    * 添加 AI 消息
+   * @param {string} content - 消息内容
+   * @param {Object} options - 可选参数
+   * @param {Array} options.recommendations - 推荐内容列表
+   * @param {Object} options.toolCall - 工具调用信息
    */
-  function addAssistantMessage(content) {
-    messages.value.push({
+  function addAssistantMessage(content, options = {}) {
+    const message = {
       id: generateId(),
       role: 'assistant',
       content,
       timestamp: new Date().toISOString(),
       model: currentModel.value
-    })
+    }
+    
+    // 如果有推荐内容，添加到消息中
+    if (options.recommendations && options.recommendations.length > 0) {
+      message.recommendations = options.recommendations
+    }
+    
+    // 如果有工具调用信息，添加到消息中
+    if (options.toolCall) {
+      message.toolCall = options.toolCall
+    }
+    
+    messages.value.push(message)
   }
   
   /**

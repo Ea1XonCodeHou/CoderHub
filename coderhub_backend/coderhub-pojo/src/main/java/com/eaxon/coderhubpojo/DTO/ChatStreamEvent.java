@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * AI 对话流式响应事件
  * 用于 SSE 流式输出
@@ -25,6 +27,10 @@ public class ChatStreamEvent {
     public enum EventType {
         /** 思考中 */
         THINKING,
+        /** 工具调用中 */
+        TOOL_CALLING,
+        /** 工具调用完成 */
+        TOOL_RESULT,
         /** 内容片段 */
         MESSAGE,
         /** 完成 */
@@ -51,6 +57,12 @@ public class ChatStreamEvent {
     @Schema(description = "token使用情况")
     private TokenUsage tokenUsage;
 
+    @Schema(description = "工具调用信息（当类型为TOOL_CALLING/TOOL_RESULT时）")
+    private ToolCall toolCall;
+
+    @Schema(description = "推荐内容列表（当有推荐结果时）")
+    private List<RecommendItem> recommendations;
+
     /**
      * Token 使用情况
      */
@@ -70,6 +82,74 @@ public class ChatStreamEvent {
         private Integer totalTokens;
     }
 
+    /**
+     * 工具调用信息
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "工具调用信息")
+    public static class ToolCall {
+        @Schema(description = "工具名称", example = "searchTutorials")
+        private String toolName;
+
+        @Schema(description = "工具显示名称", example = "搜索教程")
+        private String displayName;
+
+        @Schema(description = "工具图标", example = "📚")
+        private String icon;
+
+        @Schema(description = "调用参数描述", example = "关键词: Spring Boot")
+        private String parameters;
+
+        @Schema(description = "工具状态: calling/success/failed")
+        private String status;
+
+        @Schema(description = "结果数量")
+        private Integer resultCount;
+    }
+
+    /**
+     * 推荐内容项
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "推荐内容项")
+    public static class RecommendItem {
+        @Schema(description = "内容ID")
+        private String id;
+
+        @Schema(description = "内容类型: tutorial/article")
+        private String type;
+
+        @Schema(description = "标题")
+        private String title;
+
+        @Schema(description = "描述/摘要")
+        private String description;
+
+        @Schema(description = "封面图URL")
+        private String coverImage;
+
+        @Schema(description = "作者/讲师名称")
+        private String author;
+
+        @Schema(description = "浏览量/学习人数")
+        private Long viewCount;
+
+        @Schema(description = "评分")
+        private Double rating;
+
+        @Schema(description = "标签列表")
+        private List<String> tags;
+
+        @Schema(description = "跳转链接")
+        private String link;
+    }
+
     // =============== 静态工厂方法 ===============
 
     /**
@@ -80,6 +160,29 @@ public class ChatStreamEvent {
                 .type(EventType.THINKING)
                 .sessionId(sessionId)
                 .model(model)
+                .build();
+    }
+
+    /**
+     * 创建工具调用中事件
+     */
+    public static ChatStreamEvent toolCalling(String sessionId, ToolCall toolCall) {
+        return ChatStreamEvent.builder()
+                .type(EventType.TOOL_CALLING)
+                .sessionId(sessionId)
+                .toolCall(toolCall)
+                .build();
+    }
+
+    /**
+     * 创建工具调用结果事件
+     */
+    public static ChatStreamEvent toolResult(String sessionId, ToolCall toolCall, List<RecommendItem> recommendations) {
+        return ChatStreamEvent.builder()
+                .type(EventType.TOOL_RESULT)
+                .sessionId(sessionId)
+                .toolCall(toolCall)
+                .recommendations(recommendations)
                 .build();
     }
 
@@ -102,6 +205,18 @@ public class ChatStreamEvent {
                 .type(EventType.DONE)
                 .sessionId(sessionId)
                 .tokenUsage(usage)
+                .build();
+    }
+
+    /**
+     * 创建完成事件（带推荐内容）
+     */
+    public static ChatStreamEvent doneWithRecommendations(String sessionId, TokenUsage usage, List<RecommendItem> recommendations) {
+        return ChatStreamEvent.builder()
+                .type(EventType.DONE)
+                .sessionId(sessionId)
+                .tokenUsage(usage)
+                .recommendations(recommendations)
                 .build();
     }
 

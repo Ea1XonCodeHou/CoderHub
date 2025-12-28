@@ -159,5 +159,25 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 根据关键词搜索文章（用于AI工具调用） -->
+    <select id="searchByKeyword" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        WHERE status = 1 AND audit_status = 1
+        AND (
+            title LIKE CONCAT('%', #{keyword}, '%')
+            OR summary LIKE CONCAT('%', #{keyword}, '%')
+        )
+        ORDER BY view_count DESC, like_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取热门文章（按浏览量排序） -->
+    <select id="getHotArticles" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        WHERE status = 1 AND audit_status = 1
+        ORDER BY view_count DESC, like_count DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>
 

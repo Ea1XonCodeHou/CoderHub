@@ -96,4 +96,54 @@
         DELETE FROM tutorial WHERE id = #{id}
     </delete>
 
+    <!-- 根据关键词搜索教程（用于AI工具调用） -->
+    <select id="searchByKeyword" resultType="com.eaxon.coderhubpojo.entity.Tutorial">
+        SELECT 
+            id, title, description, cover_image as coverImage,
+            category_id as categoryId, difficulty,
+            instructor_name as instructorName, 
+            instructor_avatar as instructorAvatar, 
+            instructor_desc as instructorDesc,
+            price, status,
+            view_count as viewCount, 
+            like_count as likeCount, 
+            recommend_count as recommendCount, 
+            student_count as studentCount,
+            rating, chapter_count as chapterCount,
+            create_user as createUser, 
+            create_time as createTime, 
+            update_time as updateTime
+        FROM tutorial
+        WHERE status = 1
+        AND (
+            title LIKE CONCAT('%', #{keyword}, '%')
+            OR description LIKE CONCAT('%', #{keyword}, '%')
+        )
+        ORDER BY student_count DESC, rating DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取热门教程（按学习人数排序） -->
+    <select id="getHotTutorials" resultType="com.eaxon.coderhubpojo.entity.Tutorial">
+        SELECT 
+            id, title, description, cover_image as coverImage,
+            category_id as categoryId, difficulty,
+            instructor_name as instructorName, 
+            instructor_avatar as instructorAvatar, 
+            instructor_desc as instructorDesc,
+            price, status,
+            view_count as viewCount, 
+            like_count as likeCount, 
+            recommend_count as recommendCount, 
+            student_count as studentCount,
+            rating, chapter_count as chapterCount,
+            create_user as createUser, 
+            create_time as createTime, 
+            update_time as updateTime
+        FROM tutorial
+        WHERE status = 1
+        ORDER BY student_count DESC, rating DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>

@@ -104,5 +104,20 @@ public interface ArticleMapper {
      * @return 文章列表
      */
     List<Article> getTopLikedArticles(@Param("limit") Integer limit);
+    
+    /**
+     * 根据关键词搜索文章（用于AI工具调用）
+     * @param keyword 搜索关键词
+     * @param limit 返回数量限制
+     * @return 文章列表
+     */
+    List<Article> searchByKeyword(@Param("keyword") String keyword, @Param("limit") Integer limit);
+    
+    /**
+     * 获取热门文章（按浏览量排序）
+     * @param limit 返回数量限制
+     * @return 文章列表
+     */
+    List<Article> getHotArticles(@Param("limit") Integer limit);
 }
 

@@ -172,10 +172,71 @@
                       <span class="sender-name">CoderHub AI</span>
                       <span v-if="msg.model" class="message-model">{{ msg.model }}</span>
                     </div>
+                    
+                    <!-- 已保存的工具调用状态 -->
+                    <div v-if="msg.toolCall" class="tool-call-section">
+                      <!-- 工具调用胶囊 -->
+                      <div class="tool-call-capsule success saved">
+                        <div class="capsule-content">
+                          <div class="capsule-icon">
+                            <span class="check-icon">✓</span>
+                          </div>
+                          <div class="capsule-info">
+                            <span class="capsule-title">{{ msg.toolCall.displayName || '检索完成' }}</span>
+                            <span class="capsule-detail">{{ msg.toolCall.parameters || '已检索相关内容' }}</span>
+                          </div>
+                          <div v-if="msg.toolCall.resultCount" class="capsule-badge">
+                            {{ msg.toolCall.resultCount }} 条结果
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- 使用的工具标签 -->
+                      <div class="tools-used">
+                        <div class="tool-tag" v-for="tool in getUsedTools(msg.toolCall)" :key="tool.id">
+                          <span class="tool-tag-icon">{{ tool.icon }}</span>
+                          <span class="tool-tag-name">{{ tool.name }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
                     <div 
                       class="message-body markdown-content"
                       v-html="renderMarkdown(msg.content)"
                     ></div>
+                    
+                    <!-- 已完成消息的推荐卡片 -->
+                    <div v-if="msg.recommendations && msg.recommendations.length > 0" class="recommendation-cards saved">
+                      <div class="cards-header">
+                        <span class="cards-title">📚 相关推荐</span>
+                        <span class="cards-count">{{ msg.recommendations.length }} 项</span>
+                      </div>
+                      <div class="cards-grid">
+                        <a 
+                          v-for="item in msg.recommendations.slice(0, 6)" 
+                          :key="item.id"
+                          :href="item.link"
+                          class="recommend-card"
+                          :class="item.type"
+                          target="_blank"
+                        >
+                          <div class="card-badge">{{ item.type === 'tutorial' ? '教程' : '文章' }}</div>
+                          <div class="card-cover" v-if="item.coverImage">
+                            <img :src="item.coverImage" :alt="item.title" />
+                          </div>
+                          <div class="card-body">
+                            <h4 class="card-title">{{ item.title }}</h4>
+                            <p class="card-desc">{{ item.description?.slice(0, 60) }}{{ item.description?.length > 60 ? '...' : '' }}</p>
+                            <div class="card-meta">
+                              <span v-if="item.author" class="meta-author">{{ item.author }}</span>
+                              <span v-if="item.rating" class="meta-rating">⭐ {{ item.rating }}</span>
+                              <span v-if="item.viewCount" class="meta-views">👁 {{ formatNumber(item.viewCount) }}</span>
+                            </div>
+                          </div>
+                        </a>
+                      </div>
+                    </div>
+                    
                     <div class="message-actions">
                       <button class="action-btn" @click="copyMessage(msg.content)" title="复制">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -208,19 +269,83 @@
               <div class="message-content">
                 <div class="message-header">
                   <span class="sender-name">CoderHub AI</span>
-                  <span class="typing-status">{{ isThinking ? '思考中...' : '输入中...' }}</span>
+                  <span class="typing-status">{{ isToolCalling ? '工具调用中...' : (isThinking ? '思考中...' : '输入中...') }}</span>
                 </div>
-                <div v-if="isThinking && !streamingContent" class="thinking-indicator">
+                
+                <!-- 工具调用状态区域 -->
+                <div v-if="isToolCalling || currentToolCall" class="tool-call-section streaming">
+                  <!-- 工具调用状态胶囊 -->
+                  <div class="tool-call-capsule" :class="{ calling: isToolCalling, success: currentToolCall?.status === 'success', failed: currentToolCall?.status === 'failed' }">
+                    <div class="capsule-glow"></div>
+                    <div class="capsule-content">
+                      <div class="capsule-icon">
+                        <span v-if="isToolCalling" class="spinner"></span>
+                        <span v-else-if="currentToolCall?.status === 'success'" class="check-icon">✓</span>
+                        <span v-else-if="currentToolCall?.status === 'failed'" class="error-icon">✗</span>
+                        <span v-else class="tool-emoji">{{ currentToolCall?.icon || '🔧' }}</span>
+                      </div>
+                      <div class="capsule-info">
+                        <span class="capsule-title">{{ currentToolCall?.displayName || '调用工具' }}</span>
+                        <span class="capsule-detail">{{ currentToolCall?.parameters || '正在检索...' }}</span>
+                      </div>
+                      <div v-if="currentToolCall?.resultCount" class="capsule-badge">
+                        {{ currentToolCall.resultCount }} 条结果
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 使用的工具标签（成功后显示） -->
+                  <div v-if="currentToolCall?.status === 'success'" class="tools-used">
+                    <div class="tool-tag" v-for="tool in getUsedTools(currentToolCall)" :key="tool.id">
+                      <span class="tool-tag-icon">{{ tool.icon }}</span>
+                      <span class="tool-tag-name">{{ tool.name }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div v-if="isThinking && !streamingContent && !isToolCalling" class="thinking-indicator">
                   <div class="thinking-dot"></div>
                   <div class="thinking-dot"></div>
                   <div class="thinking-dot"></div>
                 </div>
                 <div 
-                  v-else
+                  v-else-if="streamingContent"
                   class="message-body markdown-content"
                   v-html="renderMarkdown(streamingContent)"
                 ></div>
                 <div class="cursor-blink"></div>
+                
+                <!-- 实时推荐卡片 -->
+                <div v-if="currentRecommendations.length > 0" class="recommendation-cards">
+                  <div class="cards-header">
+                    <span class="cards-title">📚 相关推荐</span>
+                    <span class="cards-count">{{ currentRecommendations.length }} 项</span>
+                  </div>
+                  <div class="cards-grid">
+                    <a 
+                      v-for="item in currentRecommendations.slice(0, 6)" 
+                      :key="item.id"
+                      :href="item.link"
+                      class="recommend-card"
+                      :class="item.type"
+                      target="_blank"
+                    >
+                      <div class="card-badge">{{ item.type === 'tutorial' ? '教程' : '文章' }}</div>
+                      <div class="card-cover" v-if="item.coverImage">
+                        <img :src="item.coverImage" :alt="item.title" />
+                      </div>
+                      <div class="card-body">
+                        <h4 class="card-title">{{ item.title }}</h4>
+                        <p class="card-desc">{{ item.description?.slice(0, 60) }}{{ item.description?.length > 60 ? '...' : '' }}</p>
+                        <div class="card-meta">
+                          <span v-if="item.author" class="meta-author">{{ item.author }}</span>
+                          <span v-if="item.rating" class="meta-rating">⭐ {{ item.rating }}</span>
+                          <span v-if="item.viewCount" class="meta-views">👁 {{ formatNumber(item.viewCount) }}</span>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -304,7 +429,11 @@ const {
   streamingContent: streamContent,
   isStreaming: streamIsStreaming,
   isThinking,
-  cancelStream: cancelStreamRequest
+  cancelStream: cancelStreamRequest,
+  // 工具调用相关
+  isToolCalling,
+  toolCallStatus,
+  recommendations: streamRecommendations
 } = useChatStream()
 
 const { render: renderMarkdown } = useMarkdownRenderer()
@@ -323,6 +452,7 @@ const messagesContainer = ref(null)
 const inputFocused = ref(false)
 const selectedModel = ref('qwen-plus')
 const sidebarOpen = ref(true) // 默认展开侧边栏
+const lastToolCall = ref(null) // 保存最近的工具调用信息
 
 const toast = ref({
   visible: false,
@@ -336,6 +466,10 @@ const currentChatId = computed(() => chatStore.currentChatId)
 const isDarkMode = computed(() => chatStore.isDarkMode)
 const isStreaming = computed(() => streamIsStreaming.value)
 const streamingContent = computed(() => streamContent.value)
+
+// 工具调用状态
+const currentToolCall = computed(() => toolCallStatus.value)
+const currentRecommendations = computed(() => streamRecommendations.value)
 
 const canSend = computed(() => {
   return inputText.value.trim() && !isStreaming.value
@@ -401,9 +535,24 @@ async function sendMessage() {
       onToken: () => {
         scrollToBottom()
       },
-      onComplete: (fullContent) => {
-        // 添加 AI 回复到消息列表
-        chatStore.addAssistantMessage(fullContent)
+      onToolCall: (toolCall) => {
+        console.log('工具调用中:', toolCall)
+        scrollToBottom()
+      },
+      onToolResult: (toolCall, recommendations) => {
+        console.log('工具调用完成:', toolCall, '推荐数:', recommendations?.length)
+        // 保存工具调用信息供后续使用
+        lastToolCall.value = toolCall
+        scrollToBottom()
+      },
+      onComplete: (fullContent, tokenUsage, recommendations) => {
+        // 添加 AI 回复到消息列表，附带推荐内容和工具调用信息
+        chatStore.addAssistantMessage(fullContent, {
+          recommendations: recommendations || [],
+          toolCall: lastToolCall.value || null
+        })
+        // 重置工具调用状态
+        lastToolCall.value = null
         
         // 保存对话到历史
         saveConversation({
@@ -568,6 +717,51 @@ function showToast(message, type = 'info') {
   setTimeout(() => {
     toast.value.visible = false
   }, 3000)
+}
+
+/**
+ * 格式化数字（如 1234 -> 1.2k）
+ */
+function formatNumber(num) {
+  if (!num) return '0'
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + 'w'
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'k'
+  }
+  return num.toString()
+}
+
+/**
+ * 获取使用的工具列表（用于显示工具标签）
+ */
+function getUsedTools(toolCall) {
+  if (!toolCall) return []
+  
+  // 工具名称映射
+  const toolNameMap = {
+    'searchTutorials': { id: 'tutorials', name: '教程检索', icon: '📚' },
+    'searchArticles': { id: 'articles', name: '博客检索', icon: '📝' },
+    'getHotContent': { id: 'hot', name: '热门推荐', icon: '🔥' },
+    'getHotTags': { id: 'tags', name: '标签检索', icon: '🏷️' }
+  }
+  
+  const tools = []
+  
+  // 根据工具名称添加对应标签
+  if (toolCall.toolName) {
+    const tool = toolNameMap[toolCall.toolName]
+    if (tool) {
+      tools.push(tool)
+    }
+  }
+  
+  // 如果有推荐结果，可能同时使用了多个工具
+  // 默认添加智能体标签
+  tools.push({ id: 'agent', name: 'AI 智能体', icon: '🤖' })
+  
+  return tools
 }
 
 // ==================== 生命周期 ====================
@@ -1713,5 +1907,510 @@ watch(streamingContent, () => {
 .messages-container::-webkit-scrollbar-thumb:hover,
 .chat-list::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
+}
+
+/* ==================== 工具调用区域 ==================== */
+.tool-call-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tool-call-section.streaming {
+  margin: 16px 0;
+}
+
+/* ==================== 工具调用状态胶囊 ==================== */
+.tool-call-capsule {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 3px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  border-radius: 50px;
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(102, 126, 234, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  animation: capsuleAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.tool-call-capsule.saved {
+  animation: none;
+}
+
+@keyframes capsuleAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.capsule-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tool-call-capsule.calling .capsule-glow {
+  opacity: 1;
+  background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.4), transparent);
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.8; }
+}
+
+.tool-call-capsule.success {
+  background: linear-gradient(135deg, #0d3320 0%, #134e2a 50%, #1a6934 100%);
+}
+
+.tool-call-capsule.success .capsule-glow {
+  opacity: 0.5;
+  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.4), transparent);
+}
+
+.tool-call-capsule.failed {
+  background: linear-gradient(135deg, #3d1515 0%, #5c1d1d 50%, #7a2424 100%);
+}
+
+.capsule-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+  border-radius: 47px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.capsule-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.3) 0%, rgba(118, 75, 162, 0.3) 100%);
+  border-radius: 50%;
+  border: 2px solid rgba(102, 126, 234, 0.5);
+  font-size: 16px;
+}
+
+.tool-call-capsule.success .capsule-icon {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3) 0%, rgba(5, 150, 105, 0.3) 100%);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(102, 126, 234, 0.3);
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.check-icon {
+  color: #10b981;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.error-icon {
+  color: #ef4444;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.tool-emoji {
+  font-size: 18px;
+}
+
+.capsule-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.capsule-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f8fafc;
+  letter-spacing: 0.3px;
+}
+
+.capsule-detail {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.capsule-badge {
+  padding: 4px 12px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a5b4fc;
+  letter-spacing: 0.5px;
+}
+
+.tool-call-capsule.success .capsule-badge {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+}
+
+/* ==================== 工具标签 ==================== */
+.tools-used {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tool-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #a5b4fc;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  box-shadow: 
+    0 2px 8px rgba(99, 102, 241, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.tool-tag:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
+  border-color: rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+}
+
+.tool-tag-icon {
+  font-size: 14px;
+}
+
+.tool-tag-name {
+  letter-spacing: 0.3px;
+}
+
+/* 浅色模式下的工具标签 */
+.ai-assistant:not(.dark-mode) .tool-tag {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border-color: rgba(99, 102, 241, 0.2);
+  color: #6366f1;
+}
+
+.ai-assistant:not(.dark-mode) .tool-tag:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+}
+
+/* 浅色模式下的胶囊 */
+.ai-assistant:not(.dark-mode) .tool-call-capsule {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%);
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.08),
+    0 0 20px rgba(59, 130, 246, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule.success {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #a7f3d0 100%);
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .capsule-content {
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .capsule-title {
+  color: #1e40af;
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule.success .capsule-title {
+  color: #065f46;
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .capsule-detail {
+  color: #64748b;
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .capsule-badge {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #3b82f6;
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule.success .capsule-badge {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #059669;
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .capsule-icon {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(99, 102, 241, 0.2) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule.success .capsule-icon {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .check-icon {
+  color: #059669;
+}
+
+/* ==================== 推荐卡片区域 ==================== */
+.recommendation-cards {
+  margin-top: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  animation: cardsAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes cardsAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.recommendation-cards.saved {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border);
+}
+
+.cards-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.cards-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cards-count {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: var(--color-accent);
+  color: white;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ==================== 推荐卡片 ==================== */
+.recommend-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.ai-assistant:not(.dark-mode) .recommend-card {
+  background: white;
+  border-color: var(--color-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.recommend-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--color-accent);
+  box-shadow: 
+    0 12px 24px rgba(0, 0, 0, 0.15),
+    0 0 0 1px var(--color-accent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.recommend-card.tutorial {
+  --card-accent: #667eea;
+}
+
+.recommend-card.article {
+  --card-accent: #10b981;
+}
+
+.card-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  background: var(--card-accent);
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.card-cover {
+  height: 120px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.recommend-card:hover .card-cover img {
+  transform: scale(1.05);
+}
+
+.card-body {
+  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-desc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+  flex: 1;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.meta-author {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.meta-author::before {
+  content: '👤';
+  font-size: 11px;
+}
+
+.meta-rating {
+  display: flex;
+  align-items: center;
+  color: #fbbf24;
+}
+
+.meta-views {
+  display: flex;
+  align-items: center;
+}
+
+/* 深色模式适配 */
+.dark-mode .tool-call-capsule {
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(102, 126, 234, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode .recommendation-cards.saved {
+  background: rgba(30, 41, 59, 0.6);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tool-call-capsule {
+    margin: 12px 0;
+  }
+  
+  .capsule-content {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  
+  .capsule-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .capsule-title {
+    font-size: 13px;
+  }
+  
+  .capsule-detail {
+    font-size: 11px;
+  }
 }
 </style>
