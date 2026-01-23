@@ -216,10 +216,10 @@
 </template>
 
 <script setup>
+import NavBar from '@/components/NavBar.vue'
 import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import NavBar from '@/components/NavBar.vue'
 
 const router = useRouter()
 const selectedCategory = ref('all')

@@ -24,7 +24,7 @@
         <li :class="{ active: currentRoute === 'tutorial' }" @click="goToTutorial">
           <a href="#">教程</a>
         </li>
-        <li @click="goToProjects">
+        <li :class="{ active: currentRoute === 'projects' }" @click="goToProjects">
           <a href="#">项目</a>
         </li>
         <li :class="{ active: currentRoute === 'ai' }" @click="goToAIChat">

@@ -172,4 +172,72 @@ public class MinioUtil {
             throw new RuntimeException("获取预签名URL失败：" + e.getMessage());
         }
     }
+
+    /**
+     * 上传文件到指定bucket（InputStream）
+     *
+     * @param inputStream 输入流
+     * @param objectName  对象名称
+     * @param contentType 文件类型
+     * @param size        文件大小
+     * @param targetBucket 目标bucket名称
+     * @return 文件访问URL
+     */
+    public String uploadToBucket(InputStream inputStream, String objectName, String contentType, long size, String targetBucket) {
+        MinioClient minioClient = getMinioClient();
+
+        try {
+            // 检查bucket是否存在
+            boolean exists = minioClient.bucketExists(
+                    BucketExistsArgs.builder().bucket(targetBucket).build()
+            );
+
+            if (!exists) {
+                // 创建bucket
+                minioClient.makeBucket(
+                        MakeBucketArgs.builder().bucket(targetBucket).build()
+                );
+                log.info("创建bucket成功：{}", targetBucket);
+                
+                // 设置bucket为公开读取
+                String policy = "{\n" +
+                        "    \"Version\": \"2012-10-17\",\n" +
+                        "    \"Statement\": [\n" +
+                        "        {\n" +
+                        "            \"Effect\": \"Allow\",\n" +
+                        "            \"Principal\": \"*\",\n" +
+                        "            \"Action\": [\"s3:GetObject\"],\n" +
+                        "            \"Resource\": [\"arn:aws:s3:::" + targetBucket + "/*\"]\n" +
+                        "        }\n" +
+                        "    ]\n" +
+                        "}";
+                minioClient.setBucketPolicy(
+                        SetBucketPolicyArgs.builder()
+                                .bucket(targetBucket)
+                                .config(policy)
+                                .build()
+                );
+                log.info("设置bucket {} 公开读取策略成功", targetBucket);
+            }
+
+            // 上传文件
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(targetBucket)
+                            .object(objectName)
+                            .stream(inputStream, size, -1)
+                            .contentType(contentType)
+                            .build()
+            );
+
+            // 构建访问URL
+            String url = endpoint + "/" + targetBucket + "/" + objectName;
+            log.info("文件上传成功：{}", url);
+            return url;
+
+        } catch (Exception e) {
+            log.error("MinIO上传到{}失败", targetBucket, e);
+            throw new RuntimeException("文件上传失败：" + e.getMessage());
+        }
+    }
 }

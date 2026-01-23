@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CoderHub | Building Scalable Systems with LLM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --primary: #c2410c;--primary-muted: #ea580c;
+            --background: #fdfaf6;--surface: #f7f2eb;
+            --text-main: #2d2a26;
+            --text-body: #4a443e;
+            --border-warm: #eaddd3;
+            --golden-glow: rgba(245, 158, 11, 0.25);
+            --selection: #fef3c7;
+        }
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+        ::selection {
+            background-color: var(--selection);
+            color: var(--primary);
+        }
+        .font-serif-warm {
+            font-family: 'Crimson Pro', serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .code-block {
+            background-color: #1e1b18;
+            border-left: 4px solid var(--primary);
+        }
+        .prose-custom p {
+            margin-bottom: 1.85rem;
+            line-height: 1.85;
+            color: var(--text-body);
+        }
+        .prose-custom a {
+            color: var(--primary);
+            text-decoration-line: underline;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 4px;
+            transition: color 0.2s;
+        }
+        .prose-custom a:hover {
+            color: var(--primary-muted);
+        }
+        .ai-glow {
+            box-shadow: 0 0 50px var(--golden-glow);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            background: linear-gradient(135deg, #ffffff 0%, #fffdfa 100%);
+        }
+        .progress-line {
+            background: linear-gradient(to bottom, var(--primary) var(--progress, 0%), var(--border-warm) var(--progress, 0%));
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c2410c",
+                        "accent": "#9a3412",
+                        "warm-bg": "#fdfaf6",
+                        "warm-surface": "#f7f2eb",
+                        "linen": "#faf9f6"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "serif": ["Crimson Pro", "serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0.375rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display">
+<header class="sticky top-0 z-50 w-full border-b border-solid border-[#e5ddd3] bg-white/90 backdrop-blur-md px-4 md:px-10 py-3">
+<div class="max-w-[1440px] mx-auto flex items-center justify-between whitespace-nowrap">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-2 text-primary">
+<div class="size-8 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">terminal</span>
+</div>
+<h2 class="text-slate-900 text-xl font-bold leading-tight tracking-tight">CoderHub</h2>
+</div>
+<label class="hidden lg:flex flex-col min-w-40 h-10 max-w-64">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full overflow-hidden">
+<div class="text-[#8c8273] flex border-none bg-warm-surface items-center justify-center pl-4">
+<span class="material-symbols-outlined text-xl">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 border-none bg-warm-surface text-slate-800 focus:ring-1 focus:ring-primary h-full placeholder:text-[#8c8273] px-4 pl-2 text-sm font-normal" placeholder="Search tutorial..." value=""/>
+</div>
+</label>
+</div>
+<div class="flex flex-1 justify-end gap-6 items-center">
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-slate-600 hover:text-primary text-sm font-medium transition-colors" href="#">Tutorials</a>
+<a class="text-slate-600 hover:text-primary text-sm font-medium transition-colors" href="#">Projects</a>
+<a class="text-slate-600 hover:text-primary text-sm font-medium transition-colors" href="#">Community</a>
+</nav>
+<div class="flex gap-3">
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-lg h-9 px-4 bg-primary text-white text-sm font-bold hover:bg-accent transition-colors">
+                    Dashboard
+                </button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 border border-border-warm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBGi7yZIfahTwKzuJDSeEX60xM4_veTJCHMUPy04mkECcnlXksKXWv0sa1Av5eJcuT8SITKfAn2tH-ncfORRl0JkIc7jPr0IHp5KSfrKfw_evGCUbFfq6fy5BwlYTFhXjXBIHQ3vjKgoUU5VzWO2fsOPz_Wk7GTzJVwVldouQAxgLpsSX006QI4Mj7PSn5lEdkGxRBTOaKGLeuVqLMyolK5dyIBbcTtVwe5qITT1q1s3NP2Inj5wQ7Iv3Z9wy5XJUAyLE-FW38JtA");'></div>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-[1440px] mx-auto px-4 md:px-10 py-8">
+<div class="grid grid-cols-12 gap-10">
+<aside class="hidden xl:block col-span-2">
+<div class="sticky top-24 space-y-8">
+<div>
+<h3 class="text-slate-800 text-xs font-bold uppercase tracking-widest mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">format_list_numbered</span>
+                        Course Progress
+                    </h3>
+<div class="relative flex flex-col gap-0 border-l-2 border-border-warm ml-2">
+<div class="relative pl-6 pb-8 border-l-2 border-primary -ml-[2px]">
+<span class="absolute -left-[9px] top-0 size-4 rounded-full bg-primary border-4 border-background"></span>
+<p class="text-primary text-xs font-bold uppercase tracking-wide mb-1">Current Step</p>
+<h4 class="text-slate-900 text-sm font-semibold">Introduction &amp; Setup</h4>
+</div>
+<div class="relative pl-6 pb-8">
+<span class="absolute -left-[9px] top-0 size-4 rounded-full bg-border-warm border-4 border-background"></span>
+<h4 class="text-slate-500 text-sm font-medium">System Architecture</h4>
+</div>
+<div class="relative pl-6 pb-8">
+<span class="absolute -left-[9px] top-0 size-4 rounded-full bg-border-warm border-4 border-background"></span>
+<h4 class="text-slate-500 text-sm font-medium">LLM Pipeline Integration</h4>
+</div>
+<div class="relative pl-6 pb-8">
+<span class="absolute -left-[9px] top-0 size-4 rounded-full bg-border-warm border-4 border-background"></span>
+<h4 class="text-slate-500 text-sm font-medium">Implementation Details</h4>
+</div>
+<div class="relative pl-6">
+<span class="absolute -left-[9px] top-0 size-4 rounded-full bg-border-warm border-4 border-background"></span>
+<h4 class="text-slate-500 text-sm font-medium">Final Deployment</h4>
+</div>
+</div>
+</div>
+<div class="p-5 rounded-2xl bg-warm-surface border border-border-warm shadow-sm">
+<div class="flex items-center justify-between mb-3">
+<span class="text-xs font-bold text-slate-700">Completion</span>
+<span class="text-xs font-bold text-primary">20%</span>
+</div>
+<div class="w-full bg-white rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary h-full" style="width: 20%"></div>
+</div>
+</div>
+</div>
+</aside>
+<article class="col-span-12 xl:col-span-7">
+<div class="flex flex-col">
+<div class="mb-10">
+<div class="flex items-center gap-3 mb-4">
+<span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-[11px] font-bold tracking-widest uppercase">Step 1 of 5</span>
+<span class="text-border-warm text-lg">•</span>
+<span class="text-[#8c8273] text-[11px] font-bold tracking-widest uppercase">Intermediate</span>
+</div>
+<h1 class="text-slate-900 text-4xl md:text-5xl font-serif-warm font-bold leading-tight mb-8">Building Scalable Systems with LLM Integration</h1>
+<div class="flex items-center gap-4 py-4 border-y border-border-warm/60">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary/10" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBkdd8O2WgLiZFngMB9MSp_pdeSD8Hi1N1KBdxggV_50vMaitM62gxU3vWlPtHLAOdic9AY40m78iaJBUdhU_Hwn2g1FstkqEnt9qn53ab8yVerTzZzYUb4XG5ef7PNSjykjJyJQuM2ibnMn948QBaZzdE8Rv7OpJtL9zzJkJmq25kdbjKBdBU-wKE5rr6A8T6vNgODRwI38oxRlYCaWJ19DZ_FoxDzBpiRaz3aH6Ios43d8bsQyPABz6nAxK4aG-jRt9-_Cvhdsw");'></div>
+<div class="flex flex-col">
+<p class="text-slate-900 text-sm font-bold">Alex Rivera <span class="text-[#8c8273] font-normal mx-2">•</span> <span class="text-[#8c8273] font-normal">Last updated Oct 24, 2023</span></p>
+</div>
+</div>
+</div>
+<div class="prose-custom text-xl font-serif-warm">
+<p>
+                        Welcome to the first module of our deep-dive into LLM infrastructure. Integrating Large Language Models (LLMs) into production-grade applications requires more than just an API call. As developers, we must consider latency, token management, and structured output validation.
+                    </p>
+<p>
+                        In this tutorial, you will build a <a href="#">robust pipeline</a> that bridges the gap between probabilistic models and deterministic software. We'll start by defining the core challenges of non-deterministic outputs.
+                    </p>
+<h2 class="text-3xl text-slate-900 font-bold mt-12 mb-6 font-display" id="setup">The Challenge of Non-Deterministic Outputs</h2>
+<p>
+                        Traditional software systems rely on predictable, deterministic functions. LLMs, by nature, are probabilistic. This creates a friction point when integrating with legacy relational databases or strictly typed APIs.
+                    </p>
+<div class="my-10 rounded-xl overflow-hidden border border-slate-800 code-block shadow-xl">
+<div class="flex items-center justify-between px-5 py-3 bg-[#1e1b18] border-b border-white/5">
+<div class="flex gap-2">
+<div class="size-3 rounded-full bg-[#ff5f56]"></div>
+<div class="size-3 rounded-full bg-[#ffbd2e]"></div>
+<div class="size-3 rounded-full bg-[#27c93f]"></div>
+<span class="text-xs text-neutral-400 ml-3 font-mono opacity-80">llm_pipeline.py</span>
+</div>
+<div class="flex gap-4">
+<button class="text-neutral-400 hover:text-primary transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-base">content_copy</span>
+<span class="text-[10px] font-bold">COPY</span>
+</button>
+</div>
+</div>
+<div class="p-6 font-mono text-[15px] leading-relaxed overflow-x-auto bg-[#1a1816]">
+<pre class="text-neutral-300"><span class="text-primary">import</span> openai
+<span class="text-primary">from</span> pydantic <span class="text-primary">import</span> BaseModel
+<span class="text-[#e6db74]">class</span> <span class="text-[#a6e22e]">InsightResponse</span>(BaseModel):
+    summary: <span class="text-[#66d9ef]">str</span>
+    complexity_score: <span class="text-[#66d9ef]">int</span>
+    tags: <span class="text-[#66d9ef]">list</span>[<span class="text-[#66d9ef]">str</span>]
+<span class="text-primary">async def</span> <span class="text-[#a6e22e]">analyze_snippet</span>(text: <span class="text-[#66d9ef]">str</span>):
+    <span class="text-[#75715e]"># Prompt engineering for structured JSON</span>
+    response = <span class="text-primary">await</span> openai.ChatCompletion.acreate(
+        model=<span class="text-[#e6db74]">"gpt-4-0613"</span>,
+        messages=[{<span class="text-[#e6db74]">"role"</span>: <span class="text-[#e6db74]">"user"</span>, <span class="text-[#e6db74]">"content"</span>: text}]
+    )</pre>
+</div>
+</div>
+<h2 class="text-3xl text-slate-900 font-bold mt-12 mb-6 font-display">Implementing Schema Validation</h2>
+<p>
+                        To bridge the gap, we utilize tools like Pydantic for schema validation. This ensures that the downstream application receives data in the expected format, significantly reducing runtime errors. This "guardrail" pattern is essential for any <a href="#">production-grade AI agent</a>.
+                    </p>
+</div>
+<div class="mt-16 flex items-center justify-between p-8 rounded-2xl bg-warm-surface border border-border-warm">
+<div class="flex flex-col">
+<span class="text-[#8c8273] text-xs font-bold uppercase tracking-widest mb-1">Coming up next</span>
+<h4 class="text-slate-900 font-bold text-lg">System Architecture &amp; Flow</h4>
+</div>
+<button class="bg-primary text-white px-8 py-3 rounded-xl font-bold hover:bg-accent transition-all shadow-lg flex items-center gap-2">
+                        Next Lesson <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</article>
+<aside class="hidden xl:block col-span-3">
+<div class="sticky top-24 space-y-8">
+<div class="p-6 rounded-2xl ai-glow relative overflow-hidden group">
+<div class="absolute -top-12 -right-12 size-32 bg-amber-100/40 blur-3xl"></div>
+<div class="flex items-center gap-2 text-primary mb-5">
+<span class="material-symbols-outlined fill-1">auto_awesome</span>
+<h3 class="font-bold text-sm tracking-wide">LLM TUTOR</h3>
+</div>
+<div class="space-y-4">
+<div class="bg-white/60 p-4 rounded-xl border border-amber-100 shadow-sm">
+<p class="text-slate-700 text-[13px] leading-relaxed italic">
+                                "Stuck on the Pydantic schema? Ask me to explain how the validation layer handles missing fields."
+                            </p>
+</div>
+<div class="relative">
+<input class="w-full bg-white border border-border-warm rounded-xl py-3 pl-4 pr-10 text-sm text-slate-800 placeholder:text-[#8c8273] focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="Ask your tutor..." type="text"/>
+<button class="absolute right-3 top-3 text-primary hover:text-accent transition-colors">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+<div class="p-6 rounded-2xl border border-border-warm bg-linen">
+<h3 class="text-slate-800 text-[11px] font-bold mb-5 uppercase tracking-widest flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">folder_open</span>
+                        Project Assets
+                    </h3>
+<div class="flex flex-col gap-3">
+<a class="flex items-center justify-between p-3 rounded-xl bg-white border border-border-warm hover:border-primary group transition-all" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">description</span>
+<span class="text-sm font-medium text-slate-700">starter-template.zip</span>
+</div>
+<span class="material-symbols-outlined text-slate-300 text-lg">download</span>
+</a>
+<a class="flex items-center justify-between p-3 rounded-xl bg-white border border-border-warm hover:border-primary group transition-all" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">link</span>
+<span class="text-sm font-medium text-slate-700">GitHub Repository</span>
+</div>
+<span class="material-symbols-outlined text-slate-300 text-lg">open_in_new</span>
+</a>
+<a class="flex items-center justify-between p-3 rounded-xl bg-white border border-border-warm hover:border-primary group transition-all" href="#">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">terminal</span>
+<span class="text-sm font-medium text-slate-700">Docker Config</span>
+</div>
+<span class="material-symbols-outlined text-slate-300 text-lg">download</span>
+</a>
+</div>
+</div>
+<div class="p-6">
+<h3 class="text-[#8c8273] text-[11px] font-bold mb-4 uppercase tracking-widest">In this module</h3>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1.5 rounded-full bg-warm-surface border border-border-warm text-[#6b6359] text-[10px] font-bold tracking-tight">#PYTHON</span>
+<span class="px-3 py-1.5 rounded-full bg-warm-surface border border-border-warm text-[#6b6359] text-[10px] font-bold tracking-tight">#OPENAI</span>
+<span class="px-3 py-1.5 rounded-full bg-warm-surface border border-border-warm text-[#6b6359] text-[10px] font-bold tracking-tight">#PYDANTIC</span>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<footer class="mt-20 border-t border-border-warm py-12 bg-warm-surface">
+<div class="max-w-[1440px] mx-auto px-10 flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2 text-slate-500">
+<span class="material-symbols-outlined">terminal</span>
+<p class="text-sm font-medium">© 2023 CoderHub. Learning with warmth.</p>
+</div>
+<div class="flex gap-8">
+<a class="text-[#8c8273] text-xs hover:text-primary transition-colors font-medium" href="#">Help Center</a>
+<a class="text-[#8c8273] text-xs hover:text-primary transition-colors font-medium" href="#">Terms</a>
+<a class="text-[#8c8273] text-xs hover:text-primary transition-colors font-medium" href="#">Privacy</a>
+</div>
+</div>
+</footer>
+
+</body></html>

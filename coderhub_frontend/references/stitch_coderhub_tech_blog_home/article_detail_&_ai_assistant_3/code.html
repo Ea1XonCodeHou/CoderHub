@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CoderHub | Friendly AI Agent Hub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --primary: #e67e5e;--primary-light: #fff5f2;
+            --background: #faf7f2;--surface: #ffffff;
+            --text-main: #3d342f;
+            --text-muted: #8c8273;
+            --border-warm: #eee4d8;
+            --golden-glow: rgba(251, 191, 36, 0.25);
+            --sunset-gradient: linear-gradient(135deg, #fff1eb 0%, #ace0f9 100%);--peach-gradient: linear-gradient(to bottom right, #fff5f2, #ffede6);
+        }
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            font-family: 'Inter', sans-serif;
+        }
+        .font-serif-warm {
+            font-family: 'Crimson Pro', serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .ai-glow {
+            box-shadow: 0 0 40px var(--golden-glow);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+        .chat-bubble-ai {
+            background: white;
+            border: 1px solid var(--border-warm);
+            border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+        }
+        .chat-bubble-user {
+            background: #fdf2f0;
+            border: 1px solid #f9dcd4;
+            border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
+        }
+        .scrollbar-warm::-webkit-scrollbar {
+            width: 6px;
+        }
+        .scrollbar-warm::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .scrollbar-warm::-webkit-scrollbar-thumb {
+            background: #e5ddd3;
+            border-radius: 10px;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#e67e5e",
+                        "accent": "#d97706",
+                        "warm-bg": "#faf7f2",
+                        "warm-surface": "#ffffff",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "serif": ["Crimson Pro", "serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.875rem", "xl": "1.25rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display">
+<header class="sticky top-0 z-50 w-full border-b border-solid border-[#eee4d8] bg-white/90 backdrop-blur-md px-4 md:px-10 py-3">
+<div class="max-w-[1440px] mx-auto flex items-center justify-between whitespace-nowrap">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-2 text-primary">
+<div class="size-9 bg-primary/10 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl font-bold">hub</span>
+</div>
+<h1 class="text-[#2d2a26] text-xl font-bold leading-tight tracking-tight">CoderHub <span class="text-primary font-medium">AI Agent Hub</span></h1>
+</div>
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-slate-600 hover:text-primary text-sm font-medium transition-colors" href="#">Studio</a>
+<a class="text-slate-600 hover:text-primary text-sm font-medium transition-colors" href="#">Companions</a>
+<a class="text-slate-600 hover:text-primary text-sm font-medium transition-colors" href="#">Logs</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-full border border-amber-100">
+<span class="size-2 rounded-full bg-amber-400 animate-pulse"></span>
+<span class="text-[11px] font-bold text-amber-700 uppercase tracking-wider">AI Live</span>
+</div>
+<div class="h-6 w-[1px] bg-border-warm"></div>
+<div class="flex items-center gap-3">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold text-slate-900">Alex Rivera</p>
+<p class="text-[10px] text-slate-500">Pro Developer</p>
+</div>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-9 border-2 border-primary/20" data-alt="User avatar" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBkdd8O2WgLiZFngMB9MSp_pdeSD8Hi1N1KBdxggV_50vMaitM62gxU3vWlPtHLAOdic9AY40m78iaJBUdhU_Hwn2g1FstkqEnt9qn53ab8yVerTzZzYUb4XG5ef7PNSjykjJyJQuM2ibnMn948QBaZzdE8Rv7OpJtL9zzJkJmq25kdbjKBdBU-wKE5rr6A8T6vNgODRwI38oxRlYCaWJ19DZ_FoxDzBpiRaz3aH6Ios43d8bsQyPABz6nAxK4aG-jRt9-_Cvhdsw");'></div>
+</div>
+</div>
+</div>
+</header>
+<main class="max-w-[1440px] mx-auto px-4 md:px-10 py-8 grid grid-cols-12 gap-8 min-h-[calc(100vh-80px)]">
+<aside class="col-span-12 lg:col-span-3 flex flex-col gap-6">
+<div class="bg-white rounded-xl border border-border-warm p-5">
+<h3 class="text-slate-900 text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">face_6</span>
+                AI Companions
+            </h3>
+<div class="space-y-3">
+<button class="w-full flex items-center gap-4 p-3 rounded-xl border border-primary bg-primary/5 transition-all text-left">
+<div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary relative">
+<span class="material-symbols-outlined">code_blocks</span>
+<span class="absolute bottom-0 right-0 size-3 bg-green-500 border-2 border-white rounded-full"></span>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-900 leading-none mb-1">Code Reviewer</p>
+<p class="text-[11px] text-slate-500">Logic &amp; Optimization</p>
+</div>
+</button>
+<button class="w-full flex items-center gap-4 p-3 rounded-xl border border-transparent hover:bg-warm-bg transition-all text-left group">
+<div class="size-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary">
+<span class="material-symbols-outlined">auto_fix_high</span>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-700 leading-none mb-1 group-hover:text-slate-900 transition-colors">Content Optimizer</p>
+<p class="text-[11px] text-slate-500">Clarity &amp; Engagement</p>
+</div>
+</button>
+<button class="w-full flex items-center gap-4 p-3 rounded-xl border border-transparent hover:bg-warm-bg transition-all text-left group">
+<div class="size-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary">
+<span class="material-symbols-outlined">bug_report</span>
+</div>
+<div>
+<p class="text-sm font-bold text-slate-700 leading-none mb-1 group-hover:text-slate-900 transition-colors">Bug Squasher</p>
+<p class="text-[11px] text-slate-500">Security &amp; Edge Cases</p>
+</div>
+</button>
+</div>
+<button class="w-full mt-4 py-2 border border-dashed border-border-warm rounded-lg text-[#8c8273] text-xs font-medium hover:border-primary hover:text-primary transition-all">
+                + Add Companion
+            </button>
+</div>
+<div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200/50 p-5 ai-glow">
+<div class="flex items-center gap-2 text-primary mb-3">
+<span class="material-symbols-outlined text-lg">auto_awesome</span>
+<span class="text-xs font-bold uppercase tracking-widest">Workspace Aura</span>
+</div>
+<p class="text-[11px] text-slate-600 leading-relaxed mb-4">
+                Your collaborative studio is currently optimized for <span class="font-bold text-primary">Readability &amp; Deep Work</span>.
+            </p>
+<div class="space-y-2">
+<div class="h-1.5 w-full bg-white/50 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-4/5"></div>
+</div>
+<div class="flex justify-between text-[10px] text-slate-500 font-medium">
+<span>Flow State</span>
+<span>80%</span>
+</div>
+</div>
+</div>
+</aside>
+<section class="col-span-12 lg:col-span-6 flex flex-col gap-6">
+<div class="flex-1 bg-white rounded-2xl border border-border-warm shadow-sm flex flex-col overflow-hidden min-h-[500px]">
+<div class="px-6 py-4 border-b border-border-warm flex items-center justify-between bg-white/50">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">chat_bubble</span>
+<h2 class="text-sm font-bold text-slate-900">Active Session: System Scaling</h2>
+</div>
+<div class="flex gap-2">
+<button class="size-8 rounded-lg hover:bg-warm-bg text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-lg">history</span>
+</button>
+<button class="size-8 rounded-lg hover:bg-warm-bg text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-lg">settings</span>
+</button>
+</div>
+</div>
+<div class="flex-1 p-6 overflow-y-auto space-y-6 scrollbar-warm">
+<div class="flex items-start gap-4">
+<div class="size-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0 shadow-md">
+<span class="material-symbols-outlined text-sm">smart_toy</span>
+</div>
+<div class="chat-bubble-ai p-4 shadow-sm max-w-[85%]">
+<p class="text-sm text-slate-700 leading-relaxed mb-2 font-serif-warm text-lg">
+                            Hello Alex! I've analyzed your recent architecture notes. The Pydantic validation layer you've implemented is a great choice. Would you like me to suggest some performance tuning for your large-schema parsing?
+                        </p>
+<div class="flex gap-2 mt-3">
+<span class="px-2 py-0.5 rounded-full bg-amber-50 border border-amber-100 text-[10px] font-bold text-amber-700">SUGGESTION</span>
+<span class="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-100 text-[10px] font-bold text-blue-700">OPTIMIZATION</span>
+</div>
+</div>
+</div>
+<div class="flex items-start gap-4 flex-row-reverse">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8 flex-shrink-0 border-2 border-primary/20" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBkdd8O2WgLiZFngMB9MSp_pdeSD8Hi1N1KBdxggV_50vMaitM62gxU3vWlPtHLAOdic9AY40m78iaJBUdhU_Hwn2g1FstkqEnt9qn53ab8yVerTzZzYUb4XG5ef7PNSjykjJyJQuM2ibnMn948QBaZzdE8Rv7OpJtL9zzJkJmq25kdbjKBdBU-wKE5rr6A8T6vNgODRwI38oxRlYCaWJ19DZ_FoxDzBpiRaz3aH6Ios43d8bsQyPABz6nAxK4aG-jRt9-_Cvhdsw");'></div>
+<div class="chat-bubble-user p-4 shadow-sm max-w-[85%]">
+<p class="text-sm text-slate-700 leading-relaxed font-serif-warm text-lg">
+                            Yes, please. I'm concerned about the latency overhead when dealing with nested lists in the JSON response.
+                        </p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="size-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0 shadow-md">
+<span class="material-symbols-outlined text-sm">smart_toy</span>
+</div>
+<div class="chat-bubble-ai p-4 shadow-sm flex items-center gap-2">
+<span class="size-1.5 bg-primary/40 rounded-full animate-bounce"></span>
+<span class="size-1.5 bg-primary/60 rounded-full animate-bounce [animation-delay:0.2s]"></span>
+<span class="size-1.5 bg-primary/80 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+</div>
+</div>
+</div>
+<div class="p-4 bg-warm-bg border-t border-border-warm">
+<div class="relative bg-white rounded-xl border border-border-warm p-1 shadow-sm focus-within:border-primary transition-all">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-slate-800 placeholder:text-[#8c8273] text-sm resize-none px-4 py-2" placeholder="Describe the code change or ask a question..." rows="2"></textarea>
+<div class="flex justify-between items-center px-2 pb-2">
+<div class="flex gap-1">
+<button class="size-8 flex items-center justify-center text-[#8c8273] hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">attach_file</span>
+</button>
+<button class="size-8 flex items-center justify-center text-[#8c8273] hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">image</span>
+</button>
+<button class="size-8 flex items-center justify-center text-[#8c8273] hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">mic</span>
+</button>
+</div>
+<button class="flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-lg font-bold text-sm shadow-md hover:bg-accent transition-all">
+                            Send
+                            <span class="material-symbols-outlined text-sm">send</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<aside class="col-span-12 lg:col-span-3 flex flex-col gap-6">
+<div class="bg-white rounded-xl border border-border-warm p-5">
+<h3 class="text-slate-900 text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">folder_open</span>
+                Context Assets
+            </h3>
+<div class="space-y-2">
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-warm-bg transition-colors border border-transparent hover:border-border-warm cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">description</span>
+<span class="text-xs font-bold text-slate-700">architecture_v2.pdf</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-sm">close</span>
+</div>
+<div class="flex items-center justify-between p-2 rounded-lg hover:bg-warm-bg transition-colors border border-transparent hover:border-border-warm cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">data_object</span>
+<span class="text-xs font-bold text-slate-700">schema.json</span>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-sm">close</span>
+</div>
+</div>
+<div class="mt-4 p-4 border-2 border-dashed border-border-warm rounded-xl bg-warm-bg/50 text-center cursor-pointer hover:bg-warm-bg transition-colors">
+<span class="material-symbols-outlined text-slate-400 text-2xl mb-1">upload_file</span>
+<p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Drop files to add context</p>
+</div>
+</div>
+<div class="bg-white rounded-xl border border-border-warm p-5 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-primary/5 to-transparent pointer-events-none"></div>
+<h3 class="text-slate-900 text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-lg">edit_note</span>
+                Live Insights
+            </h3>
+<div class="prose-sm font-serif-warm text-slate-600 italic">
+                "The current implementation uses standard Pydantic models. Switching to <code class="bg-amber-50 px-1 rounded text-primary not-italic">RootModel</code> for certain wrappers could shave off 15-20ms of overhead."
+            </div>
+<div class="mt-4 pt-4 border-t border-border-warm flex items-center gap-2">
+<div class="size-6 rounded-full bg-slate-200 border border-white" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBDqmV9YA76aJzib8LznQ7-VMlnjsZ-mqAFuH7LWNhJBpwgsjO1jvfPXSZijOrvi1idy6zEiROx9CBsh49ysydWA9DmooF-ok2AxI3KZcBXhCYL0luuZZMiXWabmxlCYKwf-biNyAOFOiwt7RF4i_wC7f49ymRWZdGgmFokk4_crGxvfunBp65jvwgf14mbQx10HL5O68OlLSBGRi28kg9f-TPHWKQnmoyRyua5H35m71EUwG1MeaOwGh-crhQI8PaAGLvsj7ji8Q"); background-size: cover;'></div>
+<span class="text-[10px] font-bold text-slate-400">Sarah Dev joined the studio</span>
+</div>
+</div>
+<div class="p-1 grid grid-cols-2 gap-2">
+<button class="flex flex-col items-center justify-center p-3 bg-white border border-border-warm rounded-xl hover:border-primary hover:text-primary transition-all group">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform">article</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Draft Blog</span>
+</button>
+<button class="flex flex-col items-center justify-center p-3 bg-white border border-border-warm rounded-xl hover:border-primary hover:text-primary transition-all group">
+<span class="material-symbols-outlined mb-1 group-hover:scale-110 transition-transform">publish</span>
+<span class="text-[10px] font-bold uppercase tracking-tighter">Deploy API</span>
+</button>
+</div>
+</aside>
+</main>
+<footer class="mt-12 border-t border-border-warm py-8 bg-white/50">
+<div class="max-w-[1440px] mx-auto px-10 flex flex-col md:flex-row justify-between items-center gap-6">
+<div class="flex items-center gap-2 text-slate-400">
+<span class="material-symbols-outlined text-xl">hub</span>
+<p class="text-[13px] font-medium font-serif-warm italic">Building the future, one warm conversation at a time.</p>
+</div>
+<div class="flex gap-6">
+<a class="text-[#8c8273] text-xs hover:text-primary transition-colors font-medium" href="#">Workspace Settings</a>
+<a class="text-[#8c8273] text-xs hover:text-primary transition-colors font-medium" href="#">Agent Directory</a>
+<a class="text-[#8c8273] text-xs hover:text-primary transition-colors font-medium" href="#">Help Center</a>
+</div>
+</div>
+</footer>
+
+</body></html>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.ProjectMapper">
+
+    <resultMap id="projectResultMap" type="com.eaxon.coderhubpojo.entity.Project">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="projectName" column="project_name"/>
+        <result property="projectType" column="project_type"/>
+        <result property="shortDescription" column="short_description"/>
+        <result property="detailedDescription" column="detailed_description"/>
+        <result property="gitUrl" column="git_url"/>
+        <result property="demoUrl" column="demo_url"/>
+        <result property="videoUrl" column="video_url"/>
+        <result property="coverImage" column="cover_image"/>
+        <result property="screenshots" column="screenshots"/>
+        <result property="projectFileUrl" column="project_file_url"/>
+        <result property="fileSize" column="file_size"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="difficultyLevel" column="difficulty_level"/>
+        <result property="isOpenSource" column="is_open_source"/>
+        <result property="status" column="status"/>
+        <result property="auditStatus" column="audit_status"/>
+        <result property="auditRemark" column="audit_remark"/>
+        <result property="viewCount" column="view_count"/>
+        <result property="originalAuthor" column="original_author"/>
+        <result property="originalAuthorRole" column="original_author_role"/>
+        <result property="originalAuthorAvatar" column="original_author_avatar"/>
+        <result property="githubStars" column="github_stars"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insert">
+        INSERT INTO project (id, user_id, project_name, project_type, short_description, detailed_description,
+                             git_url, demo_url, video_url, cover_image, screenshots, project_file_url, file_size,
+                             category_id, difficulty_level, is_open_source, status, audit_status)
+        VALUES (#{id}, #{userId}, #{projectName}, #{projectType}, #{shortDescription}, #{detailedDescription},
+                #{gitUrl}, #{demoUrl}, #{videoUrl}, #{coverImage}, #{screenshots}, #{projectFileUrl}, #{fileSize},
+                #{categoryId}, #{difficultyLevel}, #{isOpenSource}, #{status}, #{auditStatus})
+    </insert>
+
+    <select id="getById" resultMap="projectResultMap">
+        SELECT * FROM project WHERE id = #{id} AND status != 0
+    </select>
+
+    <select id="getPersonalProjects" resultMap="projectResultMap">
+        SELECT * FROM project
+        WHERE project_type = #{projectType}
+        AND status = 1
+        <if test="isOpenSource != null">
+            AND is_open_source = #{isOpenSource}
+        </if>
+        <if test="auditStatus != null">
+            AND audit_status = #{auditStatus}
+        </if>
+        <if test="categoryId != null">
+            AND category_id = #{categoryId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (project_name LIKE CONCAT('%', #{keyword}, '%') 
+                 OR short_description LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPersonalProjects" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM project
+        WHERE project_type = #{projectType}
+        AND status = 1
+        <if test="isOpenSource != null">
+            AND is_open_source = #{isOpenSource}
+        </if>
+        <if test="auditStatus != null">
+            AND audit_status = #{auditStatus}
+        </if>
+        <if test="categoryId != null">
+            AND category_id = #{categoryId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (project_name LIKE CONCAT('%', #{keyword}, '%') 
+                 OR short_description LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </select>
+
+    <select id="getByUserId" resultMap="projectResultMap">
+        SELECT * FROM project
+        WHERE user_id = #{userId}
+        AND status = #{status}
+        <if test="isOpenSource != null">
+            AND is_open_source = #{isOpenSource}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <update id="update">
+        UPDATE project
+        <set>
+            <if test="projectName != null">project_name = #{projectName},</if>
+            <if test="shortDescription != null">short_description = #{shortDescription},</if>
+            <if test="detailedDescription != null">detailed_description = #{detailedDescription},</if>
+            <if test="gitUrl != null">git_url = #{gitUrl},</if>
+            <if test="demoUrl != null">demo_url = #{demoUrl},</if>
+            <if test="videoUrl != null">video_url = #{videoUrl},</if>
+            <if test="coverImage != null">cover_image = #{coverImage},</if>
+            <if test="screenshots != null">screenshots = #{screenshots},</if>
+            <if test="projectFileUrl != null">project_file_url = #{projectFileUrl},</if>
+            <if test="fileSize != null">file_size = #{fileSize},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="difficultyLevel != null">difficulty_level = #{difficultyLevel},</if>
+            <if test="isOpenSource != null">is_open_source = #{isOpenSource},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="auditStatus != null">audit_status = #{auditStatus},</if>
+            <if test="auditRemark != null">audit_remark = #{auditRemark},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="incrementViewCount">
+        UPDATE project SET view_count = view_count + 1 WHERE id = #{id}
+    </update>
+
+    <update id="softDelete">
+        UPDATE project SET status = 0 WHERE id = #{id}
+    </update>
+
+    <select id="searchByTechStack" resultMap="projectResultMap">
+        SELECT DISTINCT p.* FROM project p
+        INNER JOIN project_tech_relation ptr ON p.id = ptr.project_id
+        WHERE ptr.tech_id IN
+        <foreach collection="techIds" item="techId" open="(" separator="," close=")">
+            #{techId}
+        </foreach>
+        AND p.project_type = #{projectType}
+        AND p.status = 1
+        AND p.is_open_source = 1
+        AND p.audit_status = 1
+        ORDER BY p.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+</mapper>
+

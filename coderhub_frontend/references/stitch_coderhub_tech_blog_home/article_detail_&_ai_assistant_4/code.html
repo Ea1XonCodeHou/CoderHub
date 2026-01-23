@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CoderHub | Warm Management Console</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --primary: #c2410c;--primary-amber: #d97706;--background: #fdfaf6;--surface: #f7f2eb;--border-warm: #e5ddd3;
+            --text-main: #2d2a26;
+            --text-muted: #6b6359;
+            --golden-glow: rgba(245, 158, 11, 0.12);
+        }
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+        .sidebar-active {
+            background-color: rgba(194, 65, 12, 0.08);
+            color: var(--primary);
+            border-right: 3px solid var(--primary);
+        }
+        .chart-amber {
+            background: linear-gradient(180deg, rgba(217, 119, 6, 0.2) 0%, rgba(217, 119, 6, 0) 100%);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-warm {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-warm);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c2410c",
+                        "amber-accent": "#d97706",
+                        "warm-bg": "#fdfaf6",
+                        "warm-surface": "#f7f2eb",
+                        "warm-border": "#e5ddd3"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "serif": ["Crimson Pro", "serif"]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display flex h-screen overflow-hidden">
+<aside class="w-64 border-r border-warm-border bg-warm-surface flex flex-col">
+<div class="p-6 flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl font-bold">terminal</span>
+<span class="text-xl font-bold tracking-tight">CoderHub</span>
+</div>
+<nav class="flex-1 mt-4 px-3 space-y-1">
+<div class="text-[11px] font-bold text-slate-400 px-3 py-2 uppercase tracking-widest">General</div>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg sidebar-active transition-all group" href="#">
+<span class="material-symbols-outlined text-xl">dashboard</span>
+<span class="text-sm font-semibold">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-warm-border/30 transition-all" href="#">
+<span class="material-symbols-outlined text-xl">article</span>
+<span class="text-sm font-medium">Content Manager</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-warm-border/30 transition-all" href="#">
+<span class="material-symbols-outlined text-xl">group</span>
+<span class="text-sm font-medium">User Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-warm-border/30 transition-all" href="#">
+<span class="material-symbols-outlined text-xl">forum</span>
+<span class="text-sm font-medium">Community</span>
+</a>
+<div class="text-[11px] font-bold text-slate-400 px-3 py-2 mt-6 uppercase tracking-widest">AI &amp; Data</div>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-warm-border/30 transition-all" href="#">
+<span class="material-symbols-outlined text-xl">auto_awesome</span>
+<span class="text-sm font-medium">LLM Monitoring</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-warm-border/30 transition-all" href="#">
+<span class="material-symbols-outlined text-xl">hub</span>
+<span class="text-sm font-medium">Vector DB Status</span>
+</a>
+</nav>
+<div class="p-4 border-t border-warm-border">
+<div class="flex items-center gap-3 p-2 rounded-xl bg-white/50 border border-warm-border">
+<div class="size-9 rounded-full bg-cover" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBGi7yZIfahTwKzuJDSeEX60xM4_veTJCHMUPy04mkECcnlXksKXWv0sa1Av5eJcuT8SITKfAn2tH-ncfORRl0JkIc7jPr0IHp5KSfrKfw_evGCUbFfq6fy5BwlYTFhXjXBIHQ3vjKgoUU5VzWO2fsOPz_Wk7GTzJVwVldouQAxgLpsSX006QI4Mj7PSn5lEdkGxRBTOaKGLeuVqLMyolK5dyIBbcTtVwe5qITT1q1s3NP2Inj5wQ7Iv3Z9wy5XJUAyLE-FW38JtA");'></div>
+<div class="flex-1 min-w-0">
+<p class="text-xs font-bold truncate">Admin Rivera</p>
+<p class="text-[10px] text-slate-500">Super Admin</p>
+</div>
+<span class="material-symbols-outlined text-slate-400 text-lg">settings</span>
+</div>
+</div>
+</aside>
+<main class="flex-1 overflow-y-auto bg-warm-bg relative">
+<header class="sticky top-0 z-10 glass-warm h-16 flex items-center justify-between px-8">
+<h1 class="text-lg font-bold text-slate-800">Management Console</h1>
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined text-slate-500 hover:text-primary cursor-pointer">notifications</span>
+<span class="absolute top-0 right-0 size-2 bg-amber-500 rounded-full border-2 border-white"></span>
+</div>
+<button class="bg-primary text-white text-xs font-bold px-4 py-2 rounded-lg hover:brightness-110 transition-all shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span> New Report
+                </button>
+</div>
+</header>
+<div class="p-8 max-w-7xl mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="p-6 rounded-2xl bg-white border border-warm-border shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="material-symbols-outlined text-amber-600 bg-amber-100 p-2 rounded-lg">trending_up</span>
+<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">+12.4%</span>
+</div>
+<p class="text-slate-500 text-xs font-medium uppercase tracking-wider">New Registrations</p>
+<p class="text-2xl font-bold mt-1">2,841</p>
+</div>
+<div class="p-6 rounded-2xl bg-white border border-warm-border shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="material-symbols-outlined text-primary bg-orange-50 p-2 rounded-lg">chat</span>
+<span class="text-xs font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">+4.2%</span>
+</div>
+<p class="text-slate-500 text-xs font-medium uppercase tracking-wider">Forum Engagement</p>
+<p class="text-2xl font-bold mt-1">45.2k</p>
+</div>
+<div class="p-6 rounded-2xl bg-white border border-warm-border shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="material-symbols-outlined text-blue-600 bg-blue-50 p-2 rounded-lg">smart_toy</span>
+<span class="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">Stable</span>
+</div>
+<p class="text-slate-500 text-xs font-medium uppercase tracking-wider">LLM API Tokens</p>
+<p class="text-2xl font-bold mt-1">1.2M</p>
+</div>
+<div class="p-6 rounded-2xl bg-white border border-warm-border shadow-sm">
+<div class="flex items-center justify-between mb-4">
+<span class="material-symbols-outlined text-purple-600 bg-purple-50 p-2 rounded-lg">visibility</span>
+<span class="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Peak</span>
+</div>
+<p class="text-slate-500 text-xs font-medium uppercase tracking-wider">Concurrent Users</p>
+<p class="text-2xl font-bold mt-1">843</p>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<div class="col-span-12 lg:col-span-8 p-6 rounded-2xl bg-white border border-warm-border shadow-sm">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h3 class="font-bold text-slate-800">Community Growth</h3>
+<p class="text-xs text-slate-500">Registered developers over the last 30 days</p>
+</div>
+<select class="bg-warm-surface border-warm-border text-xs rounded-lg px-3 py-1.5 focus:ring-primary focus:border-primary">
+<option>Last 30 Days</option>
+<option>Last 6 Months</option>
+</select>
+</div>
+<div class="h-64 flex items-end justify-between gap-2 px-2 relative">
+<div class="flex-1 chart-amber rounded-t-sm h-[30%] border-t border-amber-500/50"></div>
+<div class="flex-1 chart-amber rounded-t-sm h-[45%] border-t border-amber-500/50"></div>
+<div class="flex-1 chart-amber rounded-t-sm h-[40%] border-t border-amber-500/50"></div>
+<div class="flex-1 chart-amber rounded-t-sm h-[55%] border-t border-amber-500/50"></div>
+<div class="flex-1 chart-amber rounded-t-sm h-[70%] border-t border-amber-500/50"></div>
+<div class="flex-1 chart-amber rounded-t-sm h-[65%] border-t border-amber-500/50"></div>
+<div class="flex-1 chart-amber rounded-t-sm h-[80%] border-t border-amber-500/50"></div>
+<div class="flex-1 chart-amber rounded-t-sm h-[75%] border-t border-amber-500/50"></div>
+<div class="flex-1 chart-amber rounded-t-sm h-[90%] border-t border-amber-500/50"></div>
+<div class="flex-1 chart-amber rounded-t-sm h-[85%] border-t border-amber-500/50"></div>
+<div class="flex-1 chart-amber rounded-t-sm h-[100%] border-t border-amber-500/50 relative">
+<div class="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded">2,841</div>
+</div>
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none border-b border-warm-border opacity-50">
+<div class="border-b border-warm-border w-full"></div>
+<div class="border-b border-warm-border w-full"></div>
+<div class="border-b border-warm-border w-full"></div>
+</div>
+</div>
+<div class="flex justify-between mt-4 text-[10px] text-slate-400 font-medium px-2">
+<span>OCT 01</span>
+<span>OCT 10</span>
+<span>OCT 20</span>
+<span>OCT 30</span>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-4 p-6 rounded-2xl bg-white border border-warm-border shadow-sm">
+<h3 class="font-bold text-slate-800 mb-6">Recent Reports</h3>
+<div class="space-y-6">
+<div class="flex gap-4">
+<div class="size-2 mt-1.5 rounded-full bg-amber-500 ring-4 ring-amber-50"></div>
+<div>
+<p class="text-sm font-semibold text-slate-800">Spike in API Latency</p>
+<p class="text-xs text-slate-500 mt-1">Region us-east-1 experiencing 400ms delay in LLM token processing.</p>
+<span class="text-[10px] text-slate-400 mt-2 block">14 mins ago</span>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="size-2 mt-1.5 rounded-full bg-green-500 ring-4 ring-green-50"></div>
+<div>
+<p class="text-sm font-semibold text-slate-800">Content Batch Indexed</p>
+<p class="text-xs text-slate-500 mt-1">540 new technical articles processed into vector store successfully.</p>
+<span class="text-[10px] text-slate-400 mt-2 block">2 hours ago</span>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="size-2 mt-1.5 rounded-full bg-primary ring-4 ring-orange-50"></div>
+<div>
+<p class="text-sm font-semibold text-slate-800">New Trending Topic</p>
+<p class="text-xs text-slate-500 mt-1">"RAG Architecture" has seen a 200% growth in forum discussions.</p>
+<span class="text-[10px] text-slate-400 mt-2 block">5 hours ago</span>
+</div>
+</div>
+</div>
+<button class="w-full mt-8 py-2 text-xs font-bold text-primary border border-primary/20 rounded-lg hover:bg-primary/5 transition-all">
+                        View Audit Log
+                    </button>
+</div>
+</div>
+<div class="mt-8 p-6 rounded-2xl bg-white border border-warm-border shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-bold text-slate-800">Flagged Discussions</h3>
+<div class="flex gap-2">
+<label class="h-9 flex items-center bg-warm-surface rounded-lg px-3 border border-warm-border">
+<span class="material-symbols-outlined text-slate-400 text-lg mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-xs placeholder:text-slate-400 w-48" placeholder="Search flags..." type="text"/>
+</label>
+<button class="h-9 px-4 border border-warm-border rounded-lg text-xs font-bold text-slate-600 hover:bg-warm-surface">Filter</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="border-b border-warm-border">
+<th class="pb-4 text-xs font-bold text-slate-400 uppercase tracking-widest px-2">Author</th>
+<th class="pb-4 text-xs font-bold text-slate-400 uppercase tracking-widest px-2">Topic</th>
+<th class="pb-4 text-xs font-bold text-slate-400 uppercase tracking-widest px-2">Reason</th>
+<th class="pb-4 text-xs font-bold text-slate-400 uppercase tracking-widest px-2 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-warm-border/50">
+<tr class="group hover:bg-warm-surface/30 transition-colors">
+<td class="py-4 px-2">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBDqmV9YA76aJzib8LznQ7-VMlnjsZ-mqAFuH7LWNhJBpwgsjO1jvfPXSZijOrvi1idy6zEiROx9CBsh49ysydWA9DmooF-ok2AxI3KZcBXhCYL0luuZZMiXWabmxlCYKwf-biNyAOFOiwt7RF4i_wC7f49ymRWZdGgmFokk4_crGxvfunBp65jvwgf14mbQx10HL5O68OlLSBGRi28kg9f-TPHWKQnmoyRyua5H35m71EUwG1MeaOwGh-crhQI8PaAGLvsj7ji8Q");'></div>
+<div class="text-sm font-bold">Sarah Dev</div>
+</div>
+</td>
+<td class="py-4 px-2">
+<p class="text-sm font-medium text-slate-800">Building Scalable Systems with LLM...</p>
+<p class="text-[10px] text-slate-400">Section: Pydantic Validation</p>
+</td>
+<td class="py-4 px-2">
+<span class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold border border-amber-100">Potential Duplicate</span>
+</td>
+<td class="py-4 px-2 text-right">
+<button class="text-slate-400 hover:text-primary p-1"><span class="material-symbols-outlined text-lg">edit</span></button>
+<button class="text-slate-400 hover:text-red-500 p-1"><span class="material-symbols-outlined text-lg">delete</span></button>
+<button class="text-slate-400 hover:text-slate-800 p-1"><span class="material-symbols-outlined text-lg">more_vert</span></button>
+</td>
+</tr>
+<tr class="group hover:bg-warm-surface/30 transition-colors">
+<td class="py-4 px-2">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA1ZWFR7SY5kBXVQVr3WimZDLe_ERF6cD08i1pEMRb1k19PFp9TZmhSyCvAEUuylSQ-FsRupkfNXbwU1kjGn3047KXNGvAyLaFoCtd-dbkwYyvZlEdRc4TCklQRCEanOv9vdw9xXsDzkghLGc_TebcIQLrxI-pBctSwpSMOXl--6aK-KFcHvEs3rUMt6b2ISON8s-whbO7wsJavyG3sfM0qqtd4wZN00HV8pFD4Cv45QXGoLYUcXZgDKd2wzUw5cYr9D0KQcwBOMw");'></div>
+<div class="text-sm font-bold">Mike Chen</div>
+</div>
+</td>
+<td class="py-4 px-2">
+<p class="text-sm font-medium text-slate-800">Latency concerns in Vector DBs</p>
+<p class="text-[10px] text-slate-400">General Discussion</p>
+</td>
+<td class="py-4 px-2">
+<span class="px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-[10px] font-bold border border-red-100">AI Flagged</span>
+</td>
+<td class="py-4 px-2 text-right">
+<button class="text-slate-400 hover:text-primary p-1"><span class="material-symbols-outlined text-lg">edit</span></button>
+<button class="text-slate-400 hover:text-red-500 p-1"><span class="material-symbols-outlined text-lg">delete</span></button>
+<button class="text-slate-400 hover:text-slate-800 p-1"><span class="material-symbols-outlined text-lg">more_vert</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+
+</body></html>

@@ -166,7 +166,7 @@ public class AIService {
             try {
                 // 1. 发送思考中事件
                 sink.next(ChatStreamEvent.thinking(sessionId, model));
-
+                
                 // 2. 检测是否需要工具调用（基于关键词）
                 boolean needsToolCall = detectToolCallIntent(userMessage);
                 List<RecommendItem> recommendations = new ArrayList<>();
@@ -209,15 +209,15 @@ public class AIService {
 
                 // 3. 获取流式模型
                 OpenAiStreamingChatModel streamingModel = getOrCreateStreamingModel(model, temperature, maxTokens);
-
+                
                 // 4. 构建消息列表
                 List<ChatMessage> messages = buildMessages(request, toolResult);
-
+                
                 // 5. 执行流式生成
                 AtomicInteger tokenCount = new AtomicInteger(0);
                 StringBuilder fullResponse = new StringBuilder();
                 List<RecommendItem> finalRecommendations = recommendations;
-
+                
                 streamingModel.generate(messages, new StreamingResponseHandler<AiMessage>() {
                     
                     @Override
@@ -242,7 +242,7 @@ public class AIService {
                         if (!finalRecommendations.isEmpty()) {
                             sink.next(ChatStreamEvent.doneWithRecommendations(sessionId, usage, finalRecommendations));
                         } else {
-                            sink.next(ChatStreamEvent.done(sessionId, usage));
+                        sink.next(ChatStreamEvent.done(sessionId, usage));
                         }
                         sink.complete();
                     }
@@ -254,7 +254,7 @@ public class AIService {
                         sink.complete();
                     }
                 });
-
+                
             } catch (Exception e) {
                 log.error("创建流式对话失败: {}", e.getMessage(), e);
                 sink.next(ChatStreamEvent.error("服务初始化失败: " + e.getMessage(), sessionId));
