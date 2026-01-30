@@ -25,21 +25,46 @@
       </div>
     </div>
 
-    <!-- 注册卡片 -->
-    <div class="auth-card" :class="{ 'shake': isShaking }">
+    <div class="auth-shell">
+      <!-- 左侧标语区 -->
+      <section class="auth-hero">
+        <span class="hero-kicker">Join CoderHub</span>
+        <h2 class="hero-title">从记录到分享，打造你的技术作品集</h2>
+        <p class="hero-subtitle">
+          无论是文章、教程还是项目，CoderHub 都能帮你沉淀成长路径。
+        </p>
+        <div class="hero-badges">
+          <span class="hero-badge">📝 博客发布</span>
+          <span class="hero-badge">🧩 项目展示</span>
+          <span class="hero-badge">🚀 能力成长</span>
+        </div>
+        <ul class="hero-list">
+          <li>沉浸式知识管理，记录你的每一步</li>
+          <li>团队协作与社区互动，找到同频伙伴</li>
+          <li>AI 智能体辅助学习与检索</li>
+        </ul>
+        <div class="hero-stats">
+          <div class="stat-item">
+            <span class="stat-label">寻找开发者</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">学习项目</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">技术灵感阅读</span>
+          </div>
+        </div>
+        <div class="hero-quote">
+          “在这里，把你的技术实力变成能被看见的作品。”
+        </div>
+      </section>
+
+      <!-- 注册卡片 -->
+      <div class="auth-card" :class="{ 'shake': isShaking }">
       <!-- Logo和标题 -->
       <div class="header">
         <div class="logo">
-          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="40" height="40" rx="8" fill="url(#gradient)" />
-            <path d="M12 14L20 10L28 14V26L20 30L12 26V14Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-            <defs>
-              <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stop-color="#2c3e50" />
-                <stop offset="100%" stop-color="#34495e" />
-              </linearGradient>
-            </defs>
-          </svg>
+          <span class="material-symbols-outlined logo-icon">book_4</span>
         </div>
         <h1 class="title">加入 CoderHub</h1>
         <p class="subtitle">开启你的技术分享之旅</p>
@@ -158,6 +183,7 @@
         <span class="footer-text">已有账号？</span>
         <router-link to="/" class="footer-link">立即登录</router-link>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -232,6 +258,24 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+:global(:root) {
+  --primary: #c2410c;
+  --primary-muted: #ea580c;
+  --background: #fdfaf6;
+  --surface: #f7f2eb;
+  --text-main: #2d2a26;
+  --text-muted: #8c8273;
+  --border-warm: #eaddd3;
+  --selection: #fef3c7;
+}
+
+:global(::selection) {
+  background-color: var(--selection);
+  color: var(--primary);
+}
 * {
   margin: 0;
   padding: 0;
@@ -685,6 +729,244 @@ const handleRegister = async () => {
   color: #34495e;
 }
 
+/* ==================== Stitch 暖色风格覆盖 ==================== */
+.auth-container {
+  background: linear-gradient(135deg, #fff7ee 0%, #f8eada 100%);
+  font-family: 'Inter', sans-serif;
+}
+
+.auth-shell {
+  width: min(1100px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 440px;
+  gap: 48px;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.auth-hero {
+  padding: 12px 8px;
+  color: var(--text-main);
+}
+
+.hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: #fff1e6;
+  border-radius: 999px;
+  margin-bottom: 16px;
+}
+
+.hero-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 16px;
+  color: #1f2937;
+}
+
+.hero-subtitle {
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.hero-badge {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: #fffaf5;
+  border: 1px solid var(--border-warm);
+  color: #7c6d60;
+}
+
+.hero-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 22px 0;
+  display: grid;
+  gap: 10px;
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.hero-list li {
+  padding-left: 20px;
+  position: relative;
+}
+
+.hero-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--primary);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 28px;
+  margin-bottom: 20px;
+}
+
+.hero-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hero-stats .stat-number {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.hero-stats .stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hero-quote {
+  font-family: 'Crimson Pro', serif;
+  font-style: italic;
+  color: #7c6d60;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border-warm);
+  padding: 14px 18px;
+  border-radius: 16px;
+}
+
+.shape-1,
+.shape-2,
+.shape-3 {
+  opacity: 0.35;
+  filter: blur(100px);
+}
+
+.shape-1 {
+  background: linear-gradient(135deg, #ffd9c7, #ffc9b0);
+}
+
+.shape-2 {
+  background: linear-gradient(135deg, #ffe8d6, #ffd9c7);
+}
+
+.shape-3 {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+}
+
+.geometry {
+  border-color: #d9cfc4;
+}
+
+.particle {
+  background: #c4b5a5;
+}
+
+.grid-line {
+  background: #d9cfc4;
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 20px 50px rgba(45, 42, 38, 0.2);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff1e6;
+  border: 1px solid var(--border-warm);
+  border-radius: 18px;
+  animation: none;
+}
+
+.logo-icon {
+  font-size: 32px;
+  color: var(--primary);
+}
+
+.title {
+  font-family: 'Crimson Pro', serif;
+  color: #1f2937;
+}
+
+.subtitle {
+  color: var(--text-muted);
+}
+
+.form-group label {
+  color: #3f3a35;
+}
+
+.input-wrapper input {
+  background: #ffffff;
+  border-color: var(--border-warm);
+}
+
+.input-wrapper input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.12);
+}
+
+.input-icon {
+  color: #b7a99b;
+}
+
+.toggle-password {
+  color: #b7a99b;
+}
+
+.toggle-password:hover {
+  color: var(--primary);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-muted) 100%);
+  box-shadow: 0 6px 18px rgba(194, 65, 12, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 10px 26px rgba(194, 65, 12, 0.35);
+}
+
+.footer {
+  border-top: 1px solid var(--border-warm);
+}
+
+.footer-text {
+  color: var(--text-muted);
+}
+
+.footer-link {
+  color: var(--primary);
+}
+
+.footer-link:hover {
+  color: var(--primary-muted);
+}
+
 /* 响应式 */
 @media (max-width: 480px) {
   .auth-card {
@@ -697,6 +979,21 @@ const handleRegister = async () => {
   
   .form-group {
     margin-bottom: 18px;
+  }
+}
+
+@media (max-width: 960px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-hero {
+    text-align: center;
+  }
+
+  .hero-badges,
+  .hero-stats {
+    justify-content: center;
   }
 }
 </style>

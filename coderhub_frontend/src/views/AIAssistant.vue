@@ -155,16 +155,7 @@
                 <template v-else>
                   <div class="message-avatar">
                     <div class="ai-avatar">
-                      <svg viewBox="0 0 40 40" fill="none">
-                        <rect width="40" height="40" rx="8" fill="url(#ai-gradient)"/>
-                        <path d="M12 14L20 10L28 14V26L20 30L12 26V14Z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-                        <defs>
-                          <linearGradient id="ai-gradient" x1="0" y1="0" x2="40" y2="40">
-                            <stop offset="0%" stop-color="#2c3e50"/>
-                            <stop offset="100%" stop-color="#34495e"/>
-                          </linearGradient>
-                        </defs>
-                      </svg>
+                      <span class="material-symbols-outlined ai-icon">book_4</span>
                     </div>
                   </div>
                   <div class="message-content">
@@ -260,10 +251,7 @@
             <div v-if="isStreaming" class="message-wrapper assistant streaming">
               <div class="message-avatar">
                 <div class="ai-avatar pulsing">
-                  <svg viewBox="0 0 40 40" fill="none">
-                    <rect width="40" height="40" rx="8" fill="url(#ai-gradient)"/>
-                    <path d="M12 14L20 10L28 14V26L20 30L12 26V14Z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-                  </svg>
+                  <span class="material-symbols-outlined ai-icon">book_4</span>
                 </div>
               </div>
               <div class="message-content">
@@ -923,6 +911,8 @@ watch(streamingContent, () => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 /* ==================== CSS 变量 - 与主界面保持一致 ==================== */
 .ai-assistant {
   --color-primary: #2c3e50;
@@ -2460,6 +2450,7 @@ watch(streamingContent, () => {
   margin: 0 0 8px 0;
   line-height: 1.4;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -2542,5 +2533,239 @@ watch(streamingContent, () => {
   .capsule-detail {
     font-size: 11px;
   }
+}
+
+/* ==================== Stitch 暖色系外层适配（不改消息气泡） ==================== */
+.ai-assistant:not(.dark-mode) {
+  background: #faf7f2;
+  color: #3d342f;
+  font-family: 'Inter', sans-serif;
+}
+
+.ai-assistant:not(.dark-mode) .main-layout {
+  padding: 20px 24px;
+  gap: 20px;
+  background: transparent;
+}
+
+.ai-assistant:not(.dark-mode) .sidebar {
+  background: #ffffff;
+  border: 1px solid #eee4d8;
+  border-radius: 18px;
+  box-shadow: 0 12px 24px rgba(45, 42, 38, 0.08);
+}
+
+.ai-assistant:not(.dark-mode) .sidebar-header {
+  border-bottom: 1px solid #eee4d8;
+}
+
+.ai-assistant:not(.dark-mode) .sidebar-header h3 {
+  font-family: 'Crimson Pro', serif;
+  color: #3d342f;
+  letter-spacing: 0.04em;
+}
+
+.ai-assistant:not(.dark-mode) .chat-item {
+  border: 1px solid transparent;
+}
+
+.ai-assistant:not(.dark-mode) .chat-item:hover {
+  background: #fef6ef;
+  border-color: #f3d9c7;
+}
+
+.ai-assistant:not(.dark-mode) .chat-item.active {
+  background: #fff1e6;
+  color: #c2410c;
+}
+
+.ai-assistant:not(.dark-mode) .chat-item.active .chat-title,
+.ai-assistant:not(.dark-mode) .chat-item.active .chat-time,
+.ai-assistant:not(.dark-mode) .chat-item.active .chat-item-icon {
+  color: #c2410c;
+}
+
+.ai-assistant:not(.dark-mode) .chat-item-icon {
+  background: #f3eee5;
+  color: #8c8273;
+}
+
+.ai-assistant:not(.dark-mode) .chat-main {
+  background: #ffffff;
+  border: 1px solid #eee4d8;
+  border-radius: 22px;
+  box-shadow: 0 18px 36px rgba(45, 42, 38, 0.1);
+}
+
+.ai-assistant:not(.dark-mode) .chat-toolbar {
+  background: #fffaf5;
+  border-bottom: 1px solid #eee4d8;
+}
+
+.ai-assistant:not(.dark-mode) .model-selector select {
+  background: #ffffff;
+  border-color: #eee4d8;
+  color: #3d342f;
+}
+
+.ai-assistant:not(.dark-mode) .model-selector select:hover,
+.ai-assistant:not(.dark-mode) .model-selector select:focus {
+  border-color: #c2410c;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+
+.ai-assistant:not(.dark-mode) .select-arrow {
+  color: #8c8273;
+}
+
+.ai-assistant:not(.dark-mode) .theme-btn,
+.ai-assistant:not(.dark-mode) .new-chat-btn,
+.ai-assistant:not(.dark-mode) .collapse-btn,
+.ai-assistant:not(.dark-mode) .sidebar-expand-btn {
+  background: #fdf2e8;
+  border-color: #eee4d8;
+  color: #8c8273;
+}
+
+.ai-assistant:not(.dark-mode) .theme-btn:hover,
+.ai-assistant:not(.dark-mode) .new-chat-btn:hover,
+.ai-assistant:not(.dark-mode) .collapse-btn:hover,
+.ai-assistant:not(.dark-mode) .sidebar-expand-btn:hover {
+  background: #c2410c;
+  border-color: #c2410c;
+  color: #ffffff;
+}
+
+.ai-assistant:not(.dark-mode) .welcome-title {
+  font-family: 'Crimson Pro', serif;
+  color: #c2410c;
+}
+
+.ai-assistant:not(.dark-mode) .welcome-subtitle {
+  font-family: 'Crimson Pro', serif;
+  color: #8c8273;
+}
+
+.ai-assistant:not(.dark-mode) .quick-action-card {
+  background: #ffffff;
+  border-color: #eee4d8;
+}
+
+.ai-assistant:not(.dark-mode) .quick-action-card:hover {
+  border-color: #c2410c;
+  box-shadow: 0 12px 24px rgba(194, 65, 12, 0.12);
+}
+
+.ai-assistant:not(.dark-mode) .messages-container {
+  background: #ffffff;
+}
+
+.ai-assistant:not(.dark-mode) .input-area {
+  background: #fffaf5;
+  border-top: 1px solid #eee4d8;
+}
+
+.ai-assistant:not(.dark-mode) .input-box {
+  background: #ffffff;
+  border-color: #eee4d8;
+}
+
+.ai-assistant:not(.dark-mode) .input-box.focused {
+  border-color: #c2410c;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+
+.ai-assistant:not(.dark-mode) .send-btn {
+  background: #c2410c;
+}
+
+.ai-assistant:not(.dark-mode) .send-btn:hover:not(:disabled) {
+  background: #b45309;
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-section {
+  gap: 10px;
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule {
+  background: linear-gradient(135deg, #fff4ec 0%, #ffe9db 100%);
+  box-shadow: 0 8px 20px rgba(194, 65, 12, 0.12);
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule.success {
+  background: linear-gradient(135deg, #f4fbf6 0%, #e6f7ec 100%);
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .capsule-content {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(194, 65, 12, 0.12);
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .capsule-icon {
+  background: rgba(217, 119, 6, 0.15);
+  border-color: rgba(217, 119, 6, 0.35);
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule.success .capsule-icon {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .capsule-title {
+  color: #7c4a2b;
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .capsule-detail {
+  color: #8c8273;
+}
+
+.ai-assistant:not(.dark-mode) .tool-call-capsule .capsule-badge {
+  background: rgba(217, 119, 6, 0.15);
+  border-color: rgba(217, 119, 6, 0.3);
+  color: #b45309;
+}
+
+.ai-assistant:not(.dark-mode) .tools-used .tool-tag {
+  background: rgba(217, 119, 6, 0.12);
+  border-color: rgba(217, 119, 6, 0.25);
+  color: #b45309;
+  box-shadow: none;
+}
+
+.ai-assistant:not(.dark-mode) .tools-used .tool-tag:hover {
+  background: rgba(217, 119, 6, 0.2);
+  border-color: rgba(217, 119, 6, 0.45);
+}
+
+.ai-assistant:not(.dark-mode) .ai-avatar {
+  background: #fff1e6;
+  border: 1px solid #f3d9c7;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 14px rgba(194, 65, 12, 0.18);
+}
+
+.ai-assistant:not(.dark-mode) .ai-icon {
+  font-size: 22px;
+  color: #c2410c;
+}
+
+.ai-assistant:not(.dark-mode) .message-body {
+  color: #4a443e;
+}
+
+.ai-assistant:not(.dark-mode) .markdown-content :deep(a) {
+  color: #c2410c;
+}
+
+.ai-assistant:not(.dark-mode) .markdown-content :deep(a:hover) {
+  color: #9a3412;
+}
+
+.ai-assistant:not(.dark-mode) .markdown-content :deep(.inline-code) {
+  color: #b45309;
+  background: #fff7ed;
 }
 </style>

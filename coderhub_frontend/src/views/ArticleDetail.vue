@@ -1,62 +1,6 @@
 <template>
   <div class="article-detail-page">
-    <!-- 顶部导航栏（复用Home页眉样式） -->
-    <nav class="navbar">
-      <div class="nav-content">
-        <!-- Logo区域 -->
-        <div class="nav-logo" @click="router.push('/home')">
-          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="40" height="40" rx="8" fill="url(#gradient)" />
-            <path d="M12 14L20 10L28 14V26L20 30L12 26V14Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-            <defs>
-              <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-                <stop offset="0%" stop-color="#2c3e50" />
-                <stop offset="100%" stop-color="#34495e" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <span class="logo-text">CoderHub</span>
-        </div>
-
-        <!-- 导航菜单 -->
-        <ul class="nav-menu">
-          <li @click="router.push('/home')">
-            <a href="#">博客首页</a>
-          </li>
-          <li>
-            <a href="#">教程</a>
-          </li>
-          <li>
-            <a href="#">项目</a>
-          </li>
-          <li>
-            <a href="#">智能体</a>
-          </li>
-        </ul>
-
-        <!-- 右侧操作区 -->
-        <div class="nav-right">
-          <button class="btn-write" @click="router.push('/article/editor')">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M18.5 2.50023C18.8978 2.1024 19.4374 1.87891 20 1.87891C20.5626 1.87891 21.1022 2.1024 21.5 2.50023C21.8978 2.89805 22.1213 3.43762 22.1213 4.00023C22.1213 4.56284 21.8978 5.1024 21.5 5.50023L12 15.0002L8 16.0002L9 12.0002L18.5 2.50023Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            写文章
-          </button>
-
-          <!-- 用户头像 -->
-          <div class="user-avatar-wrapper" @click="toggleUserMenu">
-            <img :src="currentUser?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'" class="user-avatar" />
-            <div v-if="showUserMenu" class="user-menu">
-              <a href="#" class="menu-item" @click.prevent="router.push('/profile')">个人主页</a>
-              <a href="#" class="menu-item">我的文章</a>
-              <a href="#" class="menu-item">设置</a>
-              <a href="#" class="menu-item" @click.prevent="handleLogout">退出登录</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </nav>
+    <NavBar />
 
     <!-- 主体内容区 -->
     <div class="article-container">
@@ -397,6 +341,7 @@ import 'highlight.js/styles/github-dark.css'
 import { marked } from 'marked'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import NavBar from '@/components/NavBar.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -1076,11 +1021,30 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
 .article-detail-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: #fdfaf6;
+  color: #2d2a26;
   display: flex;
   flex-direction: column;
+  font-family: 'Inter', sans-serif;
+}
+
+:global(:root) {
+  --primary: #c2410c;
+  --primary-muted: #ea580c;
+  --background: #fdfaf6;
+  --surface: #f7f2eb;
+  --text-main: #2d2a26;
+  --text-body: #4a443e;
+  --border-warm: #eaddd3;
+  --selection: #fef3c7;
+}
+
+:global(::selection) {
+  background-color: var(--selection);
+  color: var(--primary);
 }
 
 /* ==================== 页头（复用Home样式） ==================== */
@@ -2263,6 +2227,7 @@ onMounted(() => {
   border: 3px solid transparent;
   background: linear-gradient(45deg, #FFD700, #FFA500, #FFD700) border-box;
   -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   animation: vipRotate 3s linear infinite;
@@ -2314,6 +2279,7 @@ onMounted(() => {
   ) border-box;
   background-size: 300% 300%;
   -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   animation: svipRainbow 3s linear infinite;
@@ -2616,6 +2582,248 @@ onMounted(() => {
   border-top: 1px solid #34495e;
   font-size: 14px;
   color: #bdc3c7;
+}
+
+/* ==================== Stitch 暖色适配覆盖 ==================== */
+.navbar {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom: 1px solid var(--border-warm);
+  box-shadow: 0 2px 12px rgba(45, 42, 38, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+.nav-content {
+  max-width: 1440px;
+  height: 72px;
+}
+
+.logo-text {
+  font-family: 'Crimson Pro', serif;
+  color: #1f2937;
+  letter-spacing: -0.02em;
+}
+
+.nav-menu li a {
+  color: #8c8273;
+  font-weight: 600;
+}
+
+.nav-menu li.active a,
+.nav-menu li:hover a {
+  color: var(--primary);
+}
+
+.nav-menu li.active::after {
+  background: var(--primary);
+}
+
+.btn-write {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-muted) 100%);
+  border-radius: 10px;
+  box-shadow: 0 6px 16px rgba(194, 65, 12, 0.25);
+}
+
+.btn-write:hover {
+  background: #9a3412;
+}
+
+.user-avatar {
+  border-color: var(--border-warm);
+}
+
+.user-menu {
+  border: 1px solid var(--border-warm);
+}
+
+.menu-item:hover {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.article-container {
+  max-width: 1440px;
+  margin: 32px auto;
+  gap: 32px;
+}
+
+.article-main {
+  background: #ffffff;
+  border: 1px solid var(--border-warm);
+  border-radius: 24px;
+  box-shadow: 0 12px 24px rgba(45, 42, 38, 0.08);
+}
+
+.article-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 40px;
+  color: #1f2937;
+}
+
+.author-name {
+  color: #1f2937;
+}
+
+.meta-info {
+  color: #8c8273;
+}
+
+.category-badge {
+  background: #fef3c7;
+  color: #b45309;
+  border-radius: 12px;
+}
+
+.original-badge {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-muted) 100%);
+}
+
+.article-tag {
+  background: var(--surface);
+  color: #8c8273;
+  border-color: var(--border-warm);
+}
+
+.article-cover {
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.12);
+}
+
+.article-content {
+  color: var(--text-body);
+  font-family: 'Crimson Pro', serif;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  color: #1f2937;
+}
+
+.markdown-body h1,
+.markdown-body h2 {
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.markdown-body a {
+  color: var(--primary);
+}
+
+.markdown-body a:hover {
+  color: var(--primary-muted);
+}
+
+.markdown-body blockquote {
+  border-left-color: var(--primary);
+  background: var(--surface);
+}
+
+.article-actions {
+  border-top: 1px solid var(--border-warm);
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.action-btn {
+  border-color: var(--border-warm);
+  color: #8c8273;
+}
+
+.action-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.action-btn.active {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-muted) 100%);
+}
+
+.comments-header h3 {
+  color: #1f2937;
+}
+
+.comment-input {
+  border-color: var(--border-warm);
+  background: #ffffff;
+}
+
+.comment-input:focus {
+  border-color: var(--primary);
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-muted) 100%);
+}
+
+.btn-submit:hover {
+  box-shadow: 0 6px 16px rgba(194, 65, 12, 0.2);
+}
+
+.comment-item,
+.reply-item {
+  border-bottom-color: var(--border-warm);
+}
+
+.comment-action-btn:hover {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.replies-list {
+  border-left-color: var(--border-warm);
+}
+
+.article-sidebar {
+  top: 96px;
+}
+
+.author-card,
+.recommend-card {
+  border: 1px solid var(--border-warm);
+  border-radius: 20px;
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
+}
+
+.author-card-name,
+.recommend-title {
+  color: #1f2937;
+}
+
+.author-card-stats {
+  border-top-color: var(--border-warm);
+  border-bottom-color: var(--border-warm);
+}
+
+.btn-follow {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-muted) 100%);
+}
+
+.recommend-item:hover {
+  background: #fff7ed;
+  border-color: #f3d9c7;
+}
+
+.recommend-item-title {
+  color: #2d2a26;
+}
+
+.recommend-item-meta {
+  color: #8c8273;
+}
+
+.guess-like-card {
+  background: linear-gradient(135deg, #fff5f0 0%, #fffaf5 100%);
+  border-color: #f3d9c7;
+}
+
+.page-footer {
+  background: var(--surface);
+  color: #8c8273;
+  border-top: 1px solid var(--border-warm);
+}
+
+.footer-section p,
+.footer-section a,
+.footer-copyright {
+  color: #8c8273;
 }
 
 /* 响应式 */
