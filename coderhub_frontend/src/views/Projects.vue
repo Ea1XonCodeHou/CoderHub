@@ -663,8 +663,8 @@ function getTechColor(tech) {
     }
   }
   
-  // 默认渐变色
-  return 'linear-gradient(135deg, #00b894 0%, #00a085 100%)'
+  // 默认渐变色（与 Stitch 暖色系一致）
+  return 'linear-gradient(135deg, #d97706 0%, #c2410c 100%)'
 }
 
 // 搜索处理(防抖)
@@ -991,6 +991,24 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+:global(:root) {
+  --primary: #c2410c;
+  --accent: #d97706;
+  --background: #faf7f2;
+  --surface: #f3eee5;
+  --text-main: #2d2a26;
+  --text-muted: #7c7267;
+  --border-warm: #e8e2d9;
+  --golden-glow: rgba(251, 191, 36, 0.25);
+}
+
+:global(.material-symbols-outlined) {
+  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
 /* ==================== 基础容器 ==================== */
 .projects-container {
   min-height: 100vh;
@@ -2346,6 +2364,336 @@ onMounted(async () => {
 .btn-submit svg {
   width: 18px;
   height: 18px;
+}
+
+/* ==================== Stitch 暖色系覆盖 ==================== */
+.projects-container {
+  background: var(--background);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+}
+
+.hero-section {
+  background: linear-gradient(135deg, #fff7ee 0%, #f8eada 100%);
+  color: #1f2937;
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.hero-section::before {
+  opacity: 0.08;
+}
+
+.hero-content {
+  max-width: 1440px;
+}
+
+.hero-title {
+  font-family: 'Crimson Pro', serif;
+  color: #1f2937;
+}
+
+.hero-subtitle {
+  font-family: 'Crimson Pro', serif;
+  color: #6b6359;
+}
+
+.title-icon {
+  color: var(--primary);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+  box-shadow: 0 8px 20px rgba(217, 119, 6, 0.25);
+}
+
+.btn-primary:hover {
+  box-shadow: 0 10px 26px rgba(217, 119, 6, 0.35);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--primary);
+  border: 2px solid var(--border-warm);
+  backdrop-filter: none;
+}
+
+.btn-secondary:hover {
+  background: #ffffff;
+}
+
+.stat-number {
+  color: var(--primary);
+}
+
+.stat-label {
+  color: var(--text-muted);
+}
+
+.tabs-section {
+  background: var(--background);
+  border-bottom: 1px solid var(--border-warm);
+  box-shadow: 0 2px 12px rgba(148, 163, 184, 0.12);
+}
+
+.tabs-container {
+  max-width: 1440px;
+}
+
+.tabs {
+  border-bottom-color: var(--border-warm);
+}
+
+.tab-item {
+  color: var(--text-muted);
+}
+
+.tab-item:hover {
+  color: var(--primary);
+  background: var(--surface);
+}
+
+.tab-item.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tab-count {
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.tab-item.active .tab-count {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.search-box input {
+  border-color: var(--border-warm);
+  background: #ffffff;
+}
+
+.search-box input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12);
+}
+
+.sort-select {
+  border-color: var(--border-warm);
+  color: #3f3a35;
+}
+
+.sort-select:hover,
+.sort-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12);
+}
+
+.section-header h2 {
+  font-family: 'Crimson Pro', serif;
+  color: #1f2937;
+}
+
+.section-header p {
+  color: var(--text-muted);
+  font-family: 'Crimson Pro', serif;
+}
+
+.showcase-card,
+.community-card {
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
+  border-radius: 20px;
+}
+
+.showcase-card:hover,
+.community-card:hover {
+  box-shadow: 0 18px 36px rgba(194, 65, 12, 0.12);
+}
+
+.project-preview,
+.project-screenshots {
+  background: var(--surface);
+}
+
+.btn-view {
+  background: #ffffff;
+  color: var(--primary);
+}
+
+.btn-view:hover {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.badge-recommended {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 6px 14px rgba(217, 119, 6, 0.35);
+}
+
+.project-name,
+.project-title {
+  color: #2d2a26;
+  font-family: 'Crimson Pro', serif;
+}
+
+.git-link {
+  background: var(--surface);
+  color: #6b6359;
+}
+
+.git-link:hover {
+  background: #2d2a26;
+  color: #ffffff;
+}
+
+.project-description,
+.project-intro {
+  color: var(--text-muted);
+  font-family: 'Crimson Pro', serif;
+}
+
+.tech-tag {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+}
+
+.author-info,
+.project-stats {
+  border-top: 1px solid var(--border-warm);
+}
+
+.author-name {
+  color: #2d2a26;
+}
+
+.author-role,
+.stat,
+.stat-mini {
+  color: var(--text-muted);
+}
+
+.project-stats .stat svg,
+.stat-mini svg {
+  color: var(--accent);
+}
+
+.badge-open {
+  background: linear-gradient(135deg, #d97706 0%, #c2410c 100%);
+}
+
+.tech-badge,
+.link-btn {
+  background: var(--surface);
+  border: 1px solid var(--border-warm);
+  color: #6b6359;
+}
+
+.tech-more {
+  background: var(--border-warm);
+  color: #6b6359;
+}
+
+.link-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: #ffffff;
+}
+
+.modal-content {
+  border: 1px solid var(--border-warm);
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.modal-header h3 {
+  color: #1f2937;
+  font-family: 'Crimson Pro', serif;
+}
+
+.close-btn {
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.close-btn:hover {
+  background: var(--border-warm);
+}
+
+.form-group label {
+  color: #3f3a35;
+}
+
+.form-group input,
+.form-group textarea {
+  border-color: var(--border-warm);
+  background: #ffffff;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.12);
+}
+
+.tech-tag-item {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+}
+
+.upload-zone {
+  border-color: #d9cfc4;
+  background: var(--surface);
+}
+
+.upload-zone:hover {
+  border-color: var(--primary);
+  background: rgba(217, 119, 6, 0.06);
+}
+
+.btn-upload-file,
+.btn-upload-readme,
+.btn-submit {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+  box-shadow: 0 6px 16px rgba(217, 119, 6, 0.25);
+}
+
+.btn-upload-file:hover,
+.btn-upload-readme:hover,
+.btn-submit:hover {
+  box-shadow: 0 8px 20px rgba(217, 119, 6, 0.35);
+}
+
+.btn-cancel {
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.btn-cancel:hover {
+  background: var(--border-warm);
+}
+
+.visibility-option {
+  border-color: var(--border-warm);
+}
+
+.visibility-option.active {
+  border-color: var(--primary);
+  background: rgba(217, 119, 6, 0.08);
+}
+
+.category-chip {
+  border-color: var(--border-warm);
+}
+
+.category-chip.active {
+  border-color: var(--primary);
+  background: rgba(217, 119, 6, 0.12);
+  color: #3f3a35;
+}
+
+.tech-chip.active {
+  border-color: var(--primary);
+  background: rgba(217, 119, 6, 0.12);
 }
 
 /* 模态框动画 */

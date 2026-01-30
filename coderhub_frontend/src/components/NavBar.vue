@@ -1,57 +1,50 @@
 <template>
-  <nav class="navbar">
+  <header class="navbar">
     <div class="nav-content">
       <!-- Logo区域 -->
-      <div class="nav-logo" @click="goHome">
-        <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="40" height="40" rx="8" fill="url(#gradient)" />
-          <path d="M12 14L20 10L28 14V26L20 30L12 26V14Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-          <defs>
-            <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-              <stop offset="0%" stop-color="#2c3e50" />
-              <stop offset="100%" stop-color="#34495e" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <span class="logo-text">CoderHub</span>
-      </div>
-
-      <!-- 导航菜单 -->
-      <ul class="nav-menu">
-        <li :class="{ active: currentRoute === 'home' }" @click="goHome">
-          <a href="#">博客首页</a>
-        </li>
-        <li :class="{ active: currentRoute === 'tutorial' }" @click="goToTutorial">
-          <a href="#">教程</a>
-        </li>
-        <li :class="{ active: currentRoute === 'projects' }" @click="goToProjects">
-          <a href="#">项目</a>
-        </li>
-        <li :class="{ active: currentRoute === 'ai' }" @click="goToAIChat">
-          <a href="#">智能体</a>
-        </li>
-      </ul>
-
-      <!-- 搜索框 -->
-      <div v-if="showSearch" class="search-box">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M21 21L16.65 16.65M19 11C19 15.4183 15.4183 19 11 19C6.58172 19 3 15.4183 3 11C3 6.58172 6.58172 3 11 3C15.4183 3 19 6.58172 19 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <input 
-          type="text" 
-          placeholder="搜索文章..." 
-          v-model="searchKeyword"
-          @input="handleSearch"
-        />
+      <div class="nav-left">
+        <div class="nav-logo" @click="goHome">
+          <span class="material-symbols-outlined logo-icon">book_4</span>
+          <h1 class="logo-text">CoderHub</h1>
+        </div>
+        
+        <!-- 导航菜单 -->
+        <nav class="nav-menu">
+          <a 
+            :class="['nav-link', { active: currentRoute === 'home' }]" 
+            href="#" 
+            @click.prevent="goHome"
+          >博客首页</a>
+          <a 
+            :class="['nav-link', { active: currentRoute === 'tutorial' }]" 
+            href="#" 
+            @click.prevent="goToTutorial"
+          >教程</a>
+          <a 
+            :class="['nav-link', { active: currentRoute === 'projects' }]" 
+            href="#" 
+            @click.prevent="goToProjects"
+          >项目</a>
+          <a 
+            :class="['nav-link', { active: currentRoute === 'ai' }]" 
+            href="#" 
+            @click.prevent="goToAIChat"
+          >智能体</a>
+        </nav>
       </div>
 
       <!-- 右侧操作区 -->
       <div class="nav-right">
-        <button v-if="showWriteBtn" class="btn-write" @click="goToEditor">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M18.5 2.50023C18.8978 2.1024 19.4374 1.87891 20 1.87891C20.5626 1.87891 21.1022 2.1024 21.5 2.50023C21.8978 2.89805 22.1213 3.43762 22.1213 4.00023C22.1213 4.56284 21.8978 5.1024 21.5 5.50023L12 15.0002L8 16.0002L9 12.0002L18.5 2.50023Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <!-- 我的收藏 -->
+        <button class="nav-btn-shelf" @click="goToProfile">
+          <span class="material-symbols-outlined">auto_stories</span>
+          <span class="btn-text">我的收藏</span>
+        </button>
+        
+        <div class="nav-divider"></div>
+        
+        <!-- 写文章按钮 -->
+        <button v-if="showWriteBtn" class="nav-btn-primary" @click="goToEditor">
           写文章
         </button>
 
@@ -59,15 +52,28 @@
         <div class="user-avatar" @click="toggleUserMenu">
           <img :src="userAvatar" alt="avatar" />
           <div v-if="showUserMenu" class="user-menu">
-            <a href="#" class="menu-item" @click.prevent="goToProfile">个人主页</a>
-            <a href="#" class="menu-item">我的文章</a>
-            <a href="#" class="menu-item">设置</a>
-            <a href="#" class="menu-item" @click.prevent="handleLogout">退出登录</a>
+            <a href="#" class="menu-item" @click.prevent="goToProfile">
+              <span class="material-symbols-outlined">person</span>
+              个人主页
+            </a>
+            <a href="#" class="menu-item" @click.prevent="goToMyArticles">
+              <span class="material-symbols-outlined">article</span>
+              我的文章
+            </a>
+            <a href="#" class="menu-item" @click.prevent="goToSettings">
+              <span class="material-symbols-outlined">settings</span>
+              设置
+            </a>
+            <div class="menu-divider"></div>
+            <a href="#" class="menu-item logout" @click.prevent="handleLogout">
+              <span class="material-symbols-outlined">logout</span>
+              退出登录
+            </a>
           </div>
         </div>
       </div>
     </div>
-  </nav>
+  </header>
 </template>
 
 <script setup>
@@ -100,6 +106,7 @@ const currentRoute = computed(() => {
   const path = route.path
   if (path.includes('/home')) return 'home'
   if (path.includes('/tutorial')) return 'tutorial'
+  if (path.includes('/projects')) return 'projects'
   if (path.includes('/ai')) return 'ai'
   return ''
 })
@@ -126,6 +133,16 @@ const goToAIChat = () => router.push('/ai/assistant')
 const goToEditor = () => router.push('/article/editor')
 const goToProfile = () => {
   showUserMenu.value = false
+  router.push('/profile')
+}
+const goToMyArticles = () => {
+  showUserMenu.value = false
+  // TODO: 暂无我的文章页面
+  router.push('/profile')
+}
+const goToSettings = () => {
+  showUserMenu.value = false
+  // TODO: 暂无设置页面
   router.push('/profile')
 }
 
@@ -161,211 +178,258 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ========== Stitch Design NavBar ========== */
 .navbar {
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
   position: sticky;
   top: 0;
-  z-index: 100;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  z-index: 50;
+  width: 100%;
+  border-bottom: 1px solid var(--border-warm, #e8e2d9);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .nav-content {
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 0 24px;
-  height: 64px;
+  padding: 0 40px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+/* Logo */
 .nav-logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
-  margin-right: 48px; /* 增加与导航菜单的间距 */
+  transition: opacity 0.2s;
 }
 
-.nav-logo svg {
-  width: 36px;
-  height: 36px;
+.nav-logo:hover {
+  opacity: 0.8;
+}
+
+.logo-icon {
+  font-size: 32px;
+  color: var(--primary, #c2410c);
+  font-variation-settings: 'FILL' 1, 'wght' 700;
 }
 
 .logo-text {
-  font-size: 20px;
+  font-family: 'Crimson Pro', serif;
+  font-size: 24px;
   font-weight: 700;
-  color: #2c3e50;
+  color: #1e293b;
+  letter-spacing: -0.02em;
+  margin: 0;
 }
 
+/* Navigation Menu */
 .nav-menu {
   display: flex;
+  align-items: center;
   gap: 32px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  margin-left: 16px; /* 额外左侧间距 */
 }
 
-.nav-menu li {
-  position: relative;
-  cursor: pointer;
-}
-
-.nav-menu li a {
-  display: block;
-  padding: 8px 0;
-  font-size: 15px;
+.nav-link {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
   color: #64748b;
   text-decoration: none;
   transition: color 0.2s;
+  padding: 8px 0;
+  position: relative;
 }
 
-.nav-menu li.active a {
-  color: #2c3e50;
-  font-weight: 600;
+.nav-link:hover {
+  color: var(--primary, #c2410c);
 }
 
-.nav-menu li.active::after {
+.nav-link.active {
+  color: var(--primary, #c2410c);
+}
+
+.nav-link.active::after {
   content: '';
   position: absolute;
-  bottom: -20px;
+  bottom: -24px;
   left: 0;
   right: 0;
-  height: 3px;
-  background: #2c3e50;
-  border-radius: 2px;
+  height: 2px;
+  background: var(--primary, #c2410c);
+  border-radius: 1px;
 }
 
-.nav-menu li:hover a {
-  color: #2c3e50;
-}
-
-/* 搜索框 */
-.search-box {
-  position: relative;
-  flex: 1;
-  max-width: 400px;
-  margin: 0 24px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  color: #94a3b8;
-  pointer-events: none;
-}
-
-.search-box input {
-  width: 100%;
-  height: 40px;
-  padding: 0 16px 0 42px;
-  font-size: 14px;
-  color: #2c3e50;
-  background: #f5f7fa;
-  border: 2px solid transparent;
-  border-radius: 20px;
-  outline: none;
-  transition: all 0.3s;
-}
-
-.search-box input::placeholder {
-  color: #94a3b8;
-}
-
-.search-box input:focus {
-  background: white;
-  border-color: #2c3e50;
-  box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
-}
-
+/* Right Side */
 .nav-right {
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-left: auto;
 }
 
-.btn-write {
+.nav-btn-shelf {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: #2c3e50;
-  color: white;
+  gap: 8px;
+  background: none;
   border: none;
-  border-radius: 6px;
+  color: #64748b;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
   transition: all 0.2s;
 }
 
-.btn-write svg {
-  width: 18px;
-  height: 18px;
+.nav-btn-shelf:hover {
+  color: var(--primary, #c2410c);
+  background: rgba(194, 65, 12, 0.05);
 }
 
-.btn-write:hover {
-  background: #34495e;
+.nav-btn-shelf .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.nav-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-warm, #e8e2d9);
+}
+
+.nav-btn-primary {
+  background: var(--primary, #c2410c);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 9999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(194, 65, 12, 0.25);
+}
+
+.nav-btn-primary:hover {
+  background: #9a3412;
   transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(194, 65, 12, 0.35);
 }
 
+/* User Avatar */
 .user-avatar {
   position: relative;
   cursor: pointer;
 }
 
 .user-avatar img {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: 2px solid #e2e8f0;
+  border: 2px solid rgba(194, 65, 12, 0.1);
+  object-fit: cover;
+  transition: border-color 0.2s;
 }
 
+.user-avatar:hover img {
+  border-color: rgba(194, 65, 12, 0.3);
+}
+
+/* User Menu Dropdown */
 .user-menu {
   position: absolute;
-  top: 48px;
+  top: 52px;
   right: 0;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 8px 0;
-  min-width: 150px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  min-width: 180px;
   z-index: 200;
+  border: 1px solid var(--border-warm, #e8e2d9);
 }
 
 .menu-item {
-  display: block;
-  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #2c3e50;
+  font-weight: 500;
+  color: #334155;
   text-decoration: none;
-  transition: background 0.2s;
+  border-radius: 8px;
+  transition: all 0.15s;
 }
 
 .menu-item:hover {
-  background: #f5f7fa;
+  background: var(--surface-warm, #f3eee5);
+  color: var(--primary, #c2410c);
 }
 
-/* 响应式 */
+.menu-item .material-symbols-outlined {
+  font-size: 18px;
+  opacity: 0.7;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--border-warm, #e8e2d9);
+  margin: 6px 0;
+}
+
+.menu-item.logout {
+  color: #dc2626;
+}
+
+.menu-item.logout:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .nav-content {
+    padding: 0 24px;
+  }
+  
+  .nav-left {
+    gap: 24px;
+  }
+  
+  .nav-menu {
+    gap: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .nav-menu {
     display: none;
   }
   
-  .search-box {
+  .nav-btn-shelf {
     display: none;
   }
   
-  .logo-text {
+  .nav-divider {
+    display: none;
+  }
+  
+  .btn-text {
     display: none;
   }
 }
 </style>
-

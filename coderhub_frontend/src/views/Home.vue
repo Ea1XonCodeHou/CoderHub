@@ -1,214 +1,214 @@
 <template>
-  <div class="home-container">
-    <!-- 公用导航栏 -->
+  <div class="home-container font-display">
     <NavBar @search="handleNavSearch" />
 
-    <!-- 主体内容区 -->
-    <div class="main-content">
-      <!-- 左侧分类导航 -->
-      <aside class="sidebar-left">
-        <div class="category-list">
-          <!-- 全部分类 -->
-          <div 
-            :class="['category-item', { 'active': selectedCategory === 'all' }]"
-            @click="selectedCategory = 'all'"
-          >
-            <svg class="category-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M3 7H21M3 12H21M3 17H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span>全部</span>
-          </div>
-          
-          <!-- 一级分类 -->
-          <template v-for="rootCategory in rootCategories" :key="rootCategory.id">
-            <div 
-              :class="['category-item', 'root-category', { 'active': selectedCategory === rootCategory.id }]"
-              @click="handleCategoryClick(rootCategory.id)"
-            >
-              <!-- 展开/收起按钮 -->
-              <svg 
-                v-if="hasSubCategories(rootCategory.id)"
-                @click.stop="toggleExpand(rootCategory.id)" 
-                class="expand-icon" 
-                :class="{ 'expanded': isExpanded(rootCategory.id) }"
-                viewBox="0 0 24 24" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              
-              <!-- 分类图标 -->
-              <svg class="category-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 3H5C3.89543 3 3 3.89543 3 5V9C3 10.1046 3.89543 11 5 11H9C10.1046 11 11 10.1046 11 9V5C11 3.89543 10.1046 3 9 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M19 3H15C13.8954 3 13 3.89543 13 5V9C13 10.1046 13.8954 11 15 11H19C20.1046 11 21 10.1046 21 9V5C21 3.89543 20.1046 3 19 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M9 13H5C3.89543 13 3 13.8954 3 15V19C3 20.1046 3.89543 21 5 21H9C10.1046 21 11 20.1046 11 19V15C11 13.8954 10.1046 13 9 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M19 13H15C13.8954 13 13 13.8954 13 15V19C13 20.1046 13.8954 21 15 21H19C20.1046 21 21 20.1046 21 19V15C21 13.8954 20.1046 13 19 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              
-              <span>{{ rootCategory.categoryName }}</span>
-              <span class="article-count">{{ rootCategory.articleCount }}</span>
-            </div>
-            
-            <!-- 二级分类 -->
-            <div 
-              v-if="isExpanded(rootCategory.id)"
-              v-for="subCategory in getSubCategories(rootCategory.id)" 
-              :key="subCategory.id"
-              :class="['category-item', 'sub-category', { 'active': selectedCategory === subCategory.id }]"
-              @click.stop="handleCategoryClick(subCategory.id)"
-            >
-              <svg class="category-icon sub-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 4H6C5.46957 4 4.96086 4.21071 4.58579 4.58579C4.21071 4.96086 4 5.46957 4 6V8C4 8.53043 4.21071 9.03914 4.58579 9.41421C4.96086 9.78929 5.46957 10 6 10H8C8.53043 10 9.03914 9.78929 9.41421 9.41421C9.78929 9.03914 10 8.53043 10 8V6C10 5.46957 9.78929 4.96086 9.41421 4.58579C9.03914 4.21071 8.53043 4 8 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="16" cy="7" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M4 16H6C6.53043 16 7.03914 16.2107 7.41421 16.5858C7.78929 16.9609 8 17.4696 8 18V20C8 20.5304 7.78929 21.0391 7.41421 21.4142C7.03914 21.7893 6.53043 22 6 22H4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M14 18C14 17.4696 14.2107 16.9609 14.5858 16.5858C14.9609 16.2107 15.4696 16 16 16H18C18.5304 16 19.0391 16.2107 19.4142 16.5858C19.7893 16.9609 20 17.4696 20 18V20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>{{ subCategory.categoryName }}</span>
-              <span class="article-count">{{ subCategory.articleCount }}</span>
-            </div>
-          </template>
-        </div>
-      </aside>
+    <main class="main-wrapper">
+      <!-- Hero -->
+      <section class="hero-section">
+        <div class="hero-inner">
+          <h2 class="hero-title">
+            你的专属技术知识库<br />
+            <span class="hero-highlight">开启编程之旅</span>
+          </h2>
+          <p class="hero-subtitle">
+            探索精选技术文章，与开发者社区深度交流
+          </p>
 
-      <!-- 中间文章列表 -->
-      <main class="article-list">
-        <div class="list-header">
-          <h2>推荐文章</h2>
-          <div class="sort-tabs">
-            <span :class="{ 'active': sortType === 'hot' }" @click="sortType = 'hot'">热门</span>
-            <span :class="{ 'active': sortType === 'latest' }" @click="sortType = 'latest'">最新</span>
+          <div class="hero-search">
+            <span class="material-symbols-outlined search-icon">auto_awesome</span>
+            <input
+              v-model="searchKeyword"
+              class="search-input"
+              type="text"
+              placeholder="向 AI 咨询技术问题，或搜索知识库..."
+              @keyup.enter="handleSearch"
+            />
+            <button class="search-btn" @click="handleSearch">搜索</button>
           </div>
-        </div>
 
-        <!-- 文章卡片 -->
-        <div v-if="articles.length === 0" class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H12.5858C12.851 3 13.1054 3.10536 13.2929 3.29289L18.7071 8.70711C18.8946 8.89464 19 9.149 19 9.41421V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <p>暂无文章</p>
-        </div>
-        
-        <div v-for="article in articles" :key="article.id" class="article-card" @click="goToArticle(article.id)">
-          <!-- 封面图 -->
-          <div v-if="article.coverImage" class="article-cover">
-            <img :src="article.coverImage" alt="cover" />
+          <div class="trending-tags">
+            <span class="trending-label">热门搜索</span>
+            <a
+              v-for="tag in trendingTags"
+              :key="tag"
+              class="trending-tag"
+              href="#"
+              @click.prevent="searchByTag(tag)"
+            >#{{ tag }}</a>
           </div>
-          
-          <div class="article-content">
-            <div class="article-header">
-              <img :src="article.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'" class="author-avatar" alt="avatar" />
-              <div class="author-info">
-                <div class="author-name">{{ article.username }}</div>
-                <div class="article-meta">
-                  <span>{{ formatTime(article.createTime) }}</span>
-                  <span class="dot">·</span>
-                  <span>{{ article.viewCount }} 阅读</span>
+        </div>
+      </section>
+
+      <!-- Content -->
+      <div class="content-grid">
+        <section class="articles-section">
+          <div class="section-header">
+            <h3 class="section-title">精选文章</h3>
+            <div class="sort-tabs">
+              <button
+                :class="['sort-tab', { active: sortType === 'latest' }]"
+                @click="sortType = 'latest'; fetchArticles()"
+              >最新</button>
+              <button
+                :class="['sort-tab', { active: sortType === 'hot' }]"
+                @click="sortType = 'hot'; fetchArticles()"
+              >热门</button>
+            </div>
+          </div>
+
+          <div class="articles-list">
+            <div v-if="articles.length === 0" class="empty-state">
+              <span class="material-symbols-outlined">article</span>
+              <p>暂无文章</p>
+            </div>
+
+            <article
+              v-for="article in articles"
+              :key="article.id"
+              class="article-card"
+              @click="goToArticle(article.id)"
+            >
+              <div class="article-cover">
+                <img
+                  :src="article.coverImage || 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=600'"
+                  :alt="article.title"
+                />
+              </div>
+
+              <div class="article-body">
+                <div class="article-meta-top">
+                  <span class="category-badge">{{ article.categoryName || '技术' }}</span>
+                  <span class="read-time">{{ estimateReadTime(article.summary) }} 分钟阅读</span>
+                </div>
+
+                <h4 class="article-title">{{ article.title }}</h4>
+                <p class="article-summary">{{ article.summary }}</p>
+
+                <div class="article-footer">
+                  <div class="author-info">
+                    <div
+                      class="author-avatar"
+                      :style="{ backgroundImage: `url(${article.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + article.username})` }"
+                    ></div>
+                    <span class="author-name">{{ article.username }}</span>
+                  </div>
+                  <button class="read-more-btn" @click.stop="goToArticle(article.id)">
+                    阅读全文 <span class="material-symbols-outlined">arrow_forward</span>
+                  </button>
                 </div>
               </div>
-              
-              <!-- 原创标签 -->
-              <span v-if="article.isOriginal === 1" class="original-badge">原创</span>
+            </article>
+          </div>
+
+          <button class="load-more-btn" @click="loadMoreArticles">
+            加载更多文章
+          </button>
+        </section>
+
+        <aside class="sidebar">
+          <div class="ai-card">
+            <div class="ai-card-header">
+              <span class="material-symbols-outlined">auto_awesome</span>
+              <h3>智能助手</h3>
             </div>
+            <p class="ai-card-text">
+              "发现你正在探索技术文章，也许你会对
+              <span class="ai-highlight">分布式缓存策略</span>
+              感兴趣？"
+            </p>
+            <button class="ai-card-btn" @click="goToAIChat">
+              与 AI 助手对话
+            </button>
+          </div>
 
-            <h3 class="article-title">{{ article.title }}</h3>
-            <p class="article-summary">{{ article.summary }}</p>
-
-            <div class="article-tags">
-              <span v-for="tag in article.tags" :key="tag.id" class="tag">{{ tag.tagName }}</span>
+          <div class="sidebar-card">
+            <div class="card-header">
+              <span class="material-symbols-outlined">trending_up</span>
+              <h3>热门话题</h3>
             </div>
+            <div class="topics-list">
+              <a
+                v-for="(topic, index) in trendingTopics"
+                :key="index"
+                class="topic-item"
+                href="#"
+                @click.prevent="searchByTag(topic.name)"
+              >
+                <span class="topic-name">{{ topic.name }}</span>
+                <span class="topic-count">{{ topic.count }}</span>
+              </a>
+            </div>
+          </div>
 
-            <div class="article-footer">
-              <div class="category-badge">{{ article.categoryName }}</div>
-              <div class="action-group">
-                <button class="action-btn">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M7 22V11M2 13V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H17.28C17.7623 22.0055 18.2304 21.8364 18.5979 21.524C18.9654 21.2116 19.2077 20.7769 19.28 20.3L20.66 11.3C20.7035 11.0134 20.6842 10.7207 20.6033 10.4423C20.5225 10.1638 20.3821 9.90629 20.1919 9.68751C20.0016 9.46873 19.7661 9.29393 19.5016 9.17522C19.2371 9.0565 18.9499 8.99672 18.66 9H14V4C14 3.46957 13.7893 2.96086 13.4142 2.58579C13.0391 2.21071 12.5304 2 12 2L7 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  {{ article.likeCount }}
-                </button>
-                <button class="action-btn">
-                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  {{ article.commentCount }}
-                </button>
+          <div class="sidebar-card">
+            <div class="card-header">
+              <span class="material-symbols-outlined">forum</span>
+              <h3>社区动态</h3>
+            </div>
+            <div class="community-list">
+              <div v-for="(activity, index) in communityActivities" :key="index" class="activity-item">
+                <div class="activity-avatar" :style="{ backgroundImage: `url(${activity.avatar})` }"></div>
+                <div class="activity-content">
+                  <p class="activity-name">{{ activity.name }}</p>
+                  <p class="activity-text">{{ activity.text }}</p>
+                  <a href="#" class="activity-link">查看详情</a>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </main>
+        </aside>
+      </div>
+    </main>
 
-      <!-- 右侧边栏 -->
-      <aside class="sidebar-right">
-        <!-- 个人信息卡片 -->
-        <div class="info-card">
-          <div class="user-profile">
-            <!-- 头像容器（带VIP特效） -->
-            <div class="avatar-container" :class="getAvatarClass(userInfo.userLevel)">
-              <img :src="userInfo.avatar" alt="avatar" class="profile-avatar" />
-              <!-- VIP 光环 (userLevel === 1) -->
-              <div v-if="userInfo.userLevel === 1" class="vip-ring"></div>
-              <!-- SVIP 彩虹光环 (userLevel === 2) -->
-              <div v-if="userInfo.userLevel === 2" class="svip-ring"></div>
-            </div>
-            <h3 class="profile-name">
-              {{ userInfo.username }}
-              <!-- VIP/SVIP 徽章 -->
-              <span v-if="userInfo.userLevel === 1" class="level-badge vip-badge">VIP</span>
-              <span v-if="userInfo.userLevel === 2" class="level-badge svip-badge">SVIP</span>
-            </h3>
-            <p class="profile-level">{{ levelText }}</p>
-          </div>
-          <div class="stats">
-            <div class="stat-item">
-              <span class="stat-value">{{ userStats.articleCount }}</span>
-              <span class="stat-label">文章</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-value">{{ userStats.followingCount }}</span>
-              <span class="stat-label">关注</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-value">{{ userStats.followersCount }}</span>
-              <span class="stat-label">粉丝</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 热门标签 -->
-        <div class="hot-tags">
-          <h4>热门标签</h4>
-          <div class="tags-container">
-            <span v-for="tag in hotTags" :key="tag" class="hot-tag">{{ tag }}</span>
-          </div>
-        </div>
-      </aside>
-    </div>
-
-    <!-- 页脚 -->
     <footer class="page-footer">
       <div class="footer-container">
-        <div class="footer-content">
-          <div class="footer-section">
-            <h4>CoderHub</h4>
-            <p>专业的技术分享社区</p>
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <div class="footer-logo">
+              <span class="material-symbols-outlined">book_4</span>
+              <h4>CoderHub</h4>
+            </div>
+            <p class="footer-desc">
+              一个为开发者精心打造的技术交流平台，学习、讨论、共同成长。
+            </p>
           </div>
-          <div class="footer-section">
-            <h4>快速链接</h4>
-            <a href="#">关于我们</a>
-            <a href="#">联系方式</a>
-            <a href="#">使用协议</a>
+
+          <div class="footer-links">
+            <h5>知识库</h5>
+            <ul>
+              <li><a href="#">全部文章</a></li>
+              <li><a href="#">技术教程</a></li>
+              <li><a href="#">架构设计</a></li>
+              <li><a href="#">开源项目</a></li>
+            </ul>
           </div>
-          <div class="footer-section">
-            <h4>社区</h4>
-            <a href="#">写文章</a>
-            <a href="#">问答</a>
-            <a href="#">活动</a>
+
+          <div class="footer-links">
+            <h5>社区</h5>
+            <ul>
+              <li><a href="#">讨论区</a></li>
+              <li><a href="#">活动</a></li>
+              <li><a href="#">代码审查</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-newsletter">
+            <h5>订阅周刊</h5>
+            <p>获取每周精选技术文章</p>
+            <div class="newsletter-form">
+              <input type="email" placeholder="输入邮箱地址" />
+              <button>订阅</button>
+            </div>
           </div>
         </div>
-        <div class="footer-copyright">
-          © 2024 CoderHub. All rights reserved.
+
+        <div class="footer-bottom">
+          <p>© 2024 CoderHub. 用心为开发者打造</p>
+          <div class="footer-bottom-links">
+            <a href="#">隐私政策</a>
+            <a href="#">服务条款</a>
+            <a href="#">联系我们</a>
+          </div>
         </div>
       </div>
     </footer>
@@ -223,9 +223,37 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const selectedCategory = ref('all')
-const sortType = ref('hot')
+const sortType = ref('latest')
 const userInfo = ref({})
 const searchKeyword = ref('')
+
+// ==================== 新增：Stitch设计所需的数据 ====================
+
+// 热门搜索标签（从后端热门标签获取）
+const trendingTags = ref(['Spring Boot', '微服务', 'Vue3'])
+
+// 热门话题（默认占位，优先使用后端热门标签）
+const trendingTopics = ref([
+  { name: '微前端架构 2024', count: '1.2k' },
+  { name: 'TypeScript 最佳实践', count: '840' },
+  { name: '向量数据库对比', count: '650' }
+])
+
+// 社区动态（模拟数据，暂无后端接口）
+const communityActivities = ref([
+  {
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mike',
+    name: '张三',
+    text: '"刚完成了一个 WebSocket 调试，花了10小时..."'
+  },
+  {
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=liam',
+    name: '李四',
+    text: '"分享了我的新开源 Go 日志库！"'
+  }
+])
+
+// ==================== 保留原有后端接口相关逻辑 ====================
 
 // 处理导航栏搜索
 const handleNavSearch = (keyword) => {
@@ -270,15 +298,13 @@ const isExpanded = (categoryId) => {
 const toggleExpand = (categoryId) => {
   const index = expandedCategories.value.indexOf(categoryId)
   if (index > -1) {
-    // 已展开，则收起
     expandedCategories.value.splice(index, 1)
   } else {
-    // 未展开，则展开
     expandedCategories.value.push(categoryId)
   }
 }
 
-// 获取分类列表
+// 获取分类列表（保留原有接口）
 const fetchCategories = async () => {
   try {
     const response = await axios.get('/api/category/list')
@@ -303,29 +329,21 @@ const articles = ref([])
 const getAllRelatedCategoryIds = (categoryId) => {
   if (categoryId === 'all') return null
   
-  // 检查是否为父分类
   const subCategories = getSubCategories(categoryId)
   if (subCategories.length > 0) {
-    // 是父分类，返回父分类ID + 所有子分类ID
     return [categoryId, ...subCategories.map(c => c.id)]
   }
   
-  // 是子分类或叶子分类，只返回自己的ID
   return [categoryId]
 }
 
-// 获取文章列表
+// 获取文章列表（保留原有接口）
 const fetchArticles = async () => {
   try {
     const token = localStorage.getItem('token')
     const params = {}
     
-    // 如果选择了分类，添加分类ID参数
     if (selectedCategory.value !== 'all') {
-      const categoryIds = getAllRelatedCategoryIds(selectedCategory.value)
-      // 由于后端接口只接受单个categoryId，我们需要修改策略
-      // 方案：客户端过滤或让后端支持多个categoryId
-      // 这里先使用客户端过滤方案
       params.categoryId = selectedCategory.value
     }
     
@@ -339,11 +357,9 @@ const fetchArticles = async () => {
     if (response.data.code === 1) {
       let articleList = response.data.data
       
-      // 如果选择的是父分类，需要额外获取子分类的文章
       if (selectedCategory.value !== 'all') {
         const subCategories = getSubCategories(selectedCategory.value)
         if (subCategories.length > 0) {
-          // 获取所有子分类的文章
           for (const subCat of subCategories) {
             const subResponse = await axios.get('/api/article/list', {
               params: { categoryId: subCat.id },
@@ -368,15 +384,18 @@ const goToArticle = (articleId) => {
   router.push(`/article/${articleId}`)
 }
 
+// 跳转到AI助手
+const goToAIChat = () => {
+  router.push('/ai/assistant')
+}
+
 // 格式化时间
 const formatTime = (timeStr) => {
   if (!timeStr) return '未知时间'
   
   try {
-    // 处理各种时间格式
     let time
     if (Array.isArray(timeStr)) {
-      // [2024, 10, 21, 18, 30, 45]
       time = new Date(timeStr[0], timeStr[1] - 1, timeStr[2], timeStr[3] || 0, timeStr[4] || 0, timeStr[5] || 0)
     } else if (typeof timeStr === 'string') {
       time = new Date(timeStr)
@@ -385,7 +404,6 @@ const formatTime = (timeStr) => {
     }
     
     if (isNaN(time.getTime())) {
-      console.error('无效的时间格式：', timeStr)
       return '未知时间'
     }
     
@@ -401,15 +419,30 @@ const formatTime = (timeStr) => {
     
     return time.toLocaleDateString('zh-CN')
   } catch (e) {
-    console.error('时间格式化错误：', e, timeStr)
     return '未知时间'
   }
 }
 
-// 热门标签
+// 估算阅读时间
+const estimateReadTime = (summary) => {
+  if (!summary) return 5
+  const words = summary.length
+  return Math.max(3, Math.ceil(words / 200))
+}
+
+// 热门标签（后端返回）
 const hotTags = ref([])
 
-// 获取热门标签
+const formatTopicCount = (count) => {
+  if (count === null || count === undefined) return '0'
+  const value = Number(count)
+  if (Number.isNaN(value)) return '0'
+  if (value >= 10000) return `${(value / 1000).toFixed(1)}k`
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`
+  return `${value}`
+}
+
+// 获取热门标签（保留原有接口）
 const fetchHotTags = async () => {
   try {
     const token = localStorage.getItem('token')
@@ -420,14 +453,26 @@ const fetchHotTags = async () => {
       }
     })
     if (response.data.code === 1) {
-      hotTags.value = response.data.data.map(tag => tag.tagName)
+      hotTags.value = response.data.data || []
+      const hotTagNames = hotTags.value
+        .map(tag => tag.tagName || tag.name)
+        .filter(Boolean)
+      if (hotTagNames.length > 0) {
+        trendingTags.value = hotTagNames.slice(0, 5)
+      }
+      if (hotTags.value.length > 0) {
+        trendingTopics.value = hotTags.value.slice(0, 6).map(tag => ({
+          name: tag.tagName || tag.name || '热门话题',
+          count: formatTopicCount(tag.usageCount ?? tag.useCount ?? tag.referenceCount ?? tag.viewCount ?? 0)
+        }))
+      }
     }
   } catch (error) {
     console.error('获取热门标签失败：', error)
   }
 }
 
-// 用户等级文本（userLevel: 0-普通 1-VIP 2-SVIP）
+// 用户等级文本
 const levelText = computed(() => {
   const level = userInfo.value.userLevel
   if (level === 2) return '超级会员'
@@ -435,7 +480,7 @@ const levelText = computed(() => {
   return '普通用户'
 })
 
-// 获取头像容器样式类（userLevel: 0-普通 1-VIP 2-SVIP）
+// 获取头像容器样式类
 const getAvatarClass = (userLevel) => {
   if (userLevel === 2) return 'svip-avatar'
   if (userLevel === 1) return 'vip-avatar'
@@ -444,7 +489,6 @@ const getAvatarClass = (userLevel) => {
 
 // 搜索功能
 const handleSearch = () => {
-  // 简单的前端搜索过滤（如果需要后端搜索，可以调用API）
   if (!searchKeyword.value.trim()) {
     fetchArticles()
     return
@@ -458,7 +502,19 @@ const handleSearch = () => {
   )
 }
 
-// 获取用户统计信息
+// 按标签搜索
+const searchByTag = (tag) => {
+  searchKeyword.value = tag
+  handleSearch()
+}
+
+// 加载更多文章（暂无后端分页接口支持）
+const loadMoreArticles = () => {
+  // TODO: 需要后端支持分页接口
+  console.log('加载更多文章 - 需要后端分页支持')
+}
+
+// 获取用户统计信息（保留原有接口）
 const fetchUserStats = async () => {
   try {
     const token = localStorage.getItem('token')
@@ -490,7 +546,7 @@ onMounted(() => {
     router.push('/')
   }
   
-  // 获取数据
+  // 获取数据（保留所有原有接口调用）
   fetchCategories()
   fetchArticles()
   fetchHotTags()
@@ -499,360 +555,327 @@ onMounted(() => {
 </script>
 
 <style scoped>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+:global(:root) {
+  --primary: #c2410c;
+  --accent: #d97706;
+  --background: #faf7f2;
+  --surface: #f3eee5;
+  --text-main: #2d2a26;
+  --text-muted: #7c7267;
+  --border-warm: #e8e2d9;
+  --golden-glow: rgba(251, 191, 36, 0.25);
+}
+
+:global(.material-symbols-outlined) {
+  font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+.font-display {
+  font-family: 'Inter', sans-serif;
+}
+
+.font-serif-warm {
+  font-family: 'Crimson Pro', serif;
 }
 
 .home-container {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--background);
+  color: var(--text-main);
 }
 
-/* 主体内容 */
-.main-content {
-  max-width: 1400px;
-  margin: 24px auto;
+.main-wrapper {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 40px 80px;
+}
+
+.hero-section {
+  margin: 0 -40px 48px;
+  padding: 64px 40px 72px;
+  background: linear-gradient(135deg, #fdfcfb 0%, #f5eadd 100%);
+  border-bottom: 1px solid var(--border-warm);
+  border-radius: 0 0 48px 48px;
+}
+
+.hero-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.hero-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 48px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 16px;
+}
+
+.hero-highlight {
+  color: var(--primary);
+  font-style: italic;
+}
+
+.hero-subtitle {
+  font-family: 'Crimson Pro', serif;
+  font-size: 18px;
+  color: #6b7280;
+  margin-bottom: 32px;
+}
+
+.hero-search {
+  position: relative;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.search-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+}
+
+.search-input {
+  width: 100%;
+  height: 64px;
+  padding: 0 128px 0 52px;
+  border-radius: 20px;
+  border: 2px solid var(--border-warm);
+  background: white;
+  font-size: 16px;
+  font-family: 'Crimson Pro', serif;
+  outline: none;
+  box-shadow: 0 16px 30px rgba(148, 163, 184, 0.25);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 18px 40px rgba(217, 119, 6, 0.15);
+}
+
+.search-btn {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  bottom: 12px;
   padding: 0 24px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 8px 20px rgba(217, 119, 6, 0.25);
+}
+
+.search-btn:hover {
+  background: #c76a0a;
+}
+
+.trending-tags {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.trending-label {
+  color: #9ca3af;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.trending-tag {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.trending-tag:hover {
+  text-decoration: underline;
+}
+
+.content-grid {
   display: grid;
-  grid-template-columns: 200px 1fr 280px;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 40px;
+}
+
+.articles-section {
+  grid-column: span 8;
+  display: flex;
+  flex-direction: column;
   gap: 24px;
 }
 
-/* 左侧边栏 */
-.sidebar-left {
-  position: sticky;
-  top: 88px;
-  height: fit-content;
-}
-
-.category-list {
-  background: white;
-  border-radius: 12px;
-  padding: 12px 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.category-item {
+.section-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  font-size: 14px;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-}
-
-.category-item:hover {
-  background: #f5f7fa;
-  color: #2c3e50;
-}
-
-.category-item.active {
-  background: #f5f7fa;
-  color: #2c3e50;
-  font-weight: 600;
-}
-
-/* 一级分类样式 */
-.category-item.root-category {
-  font-weight: 600;
-  margin-top: 8px;
-  color: #2c3e50;
-}
-
-/* 二级分类样式 */
-.category-item.sub-category {
-  padding-left: 48px;
-  font-size: 13px;
-  color: #64748b;
-}
-
-.category-item.sub-category:hover {
-  background: #f8f9fa;
-}
-
-/* 展开/收起按钮 */
-.expand-icon {
-  width: 14px;
-  height: 14px;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: transform 0.2s;
-  transform: rotate(0deg);
-  flex-shrink: 0;
-}
-
-.expand-icon:hover {
-  color: #2c3e50;
-}
-
-.expand-icon.expanded {
-  transform: rotate(90deg);
-}
-
-.category-icon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-.sub-icon {
-  width: 16px;
-  height: 16px;
-  opacity: 0.6;
-  flex-shrink: 0;
-}
-
-/* 文章数量标签 */
-.article-count {
-  margin-left: auto;
-  font-size: 12px;
-  color: #94a3b8;
-  background: #f1f5f9;
-  padding: 2px 8px;
-  border-radius: 10px;
-  flex-shrink: 0;
-}
-
-/* 文章列表 */
-.article-list {
-  background: transparent;
-  padding: 0;
-}
-
-.list-header {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding: 20px 24px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-warm);
 }
 
-.list-header h2 {
-  font-size: 20px;
-  color: #2c3e50;
-  font-weight: 600;
+.section-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
 }
 
 .sort-tabs {
   display: flex;
-  gap: 8px;
-  background: #f5f7fa;
-  padding: 4px;
-  border-radius: 8px;
+  gap: 16px;
 }
 
-.sort-tabs span {
-  padding: 6px 16px;
-  font-size: 14px;
-  color: #64748b;
+.sort-tab {
+  background: transparent;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  color: #9ca3af;
   cursor: pointer;
-  border-radius: 6px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid transparent;
   transition: all 0.2s;
-  font-weight: 500;
 }
 
-.sort-tabs span.active {
-  background: white;
-  color: #2c3e50;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.sort-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
-.sort-tabs span:hover:not(.active) {
-  color: #2c3e50;
-  background: rgba(255, 255, 255, 0.6);
+.sort-tab:hover {
+  color: #6b7280;
 }
 
-/* 空状态 */
+.articles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #94a3b8;
+  color: #9ca3af;
 }
 
-.empty-state svg {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 16px;
-  color: #cbd5e1;
+.empty-state .material-symbols-outlined {
+  font-size: 48px;
+  margin-bottom: 12px;
 }
 
-.empty-state p {
-  font-size: 14px;
-}
-
-/* 文章卡片 */
 .article-card {
   display: flex;
-  gap: 20px;
-  padding: 24px;
-  margin-bottom: 16px;
+  gap: 28px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border-warm);
+  border-radius: 32px;
+  padding: 24px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
-  border: 1px solid transparent;
 }
 
 .article-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-  border-color: #e2e8f0;
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgba(194, 65, 12, 0.12);
 }
 
-.article-card:last-child {
-  margin-bottom: 0;
-}
-
-/* 封面图 */
 .article-cover {
-  flex-shrink: 0;
-  width: 220px;
-  height: 150px;
-  border-radius: 10px;
+  width: 260px;
+  height: 180px;
+  border-radius: 24px;
   overflow: hidden;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: relative;
-}
-
-.article-cover::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
-  z-index: 1;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.article-card:hover .article-cover::before {
-  opacity: 1;
+  flex-shrink: 0;
 }
 
 .article-cover img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.4s ease;
 }
 
 .article-card:hover .article-cover img {
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
-/* 文章内容 */
-.article-content {
-  flex: 1;
+.article-body {
   display: flex;
   flex-direction: column;
+  flex: 1;
 }
 
-.article-header {
+.article-meta-top {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
 }
 
-.author-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+.category-badge {
+  padding: 6px 14px;
+  background: #fef3c7;
+  color: #b45309;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
 }
 
-.author-info {
-  flex: 1;
-}
-
-.author-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.article-meta {
+.read-time {
   font-size: 12px;
-  color: #94a3b8;
-}
-
-.dot {
-  margin: 0 6px;
-}
-
-/* 原创标签 */
-.original-badge {
-  padding: 4px 12px;
-  font-size: 12px;
+  color: #9ca3af;
   font-weight: 600;
-  color: #f59e0b;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-radius: 6px;
-  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
 }
 
 .article-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-family: 'Crimson Pro', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  transition: color 0.2s;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.5;
+  overflow: hidden;
 }
 
 .article-card:hover .article-title {
-  color: #667eea;
+  color: var(--primary);
 }
 
 .article-summary {
-  font-size: 14px;
-  color: #64748b;
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px;
+  color: #6b7280;
   line-height: 1.7;
-  margin-bottom: 16px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 24px;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-}
-
-.article-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.tag {
-  padding: 5px 14px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #667eea;
-  background: linear-gradient(135deg, #f5f7ff 0%, #e8ebff 100%);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.tag:hover {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+  overflow: hidden;
 }
 
 .article-footer {
@@ -862,402 +885,411 @@ onMounted(() => {
   margin-top: auto;
 }
 
-/* 分类标签 */
-.category-badge {
-  padding: 5px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #2c3e50;
-  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
-  border-radius: 6px;
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.author-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background-size: cover;
+  background-position: center;
+  border: 1px solid var(--border-warm);
+}
+
+.author-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.read-more-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.read-more-btn:hover {
+  color: #9a3412;
+}
+
+.load-more-btn {
+  width: 100%;
+  padding: 18px;
+  border: 2px dashed var(--border-warm);
+  background: white;
+  color: #6b7280;
+  font-weight: 700;
+  border-radius: 20px;
+  cursor: pointer;
   transition: all 0.2s;
 }
 
-.action-group {
+.load-more-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.sidebar {
+  grid-column: span 4;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ai-card {
+  padding: 28px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 0 0 50px var(--golden-glow);
+}
+
+.ai-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--accent);
+  margin-bottom: 16px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.ai-card-text {
+  font-family: 'Crimson Pro', serif;
+  font-size: 18px;
+  color: #1f2937;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+.ai-highlight {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.ai-card-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(217, 119, 6, 0.25);
+  transition: filter 0.2s;
+}
+
+.ai-card-btn:hover {
+  filter: brightness(1.05);
+}
+
+.sidebar-card {
+  background: white;
+  border-radius: 28px;
+  border: 1px solid var(--border-warm);
+  padding: 24px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.card-header .material-symbols-outlined {
+  color: var(--primary);
+}
+
+.topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.topic-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-decoration: none;
+  color: inherit;
+}
+
+.topic-name {
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px;
+  color: #374151;
+  transition: color 0.2s;
+}
+
+.topic-item:hover .topic-name {
+  color: var(--primary);
+}
+
+.topic-count {
+  font-size: 11px;
+  font-weight: 700;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: #6b7280;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.community-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.activity-item {
   display: flex;
   gap: 12px;
 }
 
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+.activity-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--surface);
+}
+
+.activity-name {
   font-size: 13px;
-  color: #64748b;
-  background: #f5f7fa;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-weight: 500;
+  font-weight: 700;
+  color: #1f2937;
 }
 
-.action-btn svg {
-  width: 16px;
-  height: 16px;
-  transition: transform 0.2s;
+.activity-text {
+  font-family: 'Crimson Pro', serif;
+  font-size: 12px;
+  color: #6b7280;
+  font-style: italic;
+  margin: 2px 0 6px;
 }
 
-.action-btn:hover {
-  color: white;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+.activity-link {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  text-decoration: none;
 }
 
-.action-btn:hover svg {
-  transform: scale(1.1);
+.activity-link:hover {
+  text-decoration: underline;
 }
 
-/* 右侧边栏 */
-.sidebar-right {
-  position: sticky;
-  top: 88px;
-  height: fit-content;
+.page-footer {
+  margin-top: 80px;
+  background: var(--surface);
+  border-top: 1px solid var(--border-warm);
+  padding: 60px 0 40px;
 }
 
-.info-card,
-.hot-tags {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  margin-bottom: 16px;
-  border: 1px solid #f5f7fa;
-  transition: all 0.3s;
+.footer-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 40px;
 }
 
-.info-card:hover,
-.hot-tags:hover {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 32px;
+  margin-bottom: 32px;
 }
 
-.user-profile {
-  text-align: center;
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* 头像容器（与ArticleDetail保持一致） */
-.avatar-container {
-  position: relative;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 12px;
-}
-
-.profile-avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  position: relative;
-  z-index: 2;
-}
-
-/* VIP 头像特效 */
-.vip-avatar .profile-avatar {
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
-}
-
-.vip-ring {
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  background: linear-gradient(45deg, #FFD700, #FFA500, #FFD700) border-box;
-  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: vipRotate 3s linear infinite;
-  z-index: 1;
-}
-
-@keyframes vipRotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* SVIP 头像特效 */
-.svip-avatar .profile-avatar {
-  box-shadow: 0 0 30px rgba(138, 43, 226, 0.8);
-  animation: svipPulse 2s ease-in-out infinite;
-}
-
-@keyframes svipPulse {
-  0%, 100% {
-    box-shadow: 0 0 30px rgba(138, 43, 226, 0.8);
-  }
-  50% {
-    box-shadow: 0 0 50px rgba(255, 20, 147, 1);
-  }
-}
-
-.svip-ring {
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  right: -6px;
-  bottom: -6px;
-  border-radius: 50%;
-  border: 4px solid transparent;
-  background: linear-gradient(90deg, 
-    #FF1493, 
-    #FF69B4, 
-    #FF6347, 
-    #FFD700, 
-    #00FA9A, 
-    #00CED1, 
-    #1E90FF, 
-    #9370DB, 
-    #FF1493
-  ) border-box;
-  background-size: 300% 300%;
-  -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: svipRainbow 3s linear infinite;
-  z-index: 1;
-}
-
-@keyframes svipRainbow {
-  0% {
-    background-position: 0% 50%;
-    transform: rotate(0deg);
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-    transform: rotate(360deg);
-  }
-}
-
-.profile-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 4px;
+.footer-logo {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
+  gap: 10px;
+  color: var(--primary);
+  margin-bottom: 14px;
 }
 
-/* 等级徽章 */
-.level-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  border-radius: 4px;
-  letter-spacing: 0.5px;
-}
-
-.vip-badge {
-  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
-  animation: vipBadgeGlow 2s ease-in-out infinite;
-}
-
-@keyframes vipBadgeGlow {
-  0%, 100% {
-    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
-  }
-  50% {
-    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.8);
-  }
-}
-
-.svip-badge {
-  background: linear-gradient(135deg, #FF1493 0%, #9370DB 50%, #1E90FF 100%);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4);
-  animation: svipBadgeGlow 2s ease-in-out infinite;
-}
-
-@keyframes svipBadgeGlow {
-  0%, 100% {
-    box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4);
-  }
-  50% {
-    box-shadow: 0 4px 16px rgba(138, 43, 226, 0.8);
-  }
-}
-
-.profile-level {
-  font-size: 13px;
-  color: #94a3b8;
-}
-
-.stats {
-  display: flex;
-  justify-content: space-around;
-  padding-top: 20px;
-  border-top: 2px solid #f5f7fa;
-  margin-top: 4px;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  transition: transform 0.2s;
-  cursor: pointer;
-}
-
-.stat-item:hover {
-  transform: translateY(-3px);
-}
-
-.stat-value {
+.footer-logo h4 {
+  font-family: 'Crimson Pro', serif;
   font-size: 20px;
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #1f2937;
 }
 
-.stat-label {
+.footer-desc {
+  font-family: 'Crimson Pro', serif;
+  color: #6b7280;
+  line-height: 1.7;
+}
+
+.footer-links h5,
+.footer-newsletter h5 {
   font-size: 12px;
-  color: #94a3b8;
-  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 14px;
 }
 
-.hot-tags h4 {
-  font-size: 16px;
-  color: #2c3e50;
-  margin-bottom: 18px;
-  font-weight: 600;
-  position: relative;
-  padding-left: 12px;
-}
-
-.hot-tags h4::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 18px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 2px;
-}
-
-.tags-container {
-  display: flex;
-  flex-wrap: wrap;
+.footer-links ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
   gap: 10px;
 }
 
-.hot-tag {
-  padding: 8px 16px;
+.footer-links a {
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.footer-links a:hover {
+  color: var(--primary);
+}
+
+.footer-newsletter p {
+  font-family: 'Crimson Pro', serif;
   font-size: 12px;
-  font-weight: 500;
-  color: #667eea;
-  background: linear-gradient(135deg, #f5f7ff 0%, #e8ebff 100%);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.3s;
-  border: 1px solid transparent;
+  color: #9ca3af;
+  margin-bottom: 12px;
+  font-style: italic;
 }
 
-.hot-tag:hover {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.newsletter-form {
+  display: flex;
+  gap: 8px;
+}
+
+.newsletter-form input {
+  flex: 1;
+  border: 1px solid var(--border-warm);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  outline: none;
+}
+
+.newsletter-form button {
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: var(--primary);
   color: white;
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  border: none;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
 }
 
-/* 响应式 */
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-bottom p {
+  font-size: 12px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.footer-bottom-links {
+  display: flex;
+  gap: 16px;
+}
+
+.footer-bottom-links a {
+  font-size: 12px;
+  color: #9ca3af;
+  text-decoration: none;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.footer-bottom-links a:hover {
+  color: var(--primary);
+}
+
 @media (max-width: 1200px) {
-  .main-content {
-    grid-template-columns: 1fr 280px;
+  .content-grid {
+    grid-template-columns: 1fr;
   }
-  
-  .sidebar-left {
-    display: none;
+
+  .articles-section,
+  .sidebar {
+    grid-column: span 12;
+  }
+
+  .article-card {
+    flex-direction: column;
+  }
+
+  .article-cover {
+    width: 100%;
+    height: 220px;
   }
 }
 
 @media (max-width: 768px) {
-  .main-content {
+  .main-wrapper {
+    padding: 0 20px 60px;
+  }
+
+  .hero-section {
+    margin: 0 -20px 40px;
+    padding: 48px 20px 56px;
+  }
+
+  .hero-title {
+    font-size: 34px;
+  }
+
+  .hero-search {
+    max-width: 100%;
+  }
+
+  .search-input {
+    padding-right: 96px;
+    height: 56px;
+  }
+
+  .search-btn {
+    padding: 0 16px;
+  }
+
+  .footer-grid {
     grid-template-columns: 1fr;
   }
-  
-  .sidebar-right {
-    display: none;
-  }
-}
-
-/* ==================== 页脚 ==================== */
-.page-footer {
-  background: #2c3e50;
-  color: white;
-  padding: 40px 0 20px;
-  margin-top: 60px;
-}
-
-.footer-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-
-.footer-content {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 40px;
-  margin-bottom: 32px;
-}
-
-.footer-section h4 {
-  font-size: 16px;
-  margin: 0 0 16px 0;
-}
-
-.footer-section p {
-  font-size: 14px;
-  color: #bdc3c7;
-  margin: 0;
-}
-
-.footer-section a {
-  display: block;
-  font-size: 14px;
-  color: #bdc3c7;
-  text-decoration: none;
-  margin-bottom: 8px;
-  transition: color 0.3s;
-}
-
-.footer-section a:hover {
-  color: white;
-}
-
-.footer-copyright {
-  text-align: center;
-  padding-top: 20px;
-  border-top: 1px solid #34495e;
-  font-size: 14px;
-  color: #bdc3c7;
 }
 </style>
 
