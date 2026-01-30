@@ -334,9 +334,25 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+:global(:root) {
+  --primary: #c2410c;
+  --accent: #d97706;
+  --background: #fdfaf6;
+  --surface: #f7f2eb;
+  --text-main: #2d2a26;
+  --text-muted: #7c7267;
+  --border-warm: #eaddd3;
+  --golden-glow: rgba(245, 158, 11, 0.25);
+}
+
 .project-detail-container {
   min-height: 100vh;
-  background: #f6f8fa;
+  background: var(--background);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
 }
 
 .loading-state, .error-state {
@@ -350,8 +366,8 @@ onMounted(() => {
 .loading-spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid #e1e4e8;
-  border-top-color: #0366d6;
+  border: 4px solid var(--border-warm);
+  border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -362,31 +378,42 @@ onMounted(() => {
 
 .error-state h2 {
   margin-bottom: 20px;
-  color: #586069;
+  font-family: 'Crimson Pro', serif;
+  color: var(--text-muted);
 }
 
 .error-state button {
-  padding: 12px 24px;
-  background: #0366d6;
+  padding: 12px 28px;
+  background: var(--primary);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 999px;
   cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(194, 65, 12, 0.25);
+}
+
+.error-state button:hover {
+  background: #9a3412;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(194, 65, 12, 0.35);
 }
 
 .project-content {
-  max-width: 1280px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 40px;
 }
 
 /* 头部 */
 .project-header {
   background: white;
-  border-radius: 12px;
-  padding: 32px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border-radius: 26px;
+  padding: 40px;
+  margin-bottom: 32px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
 }
 
 .header-main {
@@ -399,46 +426,61 @@ onMounted(() => {
 
 .breadcrumb {
   font-size: 14px;
-  color: #586069;
-  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  font-family: 'Inter', sans-serif;
 }
 
 .breadcrumb a {
-  color: #0366d6;
+  color: var(--primary);
   text-decoration: none;
+  transition: color 0.2s;
+}
+
+.breadcrumb a:hover {
+  color: #9a3412;
 }
 
 .breadcrumb .separator {
-  margin: 0 8px;
+  margin: 0 10px;
+  color: var(--border-warm);
 }
 
 .project-title {
-  font-size: 28px;
-  font-weight: 600;
-  color: #24292e;
+  font-family: 'Crimson Pro', serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: #1f2937;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
 }
 
 .project-icon {
-  font-size: 32px;
+  font-size: 36px;
 }
 
 .open-source-badge {
   font-size: 12px;
-  padding: 4px 12px;
-  background: linear-gradient(135deg, #28a745 0%, #22863a 100%);
+  padding: 6px 14px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
-  border-radius: 20px;
-  font-weight: 500;
+  border-radius: 999px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .project-desc {
-  color: #586069;
-  font-size: 16px;
-  max-width: 600px;
+  font-family: 'Crimson Pro', serif;
+  color: var(--text-muted);
+  font-size: 17px;
+  max-width: 700px;
+  line-height: 1.7;
 }
 
 .project-actions {
@@ -462,10 +504,14 @@ onMounted(() => {
 .btn-action.github {
   background: #24292e;
   color: white;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
 }
 
 .btn-action.github:hover {
   background: #2f363d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(36, 41, 46, 0.3);
 }
 
 .btn-action.github svg {
@@ -474,49 +520,62 @@ onMounted(() => {
 }
 
 .btn-action.demo {
-  background: #0366d6;
+  background: var(--primary);
   color: white;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
 }
 
 .btn-action.demo:hover {
-  background: #0256b9;
+  background: #9a3412;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.3);
 }
 
 .btn-action.download {
-  background: #28a745;
+  background: #10b981;
   color: white;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
 }
 
 .btn-action.download:hover {
-  background: #22863a;
+  background: #059669;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .project-stats {
   display: flex;
-  gap: 32px;
-  margin-top: 24px;
-  padding-top: 24px;
-  border-top: 1px solid #e1e4e8;
+  gap: 36px;
+  margin-top: 28px;
+  padding-top: 28px;
+  border-top: 1px solid var(--border-warm);
+  flex-wrap: wrap;
 }
 
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .stat-icon {
-  font-size: 18px;
+  font-size: 20px;
 }
 
 .stat-value {
-  font-weight: 600;
-  color: #24292e;
+  font-weight: 700;
+  color: #1f2937;
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
 }
 
 .stat-label {
-  color: #586069;
+  color: var(--text-muted);
   font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
 }
 
 /* 主体 */
@@ -535,25 +594,29 @@ onMounted(() => {
 /* README */
 .readme-section {
   background: white;
-  border-radius: 12px;
+  border-radius: 26px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
 }
 
 .readme-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px 24px;
-  background: #f6f8fa;
-  border-bottom: 1px solid #e1e4e8;
-  font-weight: 500;
+  gap: 10px;
+  padding: 20px 28px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-warm);
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  color: #1f2937;
 }
 
 .readme-content {
-  padding: 32px;
+  padding: 40px;
   line-height: 1.8;
-  color: #24292e;
+  color: var(--text-main);
+  font-family: 'Crimson Pro', serif;
 }
 
 .readme-content :deep(h1),
@@ -574,20 +637,23 @@ onMounted(() => {
 }
 
 .readme-content :deep(code) {
-  background: #f6f8fa;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  background: var(--surface);
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
   font-size: 90%;
+  color: var(--primary);
+  border: 1px solid var(--border-warm);
 }
 
 .readme-content :deep(pre) {
   background: #1e1e1e;
   color: #d4d4d4;
-  padding: 16px;
-  border-radius: 8px;
+  padding: 20px;
+  border-radius: 12px;
   overflow-x: auto;
-  margin: 16px 0;
+  margin: 20px 0;
+  border: 1px solid #2d2d2d;
 }
 
 .readme-content :deep(pre code) {
@@ -606,18 +672,24 @@ onMounted(() => {
 }
 
 .readme-content :deep(blockquote) {
-  border-left: 4px solid #0366d6;
-  padding-left: 16px;
-  margin: 16px 0;
-  color: #586069;
+  border-left: 4px solid var(--primary);
+  padding-left: 20px;
+  margin: 20px 0;
+  color: var(--text-muted);
+  background: var(--surface);
+  padding: 16px 20px;
+  border-radius: 8px;
 }
 
 .readme-content :deep(a) {
-  color: #0366d6;
+  color: var(--primary);
   text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
 }
 
 .readme-content :deep(a:hover) {
+  color: #9a3412;
   text-decoration: underline;
 }
 
@@ -645,18 +717,20 @@ onMounted(() => {
 
 .info-card {
   background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border-radius: 26px;
+  padding: 28px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
 }
 
 .info-card h3 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #24292e;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e1e4e8;
+  font-family: 'Crimson Pro', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border-warm);
 }
 
 .about-desc {
@@ -692,11 +766,13 @@ onMounted(() => {
 }
 
 .tech-tag {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
   color: white;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .author-info {
@@ -718,13 +794,17 @@ onMounted(() => {
 }
 
 .author-name {
-  font-weight: 600;
-  color: #24292e;
+  font-weight: 700;
+  color: #1f2937;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
 }
 
 .author-role {
   font-size: 13px;
-  color: #586069;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
 }
 
 .screenshots-grid {
@@ -770,23 +850,30 @@ onMounted(() => {
 /* 评论区 */
 .comments-section {
   background: white;
-  border-radius: 12px;
-  padding: 32px;
-  margin-top: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border-radius: 26px;
+  padding: 40px;
+  margin-top: 32px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
 }
 
 .comments-section h2 {
-  font-size: 20px;
-  margin-bottom: 24px;
+  font-family: 'Crimson Pro', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 28px;
 }
 
 .comments-placeholder {
   text-align: center;
-  padding: 48px;
-  background: #f6f8fa;
-  border-radius: 8px;
-  color: #586069;
+  padding: 80px 40px;
+  background: var(--surface);
+  border-radius: 20px;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-warm);
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px;
 }
 
 /* 灯箱 */

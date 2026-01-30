@@ -1,35 +1,48 @@
 <template>
   <div class="video-player-page">
-    <!-- 顶部导航栏 -->
-    <nav class="top-navbar">
-      <button class="btn-back" @click="goBack">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        返回课程
-      </button>
-      <div class="nav-title">
-        <h3>{{ video?.videoTitle }}</h3>
-        <span class="tutorial-breadcrumb">
-          {{ tutorial?.title }} / {{ chapter?.chapterTitle }}
-        </span>
-      </div>
-      <div class="nav-actions">
-        <button class="btn-download" @click="downloadVideo" title="下载视频">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 5V13M12 13L9 10M12 13L15 10M5 16L5 17C5 18.1046 5.89543 19 7 19L17 19C18.1046 19 19 18.1046 19 17V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          下载
+    <!-- 顶部导航栏 - 使用统一的NavBar组件 -->
+    <NavBar :showWriteBtn="false" />
+    
+    <!-- 视频信息工具栏 -->
+    <div class="video-toolbar">
+      <div class="toolbar-content">
+        <div class="video-breadcrumb">
+          <router-link :to="`/tutorial/${tutorial?.id}`" class="breadcrumb-link">{{ tutorial?.title }}</router-link>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-current">{{ chapter?.chapterTitle }}</span>
+        </div>
+        <button class="download-btn" @click="downloadVideo" title="下载视频">
+          <span class="material-symbols-outlined">download</span>
+          <span>下载</span>
         </button>
       </div>
-    </nav>
+    </div>
 
     <!-- 主要内容区 -->
     <div class="main-content">
       <!-- 左侧视频区域 -->
       <div class="video-section">
-        <!-- 视频播放器 -->
-        <div class="video-container">
+        <!-- 顶部视频信息区 -->
+        <div class="video-info-header">
+          <h1 class="video-title">{{ video?.videoTitle }}</h1>
+          <div class="video-meta">
+            <div class="meta-item">
+              <span class="material-symbols-outlined">schedule</span>
+              <span>{{ video?.duration }}</span>
+            </div>
+            <div class="meta-item">
+              <span class="material-symbols-outlined">visibility</span>
+              <span>{{ formatNumber(viewCount) }} 次观看</span>
+            </div>
+            <div class="meta-item" v-if="video?.createTime">
+              <span class="material-symbols-outlined">calendar_today</span>
+              <span>{{ formatDate(video?.createTime) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 中间核心播放区 -->
+        <div class="video-player-container">
           <video 
             ref="videoPlayer"
             :src="video?.videoUrl"
@@ -45,62 +58,23 @@
           </video>
         </div>
 
-        <!-- 视频信息 -->
-        <div class="video-info-section">
-          <div class="video-header">
-            <h1 class="video-title">{{ video?.videoTitle }}</h1>
-            <div class="video-stats">
-              <span class="stat-item">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                  <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                {{ video?.duration }}
-              </span>
-              <span class="stat-item">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="currentColor" stroke-width="2"/>
-                  <path d="M2.45817 12C3.73199 7.94288 7.52289 5 12.0004 5C16.4778 5 20.2687 7.94291 21.5426 12C20.2687 16.0571 16.4778 19 12.0003 19C7.52286 19 3.73195 16.0571 2.45817 12Z" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                {{ formatNumber(viewCount) }} 次观看
-              </span>
-              <span class="stat-item">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 7C3 5.89543 3.89543 5 5 5H19C20.1046 5 21 5.89543 21 7V17C21 18.1046 20.1046 19 19 19H5C3.89543 19 3 18.1046 3 17V7Z" stroke="currentColor" stroke-width="2"/>
-                  <path d="M8 2V5M16 2V5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                {{ formatDate(video?.createTime) }}
-              </span>
-            </div>
+        <!-- 讲师信息卡片 -->
+        <div class="instructor-card">
+          <div class="instructor-avatar">
+            <img :src="tutorial?.instructorAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=instructor'" alt="讲师头像">
           </div>
-
-          <!-- 讲师信息 -->
-          <div class="instructor-card">
-            <div class="instructor-avatar">
-              <img :src="tutorial?.instructorAvatar || '/default-avatar.png'" alt="讲师头像">
-            </div>
-            <div class="instructor-info">
-              <h3 class="instructor-name">{{ tutorial?.instructorName || '讲师' }}</h3>
-              <p class="instructor-title">{{ tutorial?.instructorDesc || '课程讲师' }}</p>
-            </div>
-            <button class="btn-follow">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              关注
-            </button>
+          <div class="instructor-info">
+            <h3 class="instructor-name">{{ tutorial?.instructorName || '讲师' }}</h3>
+            <p class="instructor-title">{{ tutorial?.instructorDesc || '课程讲师' }}</p>
           </div>
         </div>
       </div>
 
-      <!-- 右侧课程目录 -->
+      <!-- 右侧相关视频推荐区 -->
       <aside class="playlist-sidebar">
         <div class="playlist-header">
           <h2>
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2"/>
-              <path d="M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5V4C15 2.89543 14.1046 2 13 2H11C9.89543 2 9 2.89543 9 4V5Z" stroke="currentColor" stroke-width="2"/>
-            </svg>
+            <span class="material-symbols-outlined">playlist_play</span>
             课程目录
           </h2>
           <span class="chapter-count">{{ chapters.length }} 章节</span>
@@ -139,17 +113,17 @@
                   @click="switchVideo(videoItem, chapterItem)"
                 >
                   <div class="video-item-icon">
-                    <svg v-if="videoItem.id === video?.id && isPlaying" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/>
-                      <rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/>
-                    </svg>
-                    <svg v-else viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M5 3L19 12L5 21V3Z" fill="currentColor"/>
-                    </svg>
+                    <span v-if="videoItem.id === video?.id && isPlaying" class="material-symbols-outlined">pause</span>
+                    <span v-else class="material-symbols-outlined">play_arrow</span>
                   </div>
                   <div class="video-item-info">
                     <span class="video-item-title">{{ videoItem.videoTitle }}</span>
-                    <span class="video-item-duration">{{ videoItem.duration }}</span>
+                    <div class="video-item-meta">
+                      <span class="video-item-duration">
+                        <span class="material-symbols-outlined">schedule</span>
+                        {{ videoItem.duration }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -158,9 +132,7 @@
 
           <!-- 空状态 -->
           <div v-if="chapters.length === 0" class="empty-playlist">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2"/>
-            </svg>
+            <span class="material-symbols-outlined">playlist_play</span>
             <p>暂无课程目录</p>
           </div>
         </div>
@@ -173,6 +145,7 @@
 import { getChapterVideos, getTutorialChapters, getTutorialDetail } from '@/api/user'
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import NavBar from '@/components/NavBar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -353,176 +326,202 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.video-player-page {
-  min-height: 100vh;
-  background: #0f0f0f;
-  color: white;
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+:global(:root) {
+  --primary: #c2410c;
+  --accent: #d97706;
+  --background: #fdfaf6;
+  --surface: #f7f2eb;
+  --text-main: #2d2a26;
+  --text-muted: #7c7267;
+  --border-warm: #eaddd3;
+  --golden-glow: rgba(245, 158, 11, 0.25);
 }
 
-/* 顶部导航栏 */
-.top-navbar {
+.video-player-page {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+}
+
+/* 视频信息工具栏 */
+.video-toolbar {
+  background: white;
+  border-bottom: 1px solid var(--border-warm);
+  box-shadow: 0 2px 8px rgba(45, 42, 38, 0.05);
   position: sticky;
-  top: 0;
-  z-index: 100;
+  top: 72px;
+  z-index: 40;
+}
+
+.toolbar-content {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 24px;
-  background: rgba(15, 15, 15, 0.95);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 24px;
 }
 
-.btn-back {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-back:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.btn-back svg {
-  width: 18px;
-  height: 18px;
-}
-
-.nav-title {
+.video-breadcrumb {
   flex: 1;
-  margin: 0 24px;
-}
-
-.nav-title h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin: 0 0 4px 0;
-  color: white;
-}
-
-.tutorial-breadcrumb {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.nav-actions {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
 }
 
-.btn-download {
+.breadcrumb-link {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.breadcrumb-link:hover {
+  color: #9a3412;
+}
+
+.breadcrumb-separator {
+  color: var(--border-warm);
+}
+
+.breadcrumb-current {
+  color: var(--text-muted);
+}
+
+.download-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  padding: 10px 24px;
+  background: var(--primary);
   color: white;
+  border: none;
+  border-radius: 999px;
   font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 4px 14px rgba(194, 65, 12, 0.25);
 }
 
-.btn-download:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+.download-btn:hover {
+  background: #9a3412;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(194, 65, 12, 0.35);
 }
 
-.btn-download svg {
-  width: 16px;
-  height: 16px;
+.download-btn .material-symbols-outlined {
+  font-size: 20px;
+  font-variation-settings: 'FILL' 0, 'wght' 600;
 }
 
 /* 主要内容区 */
 .main-content {
   display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 0;
-  min-height: calc(100vh - 60px);
+  grid-template-columns: 1fr 400px;
+  gap: 32px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px 40px;
+  min-height: calc(100vh - 140px);
 }
 
 /* 左侧视频区域 */
 .video-section {
-  background: #0f0f0f;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
 }
 
-.video-container {
+/* 顶部视频信息区 */
+.video-info-header {
+  background: white;
+  border-radius: 26px;
+  padding: 28px 32px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
+}
+
+.video-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 20px 0;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.video-meta {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+}
+
+.meta-item .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--primary);
+  font-variation-settings: 'FILL' 1, 'wght' 600;
+}
+
+/* 中间核心播放区 */
+.video-player-container {
   position: relative;
   width: 100%;
   background: #000;
+  border-radius: 26px;
+  overflow: hidden;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 32px rgba(45, 42, 38, 0.15);
   aspect-ratio: 16 / 9;
 }
 
 .video-element {
   width: 100%;
   height: 100%;
-  background: black;
+  background: #000;
+  display: block;
 }
 
-/* 视频信息区 */
-.video-info-section {
-  padding: 24px;
-}
-
-.video-header {
-  margin-bottom: 24px;
-}
-
-.video-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: white;
-  line-height: 1.4;
-}
-
-.video-stats {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.stat-item svg {
-  width: 16px;
-  height: 16px;
-}
-
-/* 讲师卡片 */
+/* 讲师信息卡片 */
 .instructor-card {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  margin-bottom: 24px;
+  padding: 24px 28px;
+  background: white;
+  border-radius: 26px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
 }
 
 .instructor-avatar {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid var(--border-warm);
+  flex-shrink: 0;
 }
 
 .instructor-avatar img {
@@ -533,52 +532,34 @@ onMounted(() => {
 
 .instructor-info {
   flex: 1;
+  min-width: 0;
 }
 
 .instructor-name {
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 4px 0;
-  color: white;
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 6px 0;
+  color: #1f2937;
+  font-family: 'Inter', sans-serif;
 }
 
 .instructor-title {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
-  margin: 0;
-}
-
-.btn-follow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: white;
-  border: none;
-  border-radius: 6px;
-  color: #0f0f0f;
   font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s;
+  color: var(--text-muted);
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
 }
 
-.btn-follow:hover {
-  background: #f0f0f0;
-  transform: translateY(-1px);
-}
-
-.btn-follow svg {
-  width: 16px;
-  height: 16px;
-}
-
-/* 右侧播放列表 */
+/* 右侧相关视频推荐区 */
 .playlist-sidebar {
-  background: #181818;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  overflow-y: auto;
-  max-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: sticky;
+  top: 120px;
+  max-height: calc(100vh - 140px);
+  overflow: hidden;
 }
 
 .playlist-header {
@@ -588,70 +569,96 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px;
-  background: #181818;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 24px 28px;
+  background: white;
+  border-bottom: 2px solid var(--border-warm);
+  border-radius: 26px 26px 0 0;
+  border: 1px solid var(--border-warm);
+  border-bottom-width: 2px;
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
 }
 
 .playlist-header h2 {
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  font-weight: 600;
+  gap: 12px;
+  font-family: 'Crimson Pro', serif;
+  font-size: 22px;
+  font-weight: 700;
   margin: 0;
-  color: white;
+  color: #1f2937;
 }
 
-.playlist-header svg {
-  width: 20px;
-  height: 20px;
+.playlist-header .material-symbols-outlined {
+  font-size: 24px;
+  color: var(--primary);
+  font-variation-settings: 'FILL' 1, 'wght' 700;
 }
 
 .chapter-count {
-  font-size: 12px;
-  padding: 4px 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  background: var(--surface);
+  border-radius: 999px;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  border: 1px solid var(--border-warm);
 }
 
 .playlist-content {
-  padding: 12px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  background: white;
+  border-radius: 0 0 26px 26px;
+  border: 1px solid var(--border-warm);
+  border-top: none;
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
 }
 
 /* 章节项 */
 .chapter-item {
-  margin-bottom: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
+  margin-bottom: 12px;
+  background: var(--surface);
+  border-radius: 16px;
   overflow: hidden;
+  border: 1px solid var(--border-warm);
+  transition: all 0.2s;
+}
+
+.chapter-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.1);
 }
 
 .chapter-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 16px 20px;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .chapter-header:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(194, 65, 12, 0.05);
 }
 
 .chapter-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .chapter-icon {
-  width: 16px;
-  height: 16px;
-  color: rgba(255, 255, 255, 0.6);
+  width: 20px;
+  height: 20px;
+  color: var(--primary);
   transition: transform 0.3s;
+  flex-shrink: 0;
 }
 
 .chapter-icon.expanded {
@@ -659,77 +666,115 @@ onMounted(() => {
 }
 
 .chapter-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: white;
-}
-
-.chapter-duration {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-/* 视频列表 */
-.video-list {
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.video-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px 12px 42px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.video-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.video-item.active {
-  background: rgba(103, 126, 234, 0.15);
-}
-
-.video-item.playing .video-item-icon {
-  color: #677eea;
-}
-
-.video-item-icon {
-  width: 20px;
-  height: 20px;
-  color: rgba(255, 255, 255, 0.5);
-  flex-shrink: 0;
-}
-
-.video-item-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-.video-item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.video-item-title {
-  display: block;
-  font-size: 13px;
-  color: white;
-  margin-bottom: 4px;
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.chapter-duration {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+/* 视频列表 */
+.video-list {
+  border-top: 1px solid var(--border-warm);
+  background: white;
+}
+
+.video-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px 16px 52px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.video-item:last-child {
+  border-bottom: none;
+}
+
+.video-item:hover {
+  background: var(--surface);
+}
+
+.video-item.active {
+  background: rgba(194, 65, 12, 0.08);
+  border-left: 4px solid var(--primary);
+}
+
+.video-item.playing .video-item-icon {
+  color: var(--primary);
+}
+
+.video-item-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.video-item-icon .material-symbols-outlined {
+  font-size: 24px;
+  font-variation-settings: 'FILL' 1, 'wght' 600;
+}
+
+.video-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.video-item-title {
+  display: block;
+  font-family: 'Crimson Pro', serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 .video-item.active .video-item-title {
-  color: #677eea;
-  font-weight: 500;
+  color: var(--primary);
+}
+
+.video-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .video-item-duration {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+}
+
+.video-item-duration .material-symbols-outlined {
+  font-size: 14px;
+  font-variation-settings: 'FILL' 0, 'wght' 600;
 }
 
 /* 空状态 */
@@ -738,20 +783,27 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
-  color: rgba(255, 255, 255, 0.3);
+  padding: 80px 40px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px dashed var(--border-warm);
+  margin: 20px;
 }
 
-.empty-playlist svg {
-  width: 48px;
-  height: 48px;
-  margin-bottom: 16px;
-  opacity: 0.5;
+.empty-playlist .material-symbols-outlined {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.4;
+  color: var(--primary);
+  font-variation-settings: 'FILL' 1, 'wght' 700;
 }
 
 .empty-playlist p {
-  font-size: 14px;
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px;
   margin: 0;
+  color: var(--text-muted);
 }
 
 /* 动画 */
@@ -771,17 +823,33 @@ onMounted(() => {
 /* 响应式 */
 @media (max-width: 1200px) {
   .main-content {
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 1fr 360px;
+    padding: 24px 20px;
+    gap: 24px;
+  }
+
+  .toolbar-content {
+    padding: 16px 24px;
   }
 }
 
 @media (max-width: 968px) {
   .main-content {
     grid-template-columns: 1fr;
+    padding: 24px 20px;
   }
   
   .playlist-sidebar {
-    max-height: 400px;
+    position: static;
+    max-height: 500px;
+  }
+
+  .video-title {
+    font-size: 26px;
+  }
+
+  .video-meta {
+    gap: 20px;
   }
 }
 </style>

@@ -1,36 +1,50 @@
 <template>
   <div class="profile-container">
-    <!-- 顶部导航栏 -->
-    <header class="top-nav">
-      <div class="nav-content">
-        <div class="nav-left">
-          <div class="logo-container" @click="goHome">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="40" height="40" rx="8" fill="url(#gradient)" />
-              <path d="M12 14L20 10L28 14V26L20 30L12 26V14Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
-              <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40">
-                  <stop offset="0%" stop-color="#2c3e50" />
-                  <stop offset="100%" stop-color="#34495e" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <span class="logo-text">CoderHub</span>
-          </div>
-        </div>
-        <div class="nav-right">
-          <button class="back-btn" @click="goHome">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            返回首页
-          </button>
-        </div>
-      </div>
-    </header>
+    <!-- 顶部导航栏 - 使用统一的NavBar组件 -->
+    <NavBar :showWriteBtn="false" />
 
     <!-- 主体内容 -->
     <main class="profile-main">
+      <!-- 数据统计卡片 -->
+      <div class="stats-section">
+        <div class="stat-card">
+          <div class="stat-icon-wrapper" style="background: rgba(194, 65, 12, 0.12);">
+            <span class="material-symbols-outlined" style="color: var(--primary);">article</span>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ userStats.articleCount || 0 }}</div>
+            <div class="stat-label">我的文章</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrapper" style="background: rgba(217, 119, 6, 0.12);">
+            <span class="material-symbols-outlined" style="color: var(--accent);">favorite</span>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ userStats.followingCount || 0 }}</div>
+            <div class="stat-label">我的关注</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.12);">
+            <span class="material-symbols-outlined" style="color: #10b981;">group</span>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ userStats.followersCount || 0 }}</div>
+            <div class="stat-label">我的粉丝</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrapper" style="background: rgba(59, 130, 246, 0.12);">
+            <span class="material-symbols-outlined" style="color: #3b82f6;">folder</span>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ userStats.projectCount || 0 }}</div>
+            <div class="stat-label">我的项目</div>
+          </div>
+        </div>
+      </div>
+
       <div class="profile-card">
         <h1 class="page-title">个人信息</h1>
         
@@ -191,9 +205,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { updateUserInfo, uploadFile } from '@/api/user'
+import NavBar from '@/components/NavBar.vue'
+import axios from 'axios'
 
 const router = useRouter()
 const userInfo = ref({})
@@ -210,12 +226,46 @@ const showMessage = ref(false)
 const messageText = ref('')
 const messageType = ref('success')
 
+// 用户统计数据
+const userStats = ref({
+  articleCount: 0,
+  followingCount: 0,
+  followersCount: 0,
+  projectCount: 0
+})
+
+// 获取用户统计数据
+const fetchUserStats = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const userId = userInfo.value.id || userInfo.value.userId
+    if (!userId) return
+    
+    const response = await axios.get(`/api/user/${userId}/stats`, {
+      headers: { authentication: token }
+    })
+    
+    if (response.data.code === 1) {
+      const stats = response.data.data
+      userStats.value = {
+        articleCount: stats.articleCount || 0,
+        followingCount: stats.followingCount || 0,
+        followersCount: stats.followersCount || 0,
+        projectCount: stats.projectCount || 0
+      }
+    }
+  } catch (error) {
+    console.error('获取用户统计数据失败：', error)
+  }
+}
+
 // 初始化
 onMounted(() => {
   const storedUserInfo = localStorage.getItem('userInfo')
   if (storedUserInfo) {
     userInfo.value = JSON.parse(storedUserInfo)
     resetForm()
+    fetchUserStats()
   } else {
     router.push('/')
   }
@@ -364,6 +414,20 @@ const showMessageToast = (text, type = 'success') => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+:global(:root) {
+  --primary: #c2410c;
+  --accent: #d97706;
+  --background: #fdfaf6;
+  --surface: #f7f2eb;
+  --text-main: #2d2a26;
+  --text-muted: #7c7267;
+  --border-warm: #eaddd3;
+  --golden-glow: rgba(245, 158, 11, 0.25);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -372,101 +436,96 @@ const showMessageToast = (text, type = 'success') => {
 
 .profile-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #ecf0f1 100%);
-}
-
-/* 顶部导航栏 */
-.top-nav {
-  background: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.nav-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 24px;
-  height: 64px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.nav-left {
-  display: flex;
-  align-items: center;
-}
-
-.logo-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.logo-container:hover {
-  opacity: 0.8;
-}
-
-.logo-container svg {
-  width: 36px;
-  height: 36px;
-}
-
-.logo-text {
-  font-size: 20px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: transparent;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  color: #2c3e50;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-btn:hover {
-  background: #f5f7fa;
-  border-color: #2c3e50;
-}
-
-.back-btn svg {
-  width: 20px;
-  height: 20px;
+  background: var(--background);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
 }
 
 /* 主体内容 */
 .profile-main {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 40px 24px;
+  padding: 40px;
+}
+
+/* 数据统计卡片 */
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 26px;
+  padding: 28px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: all 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(194, 65, 12, 0.15);
+  border-color: var(--primary);
+}
+
+.stat-icon-wrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-icon-wrapper .material-symbols-outlined {
+  font-size: 28px;
+  font-variation-settings: 'FILL' 1, 'wght' 700;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-family: 'Crimson Pro', serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
 }
 
 .profile-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 26px;
   padding: 40px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  margin-bottom: 24px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
+  margin-bottom: 32px;
 }
 
 .page-title {
-  font-size: 28px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 32px;
+  font-family: 'Crimson Pro', serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 40px;
   text-align: center;
+  letter-spacing: -0.02em;
 }
 
 /* 头像区域 */
@@ -562,28 +621,31 @@ const showMessageToast = (text, type = 'success') => {
 }
 
 .form-input {
-  padding: 12px 16px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  font-size: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--border-warm);
+  border-radius: 12px;
+  font-size: 15px;
   transition: all 0.2s;
   background: white;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-main);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #2c3e50;
-  box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.12);
 }
 
 .form-input:disabled {
-  background: #f5f7fa;
-  color: #95a5a6;
+  background: var(--surface);
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
 .form-group.readonly .form-input {
   border-style: dashed;
+  background: var(--surface);
 }
 
 /* 按钮组 */
@@ -605,22 +667,31 @@ const showMessageToast = (text, type = 'success') => {
 }
 
 .btn-cancel {
-  background: #ecf0f1;
-  color: #2c3e50;
+  background: var(--surface);
+  color: var(--text-main);
+  border: 1px solid var(--border-warm);
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
 }
 
 .btn-cancel:hover {
-  background: #bdc3c7;
+  background: #e8e2d9;
+  border-color: var(--text-muted);
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background: var(--primary);
   color: white;
+  border: none;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 4px 14px rgba(194, 65, 12, 0.25);
 }
 
 .btn-submit:hover:not(:disabled) {
+  background: #9a3412;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(44, 62, 80, 0.3);
+  box-shadow: 0 6px 20px rgba(194, 65, 12, 0.35);
 }
 
 .btn-submit:disabled {
@@ -631,16 +702,19 @@ const showMessageToast = (text, type = 'success') => {
 /* 功能预览区域 */
 .feature-preview {
   background: white;
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 26px;
+  padding: 40px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
 }
 
 .section-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 24px;
+  font-family: 'Crimson Pro', serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 28px;
+  letter-spacing: -0.02em;
 }
 
 .feature-grid {
@@ -653,40 +727,45 @@ const showMessageToast = (text, type = 'success') => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 24px;
-  border: 1px solid #ecf0f1;
-  border-radius: 12px;
+  gap: 14px;
+  padding: 28px;
+  border: 1px solid var(--border-warm);
+  border-radius: 20px;
   transition: all 0.3s;
   text-align: center;
+  background: var(--surface);
 }
 
 .feature-card.disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
 .feature-card:not(.disabled):hover {
-  border-color: #2c3e50;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 8px 20px rgba(194, 65, 12, 0.15);
   transform: translateY(-4px);
+  background: white;
 }
 
 .feature-card svg {
-  width: 40px;
-  height: 40px;
-  color: #2c3e50;
+  width: 44px;
+  height: 44px;
+  color: var(--primary);
 }
 
 .feature-card h3 {
-  font-size: 16px;
-  font-weight: 500;
-  color: #2c3e50;
+  font-family: 'Crimson Pro', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
 }
 
 .feature-card p {
-  font-size: 13px;
-  color: #95a5a6;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
 }
 
 /* 提示消息 */
