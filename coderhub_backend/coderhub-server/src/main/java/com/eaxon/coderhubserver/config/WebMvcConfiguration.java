@@ -59,6 +59,8 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                 .addPathPatterns("/article/**")
                 .addPathPatterns("/ai/**")  // 添加AI对话路径
                 .addPathPatterns("/project/**")  // 添加项目管理路径
+                .addPathPatterns("/tutorial/*/comment")  // 添加教程评论路径（发布评论）
+                .addPathPatterns("/tutorial/comment/**")  // 添加教程评论路径（删除评论）
                 .excludePathPatterns("/user/login")
                 .excludePathPatterns("/user/register")
                 .excludePathPatterns("/common/**");

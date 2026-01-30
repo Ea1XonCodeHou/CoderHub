@@ -29,6 +29,7 @@ import com.eaxon.coderhubserver.mapper.ArticleTagRelationMapper;
 import com.eaxon.coderhubserver.mapper.CategoryMapper;
 import com.eaxon.coderhubserver.mapper.TagMapper;
 import com.eaxon.coderhubserver.mapper.UserMapper;
+import com.eaxon.coderhubserver.service.ArticleEmbeddingService;
 import com.eaxon.coderhubserver.service.ArticleService;
 import com.eaxon.coderhubserver.service.RedisService;
 
@@ -61,6 +62,9 @@ public class ArticleServiceImpl implements ArticleService {
     
     @Autowired
     private RedisService redisService;
+    
+    @Autowired
+    private ArticleEmbeddingService articleEmbeddingService;
 
     /**
      * 发布文章
@@ -284,6 +288,13 @@ public class ArticleServiceImpl implements ArticleService {
             log.info("OSS文件删除成功：{}", fileName);
         } catch (Exception e) {
             log.warn("OSS文件删除失败：{}", e.getMessage());
+        }
+        
+        // 7. 删除ChromaDB中的向量
+        try {
+            articleEmbeddingService.removeArticleEmbedding(articleId);
+        } catch (Exception e) {
+            log.warn("删除文章向量失败：{}", e.getMessage());
         }
 
         log.info("文章删除成功");

@@ -86,6 +86,11 @@ langchain4j:
       log-requests: false
       log-responses: false
 
+  # ChromaDB向量数据库配置
+  chroma:
+    base-url: http://127.0.0.1:8000
+    collection-name: coderhub_articles
+
 # SpringDoc OpenAPI 配置
 springdoc:
   api-docs:

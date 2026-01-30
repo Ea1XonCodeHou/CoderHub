@@ -287,13 +287,152 @@
             </svg>
             课程评论
           </h2>
-          <span class="comment-count">即将开放</span>
+          <span class="comment-count">{{ comments.length }} 条评论</span>
         </div>
-        <div class="comments-placeholder">
+        
+        <!-- 评论输入框 -->
+        <div class="comment-input-area">
+          <div class="comment-input-wrapper">
+            <img 
+              :src="userInfo?.avatar || 'https://i.pravatar.cc/150?img=0'" 
+              alt="用户头像" 
+              class="comment-user-avatar"
+            />
+            <div class="comment-input-box">
+              <textarea 
+                v-model="commentContent"
+                :placeholder="isLoggedIn ? '发表你的看法...' : '请登录后发表评论'"
+                :disabled="!isLoggedIn"
+                class="comment-textarea"
+                rows="3"
+              ></textarea>
+              <div class="comment-input-actions">
+                <span class="char-count">{{ commentContent.length }}/500</span>
+                <button 
+                  class="btn-submit-comment"
+                  @click="submitComment"
+                  :disabled="!commentContent.trim() || submittingComment || !isLoggedIn"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  {{ submittingComment ? '发布中...' : '发布评论' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 评论加载状态 -->
+        <div v-if="commentsLoading" class="comments-loading">
+          <div class="mini-spinner"></div>
+          <span>加载评论中...</span>
+        </div>
+        
+        <!-- 评论列表 -->
+        <div v-else-if="comments.length > 0" class="comments-list">
+          <div v-for="comment in comments" :key="comment.id" class="comment-item">
+            <!-- 主评论 -->
+            <div class="comment-main">
+              <img 
+                :src="comment.userAvatar || 'https://i.pravatar.cc/150?img=0'" 
+                :alt="comment.username"
+                class="comment-avatar"
+              />
+              <div class="comment-body">
+                <div class="comment-header">
+                  <span class="comment-author">{{ comment.username || '匿名用户' }}</span>
+                  <span class="comment-time">{{ formatCommentTime(comment.createTime) }}</span>
+                </div>
+                <p class="comment-text">{{ comment.content }}</p>
+                <div class="comment-actions">
+                  <button class="action-btn-comment" @click="startReply(comment.id)">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    回复
+                  </button>
+                  <button 
+                    v-if="isMyComment(comment)" 
+                    class="action-btn-comment delete"
+                    @click="handleDeleteComment(comment.id)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    删除
+                  </button>
+                </div>
+                
+                <!-- 回复输入框 -->
+                <div v-if="replyingTo === comment.id" class="reply-input-area">
+                  <textarea 
+                    v-model="replyContent"
+                    :placeholder="'回复 @' + comment.username"
+                    class="reply-textarea"
+                    rows="2"
+                  ></textarea>
+                  <div class="reply-actions">
+                    <button class="btn-cancel-reply" @click="cancelReply">取消</button>
+                    <button 
+                      class="btn-submit-reply"
+                      @click="submitReply(comment.id)"
+                      :disabled="!replyContent.trim() || submittingComment"
+                    >
+                      {{ submittingComment ? '提交中...' : '提交回复' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 子回复列表 -->
+            <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
+              <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
+                <img 
+                  :src="reply.userAvatar || 'https://i.pravatar.cc/150?img=0'" 
+                  :alt="reply.username"
+                  class="reply-avatar"
+                />
+                <div class="reply-body">
+                  <div class="reply-header">
+                    <span class="reply-author">{{ reply.username || '匿名用户' }}</span>
+                    <span v-if="reply.replyToUsername" class="reply-to">
+                      回复 <span class="reply-to-name">@{{ reply.replyToUsername }}</span>
+                    </span>
+                    <span class="reply-time">{{ formatCommentTime(reply.createTime) }}</span>
+                  </div>
+                  <p class="reply-text">{{ reply.content }}</p>
+                  <div class="reply-actions-bar">
+                    <button class="action-btn-comment" @click="startReply(comment.id)">
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2"/>
+                      </svg>
+                      回复
+                    </button>
+                    <button 
+                      v-if="isMyComment(reply)" 
+                      class="action-btn-comment delete"
+                      @click="handleDeleteComment(reply.id)"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      删除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 空评论状态 -->
+        <div v-else class="comments-empty">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2"/>
           </svg>
-          <p>评论功能开发中，敬请期待...</p>
+          <p>快来发表第一条评论吧！</p>
         </div>
       </div>
     </div>
@@ -383,8 +522,8 @@
 </template>
 
 <script setup>
-import { getChapterDocuments, getChapterVideos, getTutorialChapters, getTutorialDetail } from '@/api/user'
-import { onMounted, ref } from 'vue'
+import { getChapterDocuments, getChapterVideos, getTutorialChapters, getTutorialDetail, getTutorialComments, publishTutorialComment, deleteTutorialComment } from '@/api/user'
+import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import NavBar from '@/components/NavBar.vue'
 
@@ -405,6 +544,19 @@ const loadingResources = ref({})
 const chapterDocuments = ref({})
 // 章节视频数据
 const chapterVideos = ref({})
+
+// ==================== 评论相关状态 ====================
+const comments = ref([])
+const commentsLoading = ref(false)
+const commentContent = ref('')
+const submittingComment = ref(false)
+const replyingTo = ref(null) // 当前回复的评论ID
+const replyContent = ref('')
+
+// 计算登录状态
+const isLoggedIn = computed(() => {
+  return !!userInfo.value?.id
+})
 
 // Mock 推荐课程数据
 const mockRecommendedCourses = ref([
@@ -645,6 +797,173 @@ const goToHome = () => {
   router.push('/home')
 }
 
+// ==================== 评论相关方法 ====================
+
+// 加载评论列表
+const loadComments = async () => {
+  const tutorialId = route.params.id
+  if (!tutorialId) return
+  
+  commentsLoading.value = true
+  try {
+    const res = await getTutorialComments(tutorialId)
+    if (res.code === 1) {
+      comments.value = res.data || []
+    }
+  } catch (error) {
+    console.error('加载评论失败：', error)
+  } finally {
+    commentsLoading.value = false
+  }
+}
+
+// 发布评论
+const submitComment = async () => {
+  if (!commentContent.value.trim()) {
+    alert('请输入评论内容')
+    return
+  }
+  
+  if (!isLoggedIn.value) {
+    alert('请先登录后再评论')
+    router.push('/')
+    return
+  }
+  
+  const tutorialId = route.params.id
+  submittingComment.value = true
+  
+  try {
+    const res = await publishTutorialComment(tutorialId, {
+      content: commentContent.value.trim(),
+      parentId: null
+    })
+    
+    if (res.code === 1) {
+      commentContent.value = ''
+      await loadComments() // 重新加载评论
+    } else {
+      alert(res.msg || '评论发布失败')
+    }
+  } catch (error) {
+    console.error('发布评论失败：', error)
+    alert('评论发布失败，请重试')
+  } finally {
+    submittingComment.value = false
+  }
+}
+
+// 开始回复
+const startReply = (commentId) => {
+  replyingTo.value = commentId
+  replyContent.value = ''
+}
+
+// 取消回复
+const cancelReply = () => {
+  replyingTo.value = null
+  replyContent.value = ''
+}
+
+// 提交回复
+const submitReply = async (parentId) => {
+  if (!replyContent.value.trim()) {
+    alert('请输入回复内容')
+    return
+  }
+  
+  if (!isLoggedIn.value) {
+    alert('请先登录后再回复')
+    router.push('/')
+    return
+  }
+  
+  const tutorialId = route.params.id
+  submittingComment.value = true
+  
+  try {
+    const res = await publishTutorialComment(tutorialId, {
+      content: replyContent.value.trim(),
+      parentId: parentId
+    })
+    
+    if (res.code === 1) {
+      replyContent.value = ''
+      replyingTo.value = null
+      await loadComments()
+    } else {
+      alert(res.msg || '回复失败')
+    }
+  } catch (error) {
+    console.error('回复失败：', error)
+    alert('回复失败，请重试')
+  } finally {
+    submittingComment.value = false
+  }
+}
+
+// 删除评论
+const handleDeleteComment = async (commentId) => {
+  if (!confirm('确定要删除这条评论吗？')) {
+    return
+  }
+  
+  try {
+    const res = await deleteTutorialComment(commentId)
+    if (res.code === 1) {
+      await loadComments()
+    } else {
+      alert(res.msg || '删除失败')
+    }
+  } catch (error) {
+    console.error('删除评论失败：', error)
+    alert('删除失败，请重试')
+  }
+}
+
+// 判断是否为当前用户的评论
+const isMyComment = (comment) => {
+  return userInfo.value?.id === comment.userId
+}
+
+// 格式化评论时间
+const formatCommentTime = (time) => {
+  if (!time) return ''
+  
+  // 处理Java LocalDateTime数组格式
+  if (Array.isArray(time)) {
+    const [year, month, day, hour = 0, minute = 0] = time
+    const date = new Date(year, month - 1, day, hour, minute)
+    return formatTimeAgo(date)
+  }
+  
+  const date = new Date(time)
+  if (isNaN(date.getTime())) return ''
+  return formatTimeAgo(date)
+}
+
+// 格式化为多久前
+const formatTimeAgo = (date) => {
+  const now = new Date()
+  const diff = now - date
+  const seconds = Math.floor(diff / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
+  
+  if (days > 30) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  } else if (days > 0) {
+    return `${days}天前`
+  } else if (hours > 0) {
+    return `${hours}小时前`
+  } else if (minutes > 0) {
+    return `${minutes}分钟前`
+  } else {
+    return '刚刚'
+  }
+}
+
 // 页面加载
 onMounted(async () => {
   const storedUserInfo = localStorage.getItem('userInfo')
@@ -655,6 +974,9 @@ onMounted(async () => {
   loading.value = true
   await Promise.all([loadTutorialDetail(), loadChapters()])
   loading.value = false
+  
+  // 加载评论（不阻塞主内容显示）
+  loadComments()
 })
 </script>
 
@@ -1533,6 +1855,391 @@ onMounted(async () => {
 }
 
 .comments-placeholder p {
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+/* ==================== 评论输入区 ==================== */
+.comment-input-area {
+  margin-bottom: 32px;
+}
+
+.comment-input-wrapper {
+  display: flex;
+  gap: 16px;
+}
+
+.comment-user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-warm);
+  flex-shrink: 0;
+}
+
+.comment-input-box {
+  flex: 1;
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid var(--border-warm);
+  transition: all 0.2s;
+}
+
+.comment-input-box:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--golden-glow);
+}
+
+.comment-textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text-main);
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+}
+
+.comment-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.comment-textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.comment-input-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-warm);
+}
+
+.char-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-submit-comment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-submit-comment:hover:not(:disabled) {
+  background: #9a3412;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.3);
+}
+
+.btn-submit-comment:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-submit-comment svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ==================== 评论加载状态 ==================== */
+.comments-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: var(--text-muted);
+}
+
+/* ==================== 评论列表 ==================== */
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.comment-item {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid var(--border-warm);
+}
+
+.comment-main {
+  display: flex;
+  gap: 16px;
+}
+
+.comment-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-warm);
+  flex-shrink: 0;
+}
+
+.comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.comment-author {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+}
+
+.comment-time {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+}
+
+.comment-text {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-main);
+  margin-bottom: 12px;
+  word-break: break-word;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.action-btn-comment {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.action-btn-comment:hover {
+  background: white;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.action-btn-comment.delete:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.action-btn-comment svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ==================== 回复输入区 ==================== */
+.reply-input-area {
+  margin-top: 16px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--border-warm);
+}
+
+.reply-textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--text-main);
+  resize: none;
+  outline: none;
+  line-height: 1.6;
+}
+
+.reply-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn-cancel-reply {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border-warm);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-cancel-reply:hover {
+  background: var(--surface);
+  border-color: var(--text-muted);
+}
+
+.btn-submit-reply {
+  padding: 8px 16px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.btn-submit-reply:hover:not(:disabled) {
+  background: #9a3412;
+}
+
+.btn-submit-reply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==================== 子回复列表 ==================== */
+.replies-list {
+  margin-top: 20px;
+  margin-left: 60px;
+  padding-left: 20px;
+  border-left: 2px solid var(--border-warm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reply-item {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--border-warm);
+}
+
+.reply-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--border-warm);
+  flex-shrink: 0;
+}
+
+.reply-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.reply-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.reply-author {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+}
+
+.reply-to {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.reply-to-name {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.reply-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+}
+
+.reply-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.reply-actions-bar {
+  display: flex;
+  gap: 12px;
+}
+
+/* ==================== 空评论状态 ==================== */
+.comments-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  text-align: center;
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px dashed var(--border-warm);
+}
+
+.comments-empty svg {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+  color: var(--primary);
+}
+
+.comments-empty p {
   font-family: 'Crimson Pro', serif;
   font-size: 16px;
   color: var(--text-muted);

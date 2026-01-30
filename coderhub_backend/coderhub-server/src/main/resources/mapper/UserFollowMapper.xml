@@ -36,5 +36,19 @@
         WHERE followed_id = #{userId}
     </select>
 
+    <!-- 获取用户关注的人的ID列表 -->
+    <select id="getFollowedIdsByUserId" resultType="java.lang.String">
+        SELECT followed_id FROM user_follow
+        WHERE follower_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 获取用户的粉丝ID列表 -->
+    <select id="getFollowerIdsByUserId" resultType="java.lang.String">
+        SELECT follower_id FROM user_follow
+        WHERE followed_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
 </mapper>
 

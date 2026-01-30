@@ -141,6 +141,12 @@
             <artifactId>langchain4j-open-ai</artifactId>
         </dependency>
 
+        <!-- LangChain4j ChromaDB向量存储 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-chroma</artifactId>
+        </dependency>
+
         <!-- OkHttp -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>

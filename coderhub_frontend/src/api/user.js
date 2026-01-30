@@ -132,3 +132,81 @@ export function getChapterVideos(chapterId) {
     method: 'get'
   })
 }
+
+// ==================== 教程评论相关接口 ====================
+
+// 获取教程评论列表
+export function getTutorialComments(tutorialId) {
+  return request({
+    url: `/tutorial/${tutorialId}/comment`,
+    method: 'get'
+  })
+}
+
+// 获取教程评论数量
+export function getTutorialCommentCount(tutorialId) {
+  return request({
+    url: `/tutorial/${tutorialId}/comment/count`,
+    method: 'get'
+  })
+}
+
+// 发布教程评论
+export function publishTutorialComment(tutorialId, data) {
+  return request({
+    url: `/tutorial/${tutorialId}/comment`,
+    method: 'post',
+    data
+  })
+}
+
+// 删除教程评论
+export function deleteTutorialComment(commentId) {
+  return request({
+    url: `/tutorial/comment/${commentId}`,
+    method: 'delete'
+  })
+}
+
+// ==================== 个人中心相关接口 ====================
+
+// 获取我的文章列表
+export function getMyArticles() {
+  return request({
+    url: '/user/profile/articles',
+    method: 'get'
+  })
+}
+
+// 获取我关注的用户列表
+export function getMyFollowing() {
+  return request({
+    url: '/user/profile/following',
+    method: 'get'
+  })
+}
+
+// 获取我的粉丝列表
+export function getMyFollowers() {
+  return request({
+    url: '/user/profile/followers',
+    method: 'get'
+  })
+}
+
+// 获取我的项目列表
+export function getMyProjects() {
+  return request({
+    url: '/user/profile/projects',
+    method: 'get'
+  })
+}
+
+// 修改密码
+export function changePassword(data) {
+  return request({
+    url: '/user/profile/password',
+    method: 'post',
+    data
+  })
+}

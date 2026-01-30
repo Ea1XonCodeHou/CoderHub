@@ -21,4 +21,12 @@ public interface UserService {
     PageResult<User> pageQuery(UserPageQueryDTO userPageQueryDTO);
     UserAdminUpdateVO adminUpdateUser(UserAdminUpdateDTO userAdminUpdateDTO);
     void updateUserStatus(String userId, Integer status);
+    
+    /**
+     * 修改密码
+     * @param userId 用户ID
+     * @param oldPassword 旧密码
+     * @param newPassword 新密码
+     */
+    void changePassword(String userId, String oldPassword, String newPassword);
 }

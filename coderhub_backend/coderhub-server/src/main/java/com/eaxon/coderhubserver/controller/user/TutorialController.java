@@ -3,22 +3,29 @@ package com.eaxon.coderhubserver.controller.user;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.eaxon.coderhubcommon.constant.StatusConstant;
+import com.eaxon.coderhubcommon.context.BaseContext;
 import com.eaxon.coderhubcommon.result.Result;
+import com.eaxon.coderhubpojo.DTO.TutorialCommentPublishDTO;
 import com.eaxon.coderhubpojo.VO.CategoryVO;
 import com.eaxon.coderhubpojo.VO.PageResult;
+import com.eaxon.coderhubpojo.VO.TutorialCommentVO;
 import com.eaxon.coderhubpojo.entity.Document;
 import com.eaxon.coderhubpojo.entity.Tutorial;
 import com.eaxon.coderhubpojo.entity.TutorialChapter;
 import com.eaxon.coderhubpojo.entity.Video;
 import com.eaxon.coderhubserver.service.CategoryService;
 import com.eaxon.coderhubserver.service.TutorialChapterService;
+import com.eaxon.coderhubserver.service.TutorialCommentService;
 import com.eaxon.coderhubserver.service.TutorialService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +47,9 @@ public class TutorialController {
 
     @Autowired
     private TutorialChapterService tutorialChapterService;
+
+    @Autowired
+    private TutorialCommentService tutorialCommentService;
 
     /**
      * 分页查询教程列表（用户端）
@@ -144,5 +154,89 @@ public class TutorialController {
         log.info("用户端查询章节视频：chapterId={}", chapterId);
         List<Video> videos = tutorialChapterService.getVideosByChapterId(chapterId);
         return Result.success(videos);
+    }
+
+    // ==================== 评论相关接口 ====================
+
+    /**
+     * 发布评论（包括顶级评论和回复）
+     * 
+     * @param tutorialId 教程ID
+     * @param dto 评论发布DTO
+     * @return 评论ID
+     */
+    @PostMapping("/{tutorialId}/comment")
+    @Operation(summary = "发布教程评论")
+    public Result<String> publishComment(
+            @Parameter(description = "教程ID", required = true) 
+            @PathVariable String tutorialId,
+            @RequestBody TutorialCommentPublishDTO dto) {
+        // 从ThreadLocal获取当前登录用户ID
+        String userId = BaseContext.getCurrentId();
+        log.info("用户{}在教程{}发布评论", userId, tutorialId);
+
+        // 确保DTO中的tutorialId与路径参数一致
+        dto.setTutorialId(tutorialId);
+        String commentId = tutorialCommentService.publishComment(dto, userId);
+        return Result.success(commentId);
+    }
+
+    /**
+     * 获取教程的评论列表
+     * 
+     * @param tutorialId 教程ID
+     * @return 评论列表
+     */
+    @GetMapping("/{tutorialId}/comment")
+    @Operation(summary = "获取教程评论列表")
+    public Result<List<TutorialCommentVO>> getCommentsByTutorialId(
+            @Parameter(description = "教程ID", required = true) 
+            @PathVariable String tutorialId) {
+        log.info("获取教程{}的评论列表", tutorialId);
+
+        // 尝试获取当前用户ID（用户可能未登录）
+        String userId = null;
+        try {
+            userId = BaseContext.getCurrentId();
+        } catch (Exception e) {
+            log.debug("用户未登录，无法判断点赞状态和是否本人");
+        }
+
+        List<TutorialCommentVO> comments = tutorialCommentService.getCommentsByTutorialId(tutorialId, userId);
+        return Result.success(comments);
+    }
+
+    /**
+     * 获取教程的评论数量
+     * 
+     * @param tutorialId 教程ID
+     * @return 评论数量
+     */
+    @GetMapping("/{tutorialId}/comment/count")
+    @Operation(summary = "获取教程评论数量")
+    public Result<Integer> getCommentCount(
+            @Parameter(description = "教程ID", required = true) 
+            @PathVariable String tutorialId) {
+        log.info("获取教程{}的评论数量", tutorialId);
+        Integer count = tutorialCommentService.countByTutorialId(tutorialId);
+        return Result.success(count);
+    }
+
+    /**
+     * 删除评论
+     * 
+     * @param commentId 评论ID
+     * @return 删除结果
+     */
+    @DeleteMapping("/comment/{commentId}")
+    @Operation(summary = "删除教程评论")
+    public Result<String> deleteComment(
+            @Parameter(description = "评论ID", required = true) 
+            @PathVariable String commentId) {
+        String userId = BaseContext.getCurrentId();
+        log.info("用户{}删除评论{}", userId, commentId);
+
+        tutorialCommentService.deleteComment(commentId, userId);
+        return Result.success("删除成功");
     }
 }

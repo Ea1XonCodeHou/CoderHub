@@ -198,6 +198,13 @@
                 <version>${langchain4j.version}</version>
             </dependency>
 
+            <!-- LangChain4j ChromaDB向量存储 -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-chroma</artifactId>
+                <version>${langchain4j.version}</version>
+            </dependency>
+
             <!-- OkHttp（LangChain4j 依赖） -->
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>

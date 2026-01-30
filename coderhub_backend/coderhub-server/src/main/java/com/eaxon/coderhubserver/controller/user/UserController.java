@@ -5,11 +5,14 @@ import com.eaxon.coderhubcommon.result.Result;
 import com.eaxon.coderhubpojo.DTO.UserInfoUpdateDTO;
 import com.eaxon.coderhubpojo.DTO.UserLoginDTO;
 import com.eaxon.coderhubpojo.DTO.UserRegisterDTO;
-import com.eaxon.coderhubpojo.VO.UserInfoUpdateVO;
-import com.eaxon.coderhubpojo.VO.UserLoginVO;
-import com.eaxon.coderhubpojo.VO.UserStatsVO;
+import com.eaxon.coderhubpojo.VO.*;
+import com.eaxon.coderhubpojo.entity.Article;
+import com.eaxon.coderhubpojo.entity.Project;
 import com.eaxon.coderhubpojo.entity.User;
 import com.eaxon.coderhubserver.mapper.ArticleMapper;
+import com.eaxon.coderhubserver.mapper.ProjectMapper;
+import com.eaxon.coderhubserver.mapper.UserFollowMapper;
+import com.eaxon.coderhubserver.mapper.UserMapper;
 import com.eaxon.coderhubserver.service.UserFollowService;
 import com.eaxon.coderhubserver.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,7 +22,9 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -36,6 +41,15 @@ public class UserController {
     
     @Autowired
     private ArticleMapper articleMapper;
+
+    @Autowired
+    private UserFollowMapper userFollowMapper;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private ProjectMapper projectMapper;
     
     /**
      * 用户注册
@@ -161,5 +175,162 @@ public class UserController {
         Boolean isFollowing = userFollowService.isFollowing(currentUserId, userId);
         
         return Result.success(isFollowing);
+    }
+
+    // ==================== 个人中心相关接口 ====================
+
+    /**
+     * 获取我的文章列表
+     */
+    @GetMapping("/profile/articles")
+    @Operation(summary = "获取我的文章列表")
+    public Result<List<UserArticleVO>> getMyArticles() {
+        String userId = BaseContext.getCurrentId();
+        log.info("获取用户{}的文章列表", userId);
+
+        List<Article> articles = articleMapper.getByUserId(userId);
+        List<UserArticleVO> result = new ArrayList<>();
+        
+        for (Article article : articles) {
+            UserArticleVO vo = UserArticleVO.builder()
+                    .id(article.getId())
+                    .title(article.getTitle())
+                    .summary(article.getSummary())
+                    .coverImage(article.getCoverImage())
+                    .viewCount(Math.toIntExact(article.getViewCount()))
+                    .likeCount(article.getLikeCount())
+                    .commentCount(article.getCommentCount())
+                    .createTime(article.getCreateTime())
+                    .build();
+            result.add(vo);
+        }
+
+        return Result.success(result);
+    }
+
+    /**
+     * 获取我关注的用户列表
+     */
+    @GetMapping("/profile/following")
+    @Operation(summary = "获取我关注的用户列表")
+    public Result<List<UserFollowVO>> getMyFollowing() {
+        String currentUserId = BaseContext.getCurrentId();
+        log.info("获取用户{}的关注列表", currentUserId);
+
+        List<String> followedIds = userFollowMapper.getFollowedIdsByUserId(currentUserId);
+        List<UserFollowVO> result = new ArrayList<>();
+
+        for (String followedId : followedIds) {
+            User user = userMapper.getUserById(followedId);
+            if (user != null) {
+                Integer articleCount = articleMapper.countByUserId(followedId);
+                Integer followersCount = userFollowService.getFollowersCount(followedId);
+
+                UserFollowVO vo = UserFollowVO.builder()
+                        .userId(user.getId())
+                        .username(user.getUsername())
+                        .avatar(user.getAvatar())
+                        .articleCount(articleCount != null ? articleCount : 0)
+                        .followersCount(followersCount)
+                        .isFollowing(true)  // 在我的关注列表中，肯定是已关注
+                        .build();
+                result.add(vo);
+            }
+        }
+
+        return Result.success(result);
+    }
+
+    /**
+     * 获取我的粉丝列表
+     */
+    @GetMapping("/profile/followers")
+    @Operation(summary = "获取我的粉丝列表")
+    public Result<List<UserFollowVO>> getMyFollowers() {
+        String currentUserId = BaseContext.getCurrentId();
+        log.info("获取用户{}的粉丝列表", currentUserId);
+
+        List<String> followerIds = userFollowMapper.getFollowerIdsByUserId(currentUserId);
+        List<UserFollowVO> result = new ArrayList<>();
+
+        for (String followerId : followerIds) {
+            User user = userMapper.getUserById(followerId);
+            if (user != null) {
+                Integer articleCount = articleMapper.countByUserId(followerId);
+                Integer followersCount = userFollowService.getFollowersCount(followerId);
+                Boolean isFollowing = userFollowService.isFollowing(currentUserId, followerId);
+
+                UserFollowVO vo = UserFollowVO.builder()
+                        .userId(user.getId())
+                        .username(user.getUsername())
+                        .avatar(user.getAvatar())
+                        .articleCount(articleCount != null ? articleCount : 0)
+                        .followersCount(followersCount)
+                        .isFollowing(isFollowing)  // 检查是否互相关注
+                        .build();
+                result.add(vo);
+            }
+        }
+
+        return Result.success(result);
+    }
+
+    /**
+     * 获取我的项目列表
+     */
+    @GetMapping("/profile/projects")
+    @Operation(summary = "获取我的项目列表")
+    public Result<List<UserProjectVO>> getMyProjects() {
+        String userId = BaseContext.getCurrentId();
+        log.info("获取用户{}的项目列表", userId);
+
+        // 获取用户所有有效状态的项目
+        List<Project> projects = projectMapper.getByUserId(userId, null, 1);
+        List<UserProjectVO> result = new ArrayList<>();
+
+        for (Project project : projects) {
+            UserProjectVO vo = UserProjectVO.builder()
+                    .id(project.getId())
+                    .projectName(project.getProjectName())
+                    .shortDescription(project.getShortDescription())
+                    .coverImage(project.getCoverImage())
+                    .gitUrl(project.getGitUrl())
+                    .demoUrl(project.getDemoUrl())
+                    .viewCount(project.getViewCount())
+                    .isOpenSource(project.getIsOpenSource())
+                    .createTime(project.getCreatedAt())
+                    .build();
+            result.add(vo);
+        }
+
+        return Result.success(result);
+    }
+
+    /**
+     * 修改密码
+     */
+    @PostMapping("/profile/password")
+    @Operation(summary = "修改密码")
+    public Result<String> changePassword(@RequestBody Map<String, String> params) {
+        String userId = BaseContext.getCurrentId();
+        String oldPassword = params.get("oldPassword");
+        String newPassword = params.get("newPassword");
+        
+        log.info("用户{}修改密码", userId);
+        
+        if (oldPassword == null || newPassword == null) {
+            return Result.error("旧密码和新密码不能为空");
+        }
+        
+        if (newPassword.length() < 6) {
+            return Result.error("新密码长度不能少于6位");
+        }
+        
+        try {
+            userService.changePassword(userId, oldPassword, newPassword);
+            return Result.success("密码修改成功");
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
     }
 }

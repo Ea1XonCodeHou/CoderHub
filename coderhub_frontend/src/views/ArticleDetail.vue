@@ -34,6 +34,68 @@
               {{ tag.tagName }}
             </span>
           </div>
+
+          <!-- AI 智能摘要 (Stitch 暖色调风格) -->
+          <div class="ai-summary-section">
+            <div class="ai-summary-header">
+              <div class="ai-badge">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>AI 智能摘要</span>
+              </div>
+              <span v-if="aiSummary.fromCache" class="cache-tag">已缓存</span>
+            </div>
+
+            <!-- 加载状态 -->
+            <div v-if="aiSummary.isLoading" class="ai-summary-loading">
+              <div class="loading-pulse">
+                <span></span><span></span><span></span>
+              </div>
+              <p>AI 正在阅读并总结文章...</p>
+            </div>
+
+            <!-- 错误状态 -->
+            <div v-else-if="aiSummary.error" class="ai-summary-error">
+              <svg viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              <span>{{ aiSummary.error }}</span>
+              <button @click="fetchAISummary" class="retry-btn">重试</button>
+            </div>
+
+            <!-- 摘要内容 -->
+            <div v-else-if="aiSummary.summary" class="ai-summary-body">
+              <p class="summary-text">{{ aiSummary.summary }}</p>
+              
+              <!-- 延伸问题气泡 -->
+              <div v-if="aiSummary.extendedQuestions.length > 0" class="questions-area">
+                <div class="questions-title">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3M12 17h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  <span>想深入了解？点击提问</span>
+                </div>
+                <div class="question-pills">
+                  <button 
+                    v-for="(q, idx) in aiSummary.extendedQuestions" 
+                    :key="idx"
+                    class="question-pill"
+                    @click="goToAIWithQuestion(q)"
+                  >
+                    {{ q }}
+                    <svg viewBox="0 0 24 24" fill="none" class="arrow-icon">
+                      <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 文章封面 -->
@@ -418,6 +480,16 @@ const relatedArticles = ref([])
 // 猜你喜欢
 const guessYouLike = ref([])
 
+// 智能摘要
+const aiSummary = ref({
+  summary: '',
+  extendedQuestions: [],
+  isLoading: false,
+  isStreaming: false,
+  error: null,
+  fromCache: false
+})
+
 // 渲染的Markdown内容
 const renderedContent = ref('')
 
@@ -544,6 +616,9 @@ const fetchArticleDetail = async () => {
       // 获取相关推荐和猜你喜欢
       fetchRelatedArticles()
       fetchGuessYouLike()
+      
+      // 获取AI智能摘要
+      fetchAISummary()
       
       // 获取评论列表
       fetchComments()
@@ -677,6 +752,49 @@ const fetchGuessYouLike = async () => {
   } catch (error) {
     console.error('获取猜你喜欢失败：', error)
   }
+}
+
+// 获取AI智能摘要
+const fetchAISummary = async () => {
+  aiSummary.value.isLoading = true
+  aiSummary.value.error = null
+  
+  try {
+    const token = localStorage.getItem('token')
+    const response = await axios.get(`/api/article/${article.value.id}/summary`, {
+      headers: { authentication: token }
+    })
+    
+    if (response.data.code === 1) {
+      const data = response.data.data
+      aiSummary.value.summary = data.summary
+      aiSummary.value.extendedQuestions = data.extendedQuestions || []
+      aiSummary.value.fromCache = data.fromCache
+    } else {
+      aiSummary.value.error = response.data.msg || '获取摘要失败'
+    }
+  } catch (error) {
+    console.error('获取智能摘要失败：', error)
+    aiSummary.value.error = '获取摘要失败，请稍后重试'
+  } finally {
+    aiSummary.value.isLoading = false
+  }
+}
+
+// 跳转到AI助手并自动提问
+const goToAIWithQuestion = (question) => {
+  // 将问题编码后作为URL参数传递
+  const encodedQuestion = encodeURIComponent(question)
+  const articleTitle = encodeURIComponent(article.value.title)
+  router.push({
+    path: '/ai/assistant',  // 修正：路由路径是 /ai/assistant
+    query: {
+      question: encodedQuestion,
+      articleId: article.value.id,
+      articleTitle: articleTitle,
+      useRAG: 'true'  // 标记使用RAG模式
+    }
+  })
 }
 
 // 查询点赞状态
@@ -2529,6 +2647,225 @@ onMounted(() => {
   height: 14px;
   color: #f59e0b;
   flex-shrink: 0;
+}
+
+/* ==================== AI 智能摘要 (Stitch 暖色调) ==================== */
+.ai-summary-section {
+  margin-top: 24px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #fef7ed 0%, #fff7ed 50%, #fefce8 100%);
+  border: 1px solid #fed7aa;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ai-summary-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #f97316, #fb923c, #fbbf24);
+}
+
+.ai-summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.ai-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+  border-radius: 20px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ai-badge svg {
+  width: 16px;
+  height: 16px;
+}
+
+.cache-tag {
+  font-size: 11px;
+  padding: 3px 10px;
+  background: rgba(251, 146, 60, 0.15);
+  color: #c2410c;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* 加载状态 */
+.ai-summary-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+}
+
+.loading-pulse {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.loading-pulse span {
+  width: 10px;
+  height: 10px;
+  background: #f97316;
+  border-radius: 50%;
+  animation: pulse 1.4s infinite ease-in-out;
+}
+
+.loading-pulse span:nth-child(1) { animation-delay: 0s; }
+.loading-pulse span:nth-child(2) { animation-delay: 0.2s; }
+.loading-pulse span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pulse {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.ai-summary-loading p {
+  font-size: 14px;
+  color: #9a3412;
+  margin: 0;
+}
+
+/* 错误状态 */
+.ai-summary-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 12px;
+}
+
+.ai-summary-error svg {
+  width: 24px;
+  height: 24px;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
+.ai-summary-error span {
+  flex: 1;
+  font-size: 14px;
+  color: #7f1d1d;
+}
+
+.retry-btn {
+  padding: 6px 14px;
+  background: #f97316;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.retry-btn:hover {
+  background: #ea580c;
+  transform: translateY(-1px);
+}
+
+/* 摘要内容 */
+.ai-summary-body {
+  position: relative;
+}
+
+.summary-text {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #44403c;
+  margin: 0;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  border-left: 3px solid #f97316;
+}
+
+/* 延伸问题区 */
+.questions-area {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed #fdba74;
+}
+
+.questions-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #9a3412;
+  margin-bottom: 14px;
+}
+
+.questions-title svg {
+  width: 18px;
+  height: 18px;
+  color: #f97316;
+}
+
+.question-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.question-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: white;
+  border: 1px solid #fed7aa;
+  border-radius: 24px;
+  font-size: 13px;
+  color: #78350f;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  max-width: 100%;
+}
+
+.question-pill:hover {
+  background: #fff7ed;
+  border-color: #fb923c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2);
+}
+
+.question-pill .arrow-icon {
+  width: 14px;
+  height: 14px;
+  color: #f97316;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: all 0.2s ease;
+}
+
+.question-pill:hover .arrow-icon {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 /* ==================== 页脚 ==================== */

@@ -241,16 +241,26 @@
           <h3>Markdown编辑</h3>
           <div class="editor-toolbar">
             <button @click="insertMarkdown('**', '**')" title="粗体">
-              <strong>B</strong>
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M6 4H14C15.0609 4 16.0783 4.42143 16.8284 5.17157C17.5786 5.92172 18 6.93913 18 8C18 9.06087 17.5786 10.0783 16.8284 10.8284C16.0783 11.5786 15.0609 12 14 12H6V4Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6 12H15C16.0609 12 17.0783 12.4214 17.8284 13.1716C18.5786 13.9217 19 14.9391 19 16C19 17.0609 18.5786 18.0783 17.8284 18.8284C17.0783 19.5786 16.0609 20 15 20H6V12Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
             <button @click="insertMarkdown('*', '*')" title="斜体">
-              <em>I</em>
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M19 4H10M14 20H5M15 4L9 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
-            <button @click="insertMarkdown('`', '`')" title="代码">
-              <code>&lt;/&gt;</code>
+            <button @click="insertMarkdown('`', '`')" title="行内代码">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M16 18L22 12L16 6M8 6L2 12L8 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
             <button @click="insertMarkdown('\n```\n', '\n```\n')" title="代码块">
-              { }
+              <svg viewBox="0 0 24 24" fill="none">
+                <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M9 9L7 12L9 15M15 9L17 12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
             <button @click="insertMarkdown('[', '](url)')" title="链接">
               <svg viewBox="0 0 24 24" fill="none">
@@ -409,8 +419,32 @@ const filteredTags = computed(() => {
   ).slice(0, 10)
 })
 
+// 自定义Markdown渲染器，为代码块添加复制按钮
+const renderer = new marked.Renderer()
+renderer.code = function(code, language) {
+  const validLanguage = hljs.getLanguage(language) ? language : 'plaintext'
+  const highlighted = hljs.highlight(code, { language: validLanguage }).value
+  const langLabel = language || 'code'
+  return `<div class="code-block-wrapper">
+    <div class="code-block-header">
+      <span class="code-lang">${langLabel}</span>
+      <button class="code-copy-btn" onclick="copyCodeBlock(this)" title="复制代码">
+        <svg viewBox="0 0 24 24" fill="none" class="copy-icon">
+          <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+          <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <svg viewBox="0 0 24 24" fill="none" class="check-icon" style="display:none">
+          <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+    <pre><code class="hljs language-${validLanguage}">${highlighted}</code></pre>
+  </div>`
+}
+
 // Markdown预览配置
 marked.setOptions({
+  renderer: renderer,
   highlight: function(code, lang) {
     const language = hljs.getLanguage(lang) ? lang : 'plaintext'
     return hljs.highlight(code, { language }).value
@@ -427,11 +461,31 @@ const renderedMarkdown = computed(() => {
   return marked(form.value.content)
 })
 
+// 挂载复制函数到全局（供onclick调用）
+if (typeof window !== 'undefined') {
+  window.copyCodeBlock = function(btn) {
+    const wrapper = btn.closest('.code-block-wrapper')
+    const code = wrapper.querySelector('code').textContent
+    navigator.clipboard.writeText(code).then(() => {
+      const copyIcon = btn.querySelector('.copy-icon')
+      const checkIcon = btn.querySelector('.check-icon')
+      copyIcon.style.display = 'none'
+      checkIcon.style.display = 'block'
+      btn.classList.add('copied')
+      setTimeout(() => {
+        copyIcon.style.display = 'block'
+        checkIcon.style.display = 'none'
+        btn.classList.remove('copied')
+      }, 2000)
+    })
+  }
+}
+
 // ==================== 分类相关 ====================
 const fetchCategories = async () => {
   try {
     const token = localStorage.getItem('token')
-    const response = await axios.get('/api/admin/category/list', {
+    const response = await axios.get('/api/category/list', {
       headers: {
         authentication: token
       }
@@ -836,6 +890,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap');
+
+:global(:root) {
+  --primary: #c2410c;
+  --accent: #d97706;
+  --background: #fdfaf6;
+  --surface: #f7f2eb;
+  --text-main: #2d2a26;
+  --text-muted: #7c7267;
+  --border-warm: #eaddd3;
+  --golden-glow: rgba(245, 158, 11, 0.25);
+}
 .article-editor {
   min-height: 100vh;
   background: #f5f7fa;
@@ -1651,24 +1717,30 @@ onMounted(() => {
 }
 
 .editor-toolbar button {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border: 1px solid #e0e0e0;
   background: white;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  color: #666;
-  transition: all 0.3s;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.editor-toolbar button svg {
+  width: 18px;
+  height: 18px;
 }
 
 .editor-toolbar button:hover {
-  background: #f5f5f5;
-  border-color: #667eea;
-  color: #667eea;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-color: #c2410c;
+  color: #c2410c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(194, 65, 12, 0.15);
 }
 
 .markdown-textarea {
@@ -1737,31 +1809,90 @@ onMounted(() => {
   color: #e83e8c;
 }
 
-.markdown-preview :deep(pre) {
-  background: #282c34;
-  padding: 16px;
+/* 代码块容器 */
+.markdown-preview :deep(.code-block-wrapper) {
+  position: relative;
+  margin: 20px 0;
   border-radius: 12px;
+  overflow: hidden;
+  background: #1e1e2e;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.markdown-preview :deep(.code-block-header) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #2d2d3a 0%, #252532 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.markdown-preview :deep(.code-lang) {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a0a0b0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.markdown-preview :deep(.code-copy-btn) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #8b8b9e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.markdown-preview :deep(.code-copy-btn:hover) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.markdown-preview :deep(.code-copy-btn.copied) {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.markdown-preview :deep(.code-copy-btn svg) {
+  width: 16px;
+  height: 16px;
+}
+
+.markdown-preview :deep(pre) {
+  background: transparent;
+  padding: 16px;
+  margin: 0;
   overflow-x: auto;
-  margin: 16px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .markdown-preview :deep(pre code) {
   padding: 0;
   background: transparent;
-  color: #abb2bf !important; /* 亮色代码文字 */
+  color: #cdd6f4 !important;
   display: block;
   font-size: 14px;
-  line-height: 1.6;
-  font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  line-height: 1.7;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 }
 
-/* 代码高亮颜色覆盖 */
-.markdown-preview :deep(pre code .hljs-keyword) { color: #c678dd !important; }
-.markdown-preview :deep(pre code .hljs-string) { color: #98c379 !important; }
-.markdown-preview :deep(pre code .hljs-number) { color: #d19a66 !important; }
-.markdown-preview :deep(pre code .hljs-function) { color: #61afef !important; }
-.markdown-preview :deep(pre code .hljs-comment) { color: #5c6370 !important; }
+/* 代码高亮颜色 - Catppuccin风格 */
+.markdown-preview :deep(pre code .hljs-keyword) { color: #cba6f7 !important; }
+.markdown-preview :deep(pre code .hljs-string) { color: #a6e3a1 !important; }
+.markdown-preview :deep(pre code .hljs-number) { color: #fab387 !important; }
+.markdown-preview :deep(pre code .hljs-function) { color: #89b4fa !important; }
+.markdown-preview :deep(pre code .hljs-comment) { color: #6c7086 !important; font-style: italic; }
+.markdown-preview :deep(pre code .hljs-variable) { color: #f5e0dc !important; }
+.markdown-preview :deep(pre code .hljs-built_in) { color: #f38ba8 !important; }
+.markdown-preview :deep(pre code .hljs-attr) { color: #89dceb !important; }
+.markdown-preview :deep(pre code .hljs-title) { color: #89b4fa !important; }
 
 .markdown-preview :deep(img) {
   max-width: 100%;
@@ -1944,6 +2075,7 @@ onMounted(() => {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.4;
 }
@@ -1956,6 +2088,7 @@ onMounted(() => {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.5;
 }
@@ -2010,5 +2143,416 @@ onMounted(() => {
   font-weight: 600;
   border-radius: 12px;
   white-space: nowrap;
+}
+
+/* ==================== Stitch 风格覆盖 ==================== */
+.article-editor {
+  background: var(--background);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+}
+
+.editor-header {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.header-left h2 {
+  font-family: 'Crimson Pro', serif;
+  font-size: 24px;
+  color: #1f2937;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.btn-back {
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border-warm);
+  color: var(--text-muted);
+}
+
+.btn-back:hover {
+  background: white;
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.btn-import {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border-warm);
+}
+
+.btn-import:hover {
+  background: white;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-draft {
+  background: white;
+  color: var(--text-main);
+  border: 1px solid var(--border-warm);
+}
+
+.btn-draft:hover {
+  background: var(--surface);
+  border-color: var(--text-muted);
+}
+
+.btn-publish {
+  background: var(--primary);
+  color: white;
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(194, 65, 12, 0.25);
+}
+
+.btn-publish:hover {
+  background: #9a3412;
+  box-shadow: 0 10px 24px rgba(194, 65, 12, 0.35);
+}
+
+.article-info {
+  background: white;
+  border-radius: 26px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
+  margin: 24px;
+  padding: 32px;
+}
+
+.title-tags-row {
+  border-bottom: 2px solid var(--border-warm);
+}
+
+.title-tags-row:focus-within {
+  border-bottom-color: var(--primary);
+}
+
+.title-input {
+  font-family: 'Crimson Pro', serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.title-input::placeholder {
+  color: #b6aca1;
+}
+
+.tag-capsule {
+  background: rgba(194, 65, 12, 0.08);
+  border: 1px solid rgba(194, 65, 12, 0.25);
+  color: var(--primary);
+}
+
+.tag-capsule:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.2);
+}
+
+.meta-section-grid {
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+}
+
+.meta-left-card,
+.meta-right-card {
+  background: white;
+  border-radius: 22px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 8px 20px rgba(45, 42, 38, 0.06);
+}
+
+.left-card-grid {
+  grid-template-columns: 340px 1fr;
+}
+
+.meta-fields-column {
+  background: var(--surface);
+  border: 1px solid var(--border-warm);
+}
+
+.section-label {
+  color: var(--text-main);
+}
+
+.section-label::before {
+  background: var(--primary);
+}
+
+.upload-placeholder {
+  background: var(--surface);
+  border-color: var(--border-warm);
+}
+
+.upload-placeholder:hover {
+  border-color: var(--primary);
+  background: rgba(194, 65, 12, 0.05);
+}
+
+.upload-placeholder p {
+  color: var(--text-main);
+}
+
+.upload-tip {
+  color: var(--text-muted);
+}
+
+.cover-actions {
+  background: rgba(45, 42, 38, 0.55);
+}
+
+.btn-change {
+  background: white;
+  color: var(--text-main);
+}
+
+.btn-remove {
+  background: #dc2626;
+}
+
+.no-references {
+  background: var(--surface);
+  border-color: var(--border-warm);
+  color: var(--text-muted);
+}
+
+.reference-card {
+  background: white;
+  border-color: var(--border-warm);
+}
+
+.reference-card:hover {
+  border-color: var(--primary);
+  background: rgba(194, 65, 12, 0.04);
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.12);
+}
+
+.reference-title {
+  color: #1f2937;
+}
+
+.reference-meta {
+  color: var(--text-muted);
+}
+
+.reference-remove:hover {
+  color: #dc2626;
+}
+
+.category-select {
+  border-color: var(--border-warm);
+  color: var(--text-main);
+  background-color: white;
+  background-image: none;
+  padding-left: 16px;
+  box-shadow: none;
+}
+
+.category-select:hover,
+.category-select:focus {
+  border-color: var(--primary);
+  background-color: rgba(194, 65, 12, 0.04);
+  box-shadow: 0 0 0 3px var(--golden-glow);
+  transform: none;
+}
+
+.tag-input-field {
+  border-color: var(--border-warm);
+  color: var(--text-main);
+  background-color: white;
+  background-image: none;
+  padding-left: 16px;
+  box-shadow: none;
+}
+
+.tag-input-field:hover,
+.tag-input-field:focus {
+  border-color: var(--primary);
+  background-color: rgba(194, 65, 12, 0.04);
+  box-shadow: 0 0 0 3px var(--golden-glow);
+}
+
+.tag-suggestions {
+  border-color: var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.12);
+}
+
+.tag-suggestion-item:hover {
+  background: rgba(194, 65, 12, 0.06);
+}
+
+.hot-tags-label {
+  color: var(--text-muted);
+}
+
+.hot-tag-item {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border-warm);
+}
+
+.hot-tag-item:hover {
+  background: rgba(194, 65, 12, 0.08);
+  color: var(--primary);
+  border-color: rgba(194, 65, 12, 0.25);
+}
+
+.checkbox-label {
+  border-color: var(--border-warm);
+  background: white;
+}
+
+.checkbox-label:hover {
+  border-color: var(--primary);
+  background: rgba(194, 65, 12, 0.04);
+}
+
+.checkbox-label input[type="checkbox"] {
+  accent-color: var(--primary);
+}
+
+.checkbox-text {
+  color: var(--text-main);
+}
+
+.editor-body {
+  gap: 24px;
+  margin: 24px;
+}
+
+.editor-panel,
+.preview-panel {
+  border-radius: 24px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
+}
+
+.panel-header {
+  border-bottom: 1px solid var(--border-warm);
+  background: var(--surface);
+}
+
+.panel-header h3 {
+  font-family: 'Crimson Pro', serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.editor-toolbar button {
+  border-color: var(--border-warm);
+  background: white;
+  color: var(--text-muted);
+}
+
+.editor-toolbar button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(194, 65, 12, 0.06);
+}
+
+.markdown-textarea {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-main);
+  background: white;
+}
+
+.char-count {
+  border-top: 1px solid var(--border-warm);
+  color: var(--text-muted);
+}
+
+.markdown-preview {
+  font-family: 'Crimson Pro', serif;
+  color: var(--text-main);
+}
+
+.preview-placeholder {
+  color: var(--text-muted);
+}
+
+.markdown-preview :deep(code) {
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.markdown-preview :deep(pre) {
+  background: #2b2622;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.25);
+}
+
+.markdown-preview :deep(a) {
+  color: var(--primary);
+}
+
+.markdown-preview :deep(blockquote) {
+  border-left-color: var(--primary);
+  color: var(--text-muted);
+}
+
+.markdown-preview :deep(th) {
+  background: var(--surface);
+}
+
+.recommend-title {
+  font-family: 'Crimson Pro', serif;
+  color: #1f2937;
+}
+
+.recommend-tip {
+  color: var(--text-muted);
+}
+
+.loading-recommend {
+  color: var(--text-muted);
+}
+
+.spinner-small {
+  border-top-color: var(--primary);
+}
+
+.hot-article-card {
+  background: var(--surface);
+  border: 1px solid var(--border-warm);
+}
+
+.hot-article-card:hover {
+  background: rgba(194, 65, 12, 0.06);
+}
+
+.hot-rank-badge {
+  background: linear-gradient(135deg, #c2410c 0%, #d97706 100%);
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.35);
+}
+
+.hot-article-title {
+  color: #1f2937;
+}
+
+.hot-article-summary {
+  color: var(--text-muted);
+}
+
+.hot-tag {
+  background: white;
+  border: 1px solid var(--border-warm);
+  color: var(--text-muted);
+}
+
+.hot-article-meta {
+  color: var(--text-muted);
+}
+
+.referenced-badge {
+  background: linear-gradient(135deg, #c2410c 0%, #d97706 100%);
 }
 </style>

@@ -167,7 +167,7 @@
                     <!-- 已保存的工具调用状态 -->
                     <div v-if="msg.toolCall" class="tool-call-section">
                       <!-- 工具调用胶囊 -->
-                      <div class="tool-call-capsule success saved">
+                      <div class="tool-call-capsule success saved" :class="{ rag: msg.toolCall?.toolName === 'ragRetrieval' }">
                         <div class="capsule-content">
                           <div class="capsule-icon">
                             <span class="check-icon">✓</span>
@@ -191,12 +191,7 @@
                       </div>
                     </div>
                     
-                    <div 
-                      class="message-body markdown-content"
-                      v-html="renderMarkdown(msg.content)"
-                    ></div>
-                    
-                    <!-- 已完成消息的推荐卡片 -->
+                    <!-- 已完成消息的推荐卡片（置于回答前） -->
                     <div v-if="msg.recommendations && msg.recommendations.length > 0" class="recommendation-cards saved">
                       <div class="cards-header">
                         <span class="cards-title">📚 相关推荐</span>
@@ -206,10 +201,11 @@
                         <a 
                           v-for="item in msg.recommendations.slice(0, 6)" 
                           :key="item.id"
-                          :href="item.link"
+                          :href="getRecommendLink(item)"
                           class="recommend-card"
-                          :class="item.type"
-                          target="_blank"
+                          :class="[item.type, { 'no-cover': !item.coverImage }]"
+                          :target="isExternalLink(item) ? '_blank' : '_self'"
+                          @click.prevent="openRecommendation(item)"
                         >
                           <div class="card-badge">{{ item.type === 'tutorial' ? '教程' : '文章' }}</div>
                           <div class="card-cover" v-if="item.coverImage">
@@ -220,13 +216,18 @@
                             <p class="card-desc">{{ item.description?.slice(0, 60) }}{{ item.description?.length > 60 ? '...' : '' }}</p>
                             <div class="card-meta">
                               <span v-if="item.author" class="meta-author">{{ item.author }}</span>
-                              <span v-if="item.rating" class="meta-rating">⭐ {{ item.rating }}</span>
+                              <span v-if="item.rating !== null && item.rating !== undefined" class="meta-rating">⭐ 匹配度 {{ formatMatchScore(item.rating) }}%</span>
                               <span v-if="item.viewCount" class="meta-views">👁 {{ formatNumber(item.viewCount) }}</span>
                             </div>
                           </div>
                         </a>
                       </div>
                     </div>
+                    
+                    <div 
+                      class="message-body markdown-content"
+                      v-html="renderMarkdown(msg.content)"
+                    ></div>
                     
                     <div class="message-actions">
                       <button class="action-btn" @click="copyMessage(msg.content)" title="复制">
@@ -263,7 +264,7 @@
                 <!-- 工具调用状态区域 -->
                 <div v-if="isToolCalling || currentToolCall" class="tool-call-section streaming">
                   <!-- 工具调用状态胶囊 -->
-                  <div class="tool-call-capsule" :class="{ calling: isToolCalling, success: currentToolCall?.status === 'success', failed: currentToolCall?.status === 'failed' }">
+                  <div class="tool-call-capsule" :class="{ calling: isToolCalling, success: currentToolCall?.status === 'success', failed: currentToolCall?.status === 'failed', rag: currentToolCall?.toolName === 'ragRetrieval' }">
                     <div class="capsule-glow"></div>
                     <div class="capsule-content">
                       <div class="capsule-icon">
@@ -291,6 +292,39 @@
                   </div>
                 </div>
                 
+                <!-- 实时推荐卡片（置于回答前） -->
+                <div v-if="currentRecommendations.length > 0" class="recommendation-cards">
+                  <div class="cards-header">
+                    <span class="cards-title">📚 相关推荐</span>
+                    <span class="cards-count">{{ currentRecommendations.length }} 项</span>
+                  </div>
+                  <div class="cards-grid">
+                    <a 
+                      v-for="item in currentRecommendations.slice(0, 6)" 
+                      :key="item.id"
+                      :href="getRecommendLink(item)"
+                      class="recommend-card"
+                      :class="[item.type, { 'no-cover': !item.coverImage }]"
+                      :target="isExternalLink(item) ? '_blank' : '_self'"
+                      @click.prevent="openRecommendation(item)"
+                    >
+                      <div class="card-badge">{{ item.type === 'tutorial' ? '教程' : '文章' }}</div>
+                      <div class="card-cover" v-if="item.coverImage">
+                        <img :src="item.coverImage" :alt="item.title" />
+                      </div>
+                      <div class="card-body">
+                        <h4 class="card-title">{{ item.title }}</h4>
+                        <p class="card-desc">{{ item.description?.slice(0, 60) }}{{ item.description?.length > 60 ? '...' : '' }}</p>
+                        <div class="card-meta">
+                          <span v-if="item.author" class="meta-author">{{ item.author }}</span>
+                          <span v-if="item.rating !== null && item.rating !== undefined" class="meta-rating">⭐ 匹配度 {{ formatMatchScore(item.rating) }}%</span>
+                          <span v-if="item.viewCount" class="meta-views">👁 {{ formatNumber(item.viewCount) }}</span>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+                
                 <div v-if="isThinking && !streamingContent && !isToolCalling" class="thinking-indicator">
                   <div class="thinking-dot"></div>
                   <div class="thinking-dot"></div>
@@ -302,38 +336,6 @@
                   v-html="renderMarkdown(streamingContent)"
                 ></div>
                 <div class="cursor-blink"></div>
-                
-                <!-- 实时推荐卡片 -->
-                <div v-if="currentRecommendations.length > 0" class="recommendation-cards">
-                  <div class="cards-header">
-                    <span class="cards-title">📚 相关推荐</span>
-                    <span class="cards-count">{{ currentRecommendations.length }} 项</span>
-                  </div>
-                  <div class="cards-grid">
-                    <a 
-                      v-for="item in currentRecommendations.slice(0, 6)" 
-                      :key="item.id"
-                      :href="item.link"
-                      class="recommend-card"
-                      :class="item.type"
-                      target="_blank"
-                    >
-                      <div class="card-badge">{{ item.type === 'tutorial' ? '教程' : '文章' }}</div>
-                      <div class="card-cover" v-if="item.coverImage">
-                        <img :src="item.coverImage" :alt="item.title" />
-                      </div>
-                      <div class="card-body">
-                        <h4 class="card-title">{{ item.title }}</h4>
-                        <p class="card-desc">{{ item.description?.slice(0, 60) }}{{ item.description?.length > 60 ? '...' : '' }}</p>
-                        <div class="card-meta">
-                          <span v-if="item.author" class="meta-author">{{ item.author }}</span>
-                          <span v-if="item.rating" class="meta-rating">⭐ {{ item.rating }}</span>
-                          <span v-if="item.viewCount" class="meta-views">👁 {{ formatNumber(item.viewCount) }}</span>
-                        </div>
-                      </div>
-                    </a>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
@@ -398,7 +400,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useChatStore } from '@/stores/chatStore'
 import { useChatStream } from '@/composables/useChatStream'
 import { useMarkdownRenderer } from '@/composables/useMarkdownRenderer'
@@ -407,6 +409,7 @@ import conversationApi from '@/api/conversationApi'
 
 // Router
 const router = useRouter()
+const route = useRoute()
 
 // Store
 const chatStore = useChatStore()
@@ -414,6 +417,7 @@ const chatStore = useChatStore()
 // Composables
 const { 
   sendMessage: streamSendMessage, 
+  sendMessageWithRAG: streamSendMessageWithRAG,
   streamingContent: streamContent,
   isStreaming: streamIsStreaming,
   isThinking,
@@ -602,6 +606,102 @@ function cancelStream() {
   // 如果已有部分内容，保存它
   if (streamingContent.value) {
     chatStore.addAssistantMessage(streamingContent.value + '\n\n*[回复被中断]*')
+  }
+}
+
+/**
+ * 发送RAG增强消息（基于知识库检索）
+ * 用于从文章详情页跳转过来的延伸问题
+ */
+async function sendMessageWithRAG(questionText, articleInfo = null) {
+  if (!questionText || isStreaming.value) return
+
+  try {
+    // 先创建新会话
+    console.log('创建RAG对话会话...')
+    const newConv = await conversationApi.createConversation({ 
+      model: selectedModel.value,
+      title: articleInfo?.title ? `关于《${articleInfo.title}》的问题` : '知识库问答'
+    })
+    
+    if (!newConv || !newConv.id) {
+      throw new Error('创建会话失败')
+    }
+    
+    const convId = newConv.id
+    chatStore.setCurrentChatId(convId)
+    await loadConversations()
+
+    // 构建带上下文的问题显示
+    const displayQuestion = articleInfo?.title 
+      ? `📖 关于《${articleInfo.title}》的问题：\n\n${questionText}`
+      : questionText
+
+    // 保存用户消息到数据库
+    await conversationApi.addMessage(convId, {
+      role: 'user',
+      content: displayQuestion
+    })
+
+    // 添加用户消息到本地显示
+    chatStore.addUserMessage(displayQuestion)
+    scrollToBottom()
+
+    const startTime = Date.now()
+
+    // 使用RAG接口发送请求
+    await streamSendMessageWithRAG({
+      message: questionText,
+      model: selectedModel.value,
+      temperature: 0.7,
+      conversationId: convId,
+      onToken: () => {
+        scrollToBottom()
+      },
+      onToolCall: (toolCall) => {
+        console.log('RAG检索中:', toolCall)
+        lastToolCall.value = toolCall
+        scrollToBottom()
+      },
+      onToolResult: (toolCall, recommendations) => {
+        console.log('RAG检索完成:', toolCall, '相关文章:', recommendations?.length)
+        lastToolCall.value = toolCall
+        scrollToBottom()
+      },
+      onComplete: async (fullContent, tokenUsage, recommendations) => {
+        const durationMs = Date.now() - startTime
+
+        // 保存AI回复到数据库
+        const toolCallJson = lastToolCall.value ? JSON.stringify(lastToolCall.value) : null
+        const recommendationsJson = recommendations?.length > 0 ? JSON.stringify(recommendations) : null
+        
+        await conversationApi.addMessage(convId, {
+          role: 'assistant',
+          content: fullContent,
+          model: selectedModel.value,
+          toolCalls: toolCallJson,
+          recommendations: recommendationsJson,
+          tokenCount: tokenUsage?.outputTokens,
+          durationMs: durationMs
+        })
+
+        // 添加 AI 回复到本地显示
+        chatStore.addAssistantMessage(fullContent, {
+          recommendations: recommendations || [],
+          toolCall: lastToolCall.value || null
+        })
+        
+        lastToolCall.value = null
+        await loadConversations()
+        scrollToBottom()
+      },
+      onError: (error) => {
+        showToast(error, 'error')
+      }
+    })
+  } catch (error) {
+    console.error('RAG消息发送失败:', error)
+    showToast('发送失败，请重试', 'error')
   }
 }
 
@@ -802,6 +902,48 @@ function formatNumber(num) {
 }
 
 /**
+ * 格式化匹配度（保留三位小数）
+ */
+function formatMatchScore(score) {
+  if (score === null || score === undefined || Number.isNaN(Number(score))) {
+    return '0.000'
+  }
+  return Number(score).toFixed(3)
+}
+
+/**
+ * 判断是否外部链接
+ */
+function isExternalLink(item) {
+  const link = item?.link || ''
+  return /^https?:\/\//i.test(link)
+}
+
+/**
+ * 获取推荐项的跳转链接
+ */
+function getRecommendLink(item) {
+  if (!item) return '#'
+  if (item.link) return item.link
+  if (item.type === 'article' && item.id) return `/article/${item.id}`
+  if (item.type === 'tutorial' && item.id) return `/tutorial/${item.id}`
+  return '#'
+}
+
+/**
+ * 跳转到推荐内容
+ */
+function openRecommendation(item) {
+  const link = getRecommendLink(item)
+  if (!link || link === '#') return
+  if (isExternalLink(item)) {
+    window.open(link, '_blank')
+  } else {
+    router.push(link)
+  }
+}
+
+/**
  * 格式化时间
  * 支持多种日期格式：ISO字符串、LocalDateTime数组、时间戳等
  */
@@ -893,9 +1035,41 @@ onMounted(async () => {
   // 加载会话列表
   await loadConversations()
   
-  // 聚焦输入框
-  if (inputRef.value) {
-    inputRef.value.focus()
+  // 检查URL参数，如果有问题参数则自动发送
+  const urlQuestion = route.query.question
+  const useRAG = route.query.useRAG === 'true'
+  const articleId = route.query.articleId
+  const articleTitle = route.query.articleTitle
+  
+  if (urlQuestion) {
+    const decodedQuestion = decodeURIComponent(urlQuestion)
+    const decodedTitle = articleTitle ? decodeURIComponent(articleTitle) : null
+    
+    console.log('从URL接收到问题:', decodedQuestion, '使用RAG:', useRAG)
+    
+    // 清除URL参数（避免刷新时重复发送）
+    router.replace({ path: '/ai/assistant', query: {} })
+    
+    // 延迟执行，确保界面已渲染
+    await nextTick()
+    
+    if (useRAG) {
+      // 使用RAG模式发送（基于知识库检索）
+      sendMessageWithRAG(decodedQuestion, {
+        id: articleId,
+        title: decodedTitle
+      })
+    } else {
+      // 普通模式发送
+      inputText.value = decodedQuestion
+      await nextTick()
+      sendMessage()
+    }
+  } else {
+    // 没有问题参数时，聚焦输入框
+    if (inputRef.value) {
+      inputRef.value.focus()
+    }
   }
 })
 
@@ -2106,6 +2280,39 @@ watch(streamingContent, () => {
   background: linear-gradient(135deg, #3d1515 0%, #5c1d1d 50%, #7a2424 100%);
 }
 
+/* RAG 知识库检索胶囊（与工具调用区分） */
+.tool-call-capsule.rag {
+  background: linear-gradient(135deg, #1f2937 0%, #312e81 60%, #4f46e5 100%);
+  box-shadow: 
+    0 4px 20px rgba(79, 70, 229, 0.35),
+    0 0 40px rgba(99, 102, 241, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.tool-call-capsule.rag .capsule-glow {
+  opacity: 0.6;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.55), transparent);
+}
+
+.tool-call-capsule.rag .capsule-icon {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.25) 0%, rgba(99, 102, 241, 0.3) 100%);
+  border-color: rgba(129, 140, 248, 0.45);
+}
+
+.tool-call-capsule.rag .capsule-title {
+  color: #e0e7ff;
+}
+
+.tool-call-capsule.rag .capsule-detail {
+  color: #c7d2fe;
+}
+
+.tool-call-capsule.rag .capsule-badge {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(129, 140, 248, 0.35);
+  color: #c7d2fe;
+}
+
 .capsule-content {
   position: relative;
   display: flex;
@@ -2305,12 +2512,12 @@ watch(streamingContent, () => {
 
 /* ==================== 推荐卡片区域 ==================== */
 .recommendation-cards {
-  margin-top: 20px;
-  padding: 20px;
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.6) 0%, rgba(30, 41, 59, 0.4) 100%);
-  border: 1px solid rgba(148, 163, 184, 0.1);
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255, 237, 213, 0.9) 0%, rgba(255, 247, 237, 0.95) 50%, rgba(254, 252, 232, 0.9) 100%);
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  border-radius: 16px;
+  backdrop-filter: blur(6px);
   animation: cardsAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -2326,41 +2533,41 @@ watch(streamingContent, () => {
 }
 
 .recommendation-cards.saved {
-  background: var(--color-bg-secondary);
-  border-color: var(--color-border);
+  background: #fff7ed;
+  border-color: #fed7aa;
 }
 
 .cards-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(251, 146, 60, 0.35);
 }
 
 .cards-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: #9a3412;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
 .cards-count {
-  font-size: 12px;
-  padding: 4px 10px;
-  background: var(--color-accent);
-  color: white;
+  font-size: 11px;
+  padding: 3px 8px;
+  background: rgba(249, 115, 22, 0.15);
+  color: #c2410c;
   border-radius: 12px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
 }
 
 /* ==================== 推荐卡片 ==================== */
@@ -2368,51 +2575,52 @@ watch(streamingContent, () => {
   position: relative;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
-  border: 1px solid rgba(148, 163, 184, 0.15);
-  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 250, 240, 0.95) 100%);
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  border-radius: 14px;
   overflow: hidden;
   text-decoration: none;
   color: inherit;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
-    0 4px 6px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 4px 10px rgba(124, 45, 18, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .ai-assistant:not(.dark-mode) .recommend-card {
-  background: white;
-  border-color: var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  background: #fffdf8;
+  border-color: #fed7aa;
+  box-shadow: 0 2px 8px rgba(124, 45, 18, 0.08);
 }
 
 .recommend-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--color-accent);
+  transform: translateY(-3px);
+  border-color: #fb923c;
   box-shadow: 
-    0 12px 24px rgba(0, 0, 0, 0.15),
-    0 0 0 1px var(--color-accent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    0 10px 20px rgba(124, 45, 18, 0.18),
+    0 0 0 1px rgba(249, 115, 22, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .recommend-card.tutorial {
-  --card-accent: #667eea;
+  --card-accent: #f59e0b;
 }
 
 .recommend-card.article {
-  --card-accent: #10b981;
+  --card-accent: #f97316;
 }
 
 .card-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  padding: 4px 10px;
-  font-size: 11px;
+  bottom: 10px;
+  right: 10px;
+  padding: 3px 10px;
+  font-size: 10px;
   font-weight: 600;
   color: white;
-  background: var(--card-accent);
-  border-radius: 6px;
+  background: linear-gradient(135deg, var(--card-accent), rgba(0, 0, 0, 0.2));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   z-index: 2;
@@ -2437,17 +2645,21 @@ watch(streamingContent, () => {
 }
 
 .card-body {
-  padding: 16px;
+  padding: 12px 14px;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
+.recommend-card.no-cover .card-body {
+  padding-top: 30px;
+}
+
 .card-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--color-text-primary);
-  margin: 0 0 8px 0;
+  color: #3f2a1d;
+  margin: 0 0 6px 0;
   line-height: 1.4;
   display: -webkit-box;
   line-clamp: 2;
@@ -2457,19 +2669,25 @@ watch(streamingContent, () => {
 }
 
 .card-desc {
-  font-size: 13px;
-  color: var(--color-text-secondary);
+  font-size: 12px;
+  color: #8b5e3c;
   line-height: 1.5;
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   flex: 1;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--color-text-muted);
+  gap: 10px;
+  font-size: 11px;
+  color: #9a3412;
+  flex-wrap: wrap;
 }
 
 .meta-author {
@@ -2486,7 +2704,9 @@ watch(streamingContent, () => {
 .meta-rating {
   display: flex;
   align-items: center;
-  color: #fbbf24;
+  color: #f97316;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .meta-views {
@@ -2503,7 +2723,30 @@ watch(streamingContent, () => {
 }
 
 .dark-mode .recommendation-cards.saved {
-  background: rgba(30, 41, 59, 0.6);
+  background: rgba(69, 35, 24, 0.75);
+  border-color: rgba(249, 115, 22, 0.3);
+}
+
+.dark-mode .recommendation-cards {
+  background: linear-gradient(135deg, rgba(69, 35, 24, 0.7) 0%, rgba(91, 47, 29, 0.65) 50%, rgba(63, 34, 23, 0.75) 100%);
+  border-color: rgba(249, 115, 22, 0.25);
+}
+
+.dark-mode .cards-title {
+  color: #fed7aa;
+}
+
+.dark-mode .cards-count {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fed7aa;
+}
+
+.dark-mode .card-title {
+  color: #fde68a;
+}
+
+.dark-mode .card-desc {
+  color: #fcd9bd;
 }
 
 /* 响应式 */

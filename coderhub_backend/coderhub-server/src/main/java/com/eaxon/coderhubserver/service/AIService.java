@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -20,6 +21,14 @@ import com.eaxon.coderhubpojo.DTO.ChatStreamEvent.ToolCall;
 import com.eaxon.coderhubpojo.entity.AIMessage;
 import com.eaxon.coderhubserver.agent.CoderHubTools;
 import com.eaxon.coderhubserver.mapper.AIMessageMapper;
+
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -65,8 +74,17 @@ public class AIService {
     @Autowired
     private AIMessageMapper messageMapper;
 
+    @Autowired
+    private EmbeddingStore<TextSegment> embeddingStore;
+
+    @Autowired
+    private EmbeddingModel embeddingModel;
+
     /** 上下文窗口最大消息数 */
     private static final int MAX_CONTEXT_MESSAGES = 20;
+
+    /** RAG检索返回的最大文章数 */
+    private static final int RAG_TOP_K = 5;
 
     /**
      * 流式模型缓存
@@ -423,5 +441,248 @@ public class AIService {
         }
         
         return message;
+    }
+
+    // ==================== RAG 增强对话 ====================
+
+    /**
+     * RAG增强系统提示词
+     */
+    private static final String RAG_SYSTEM_PROMPT = """
+            你是 CoderHub AI 助手，一个专业的编程技术顾问。
+            
+            以下是从 CoderHub 知识库中检索到的与用户问题相关的博客文章内容，请基于这些内容回答用户的问题：
+            
+            【知识库参考资料】
+            %s
+            
+            回答要求：
+            1. 优先基于上述参考资料回答，确保答案准确且有据可查
+            2. 如果参考资料不足以完整回答问题，可以结合你的专业知识补充
+            3. 适当引用参考资料中的内容，增强可信度
+            4. 使用 Markdown 格式组织回答，代码块标注语言
+            5. 如果问题超出参考资料范围，坦诚告知并给出你的专业建议
+            """;
+
+    /**
+     * RAG增强的流式对话 - 基于知识库检索
+     * 
+     * 核心逻辑：
+     * 1. 将问题向量化
+     * 2. 从ChromaDB检索Top-K篇相似博客
+     * 3. 将检索结果作为上下文
+     * 4. 调用LLM生成回答
+     */
+    public Flux<ChatStreamEvent> streamChatWithRAG(ChatRequestDTO request) {
+        String sessionId = request.getSessionId() != null ? 
+                request.getSessionId() : java.util.UUID.randomUUID().toString();
+        String model = request.getModel() != null ? request.getModel() : defaultModelName;
+        double temperature = request.getTemperature() != null ? request.getTemperature() : 0.7;
+        int maxTokens = request.getMaxTokens() != null ? request.getMaxTokens() : 4096;
+        
+        log.info("开始RAG增强对话 - sessionId: {}, model: {}", sessionId, model);
+        String userMessage = request.getMessage();
+
+        return Flux.create(sink -> {
+            try {
+                // 1. 发送思考中事件
+                sink.next(ChatStreamEvent.thinking(sessionId, model));
+                
+                // 2. 发送RAG检索状态
+                ToolCall ragToolCall = ToolCall.builder()
+                        .toolName("ragRetrieval")
+                        .displayName("知识库检索")
+                        .icon("🔍")
+                        .parameters("检索问题: " + (userMessage.length() > 50 ? 
+                                userMessage.substring(0, 50) + "..." : userMessage))
+                        .status("calling")
+                        .build();
+                sink.next(ChatStreamEvent.toolCalling(sessionId, ragToolCall));
+
+                // 3. 执行RAG检索
+                List<RetrievedArticle> retrievedArticles = retrieveRelevantArticles(userMessage);
+                
+                if (retrievedArticles.isEmpty()) {
+                    log.info("RAG检索无结果，使用普通对话模式");
+                    ragToolCall.setStatus("no_result");
+                    sink.next(ChatStreamEvent.toolResult(sessionId, ragToolCall, null));
+                } else {
+                    log.info("RAG检索成功，获取到 {} 篇相关文章", retrievedArticles.size());
+                    ragToolCall.setStatus("success");
+                    ragToolCall.setResultCount(retrievedArticles.size());
+                    
+                    // 构建推荐列表
+                    List<RecommendItem> recommendations = new ArrayList<>();
+                    for (RetrievedArticle a : retrievedArticles) {
+                        recommendations.add(RecommendItem.builder()
+                                .id(a.articleId)
+                                .title(a.title)
+                                .type("article")
+                                .rating(a.score * 100) // 转换为百分比
+                                .build());
+                    }
+                    sink.next(ChatStreamEvent.toolResult(sessionId, ragToolCall, recommendations));
+                }
+
+                // 4. 获取流式模型
+                OpenAiStreamingChatModel streamingModel = getOrCreateStreamingModel(model, temperature, maxTokens);
+                
+                // 5. 构建带RAG上下文的消息列表
+                List<ChatMessage> messages = buildRAGMessages(request, retrievedArticles);
+                
+                // 6. 执行流式生成
+                AtomicInteger tokenCount = new AtomicInteger(0);
+                StringBuilder fullResponse = new StringBuilder();
+                
+                streamingModel.generate(messages, new StreamingResponseHandler<AiMessage>() {
+                    
+                    @Override
+                    public void onNext(String token) {
+                        if (token != null && !token.isEmpty()) {
+                            fullResponse.append(token);
+                            tokenCount.incrementAndGet();
+                            sink.next(ChatStreamEvent.message(token, sessionId));
+                        }
+                    }
+
+                    @Override
+                    public void onComplete(Response<AiMessage> response) {
+                        log.info("RAG对话完成 - sessionId: {}, 总字符数: {}", 
+                                sessionId, fullResponse.length());
+                        
+                        ChatStreamEvent.TokenUsage usage = ChatStreamEvent.TokenUsage.builder()
+                                .outputTokens(tokenCount.get())
+                                .build();
+                        
+                        sink.next(ChatStreamEvent.done(sessionId, usage));
+                        sink.complete();
+                    }
+
+                    @Override
+                    public void onError(Throwable error) {
+                        log.error("RAG对话出错 - sessionId: {}, error: {}", sessionId, error.getMessage());
+                        sink.next(ChatStreamEvent.error(parseErrorMessage(error), sessionId));
+                        sink.complete();
+                    }
+                });
+                
+            } catch (Exception e) {
+                log.error("RAG对话失败: {}", e.getMessage(), e);
+                sink.next(ChatStreamEvent.error("RAG服务异常: " + e.getMessage(), sessionId));
+                sink.complete();
+            }
+        }, FluxSink.OverflowStrategy.BUFFER);
+    }
+
+    /**
+     * 从向量数据库检索相关文章
+     */
+    private List<RetrievedArticle> retrieveRelevantArticles(String query) {
+        try {
+            // 1. 将问题向量化
+            TextSegment querySegment = TextSegment.from(query);
+            Embedding queryEmbedding = embeddingModel.embed(querySegment).content();
+            
+            // 2. 检索相似文章
+            EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                    .queryEmbedding(queryEmbedding)
+                    .maxResults(RAG_TOP_K)
+                    .minScore(0.5) // 最低相似度阈值
+                    .build();
+            EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
+            List<EmbeddingMatch<TextSegment>> matches = searchResult.matches();
+            
+            // 3. 构建结果列表
+            return matches.stream()
+                    .map(match -> {
+                        RetrievedArticle article = new RetrievedArticle();
+                        article.content = match.embedded().text();
+                        article.score = match.score();
+                        
+                        // 从metadata中提取信息
+                        if (match.embedded().metadata() != null) {
+                            article.articleId = match.embedded().metadata().getString("articleId");
+                            article.title = match.embedded().metadata().getString("title");
+                            article.authorName = match.embedded().metadata().getString("authorName");
+                        }
+                        return article;
+                    })
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("RAG检索失败: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 构建带RAG上下文的消息列表
+     */
+    private List<ChatMessage> buildRAGMessages(ChatRequestDTO request, List<RetrievedArticle> articles) {
+        List<ChatMessage> messages = new ArrayList<>();
+        
+        // 1. 构建RAG系统提示词
+        String ragContext = buildRAGContext(articles);
+        String systemPrompt = String.format(RAG_SYSTEM_PROMPT, ragContext);
+        messages.add(SystemMessage.from(systemPrompt));
+        
+        // 2. 添加历史对话（如果有）
+        String conversationId = request.getConversationId();
+        if (conversationId != null && !conversationId.isEmpty()) {
+            List<AIMessage> dbMessages = messageMapper.getRecentMessages(conversationId, MAX_CONTEXT_MESSAGES);
+            for (AIMessage dbMsg : dbMessages) {
+                if ("user".equalsIgnoreCase(dbMsg.getRole())) {
+                    messages.add(UserMessage.from(dbMsg.getContent()));
+                } else if ("assistant".equalsIgnoreCase(dbMsg.getRole())) {
+                    messages.add(AiMessage.from(dbMsg.getContent()));
+                }
+            }
+        }
+        
+        // 3. 添加当前用户消息
+        messages.add(UserMessage.from(request.getMessage()));
+        
+        log.debug("RAG消息列表构建完成，共 {} 条消息", messages.size());
+        return messages;
+    }
+
+    /**
+     * 构建RAG检索结果上下文
+     */
+    private String buildRAGContext(List<RetrievedArticle> articles) {
+        if (articles.isEmpty()) {
+            return "（未找到相关参考资料，请基于你的专业知识回答）";
+        }
+        
+        StringBuilder context = new StringBuilder();
+        for (int i = 0; i < articles.size(); i++) {
+            RetrievedArticle article = articles.get(i);
+            context.append(String.format("\n--- 参考文章 %d (相似度: %.1f%%) ---\n", 
+                    i + 1, article.score * 100));
+            context.append("标题: ").append(article.title != null ? article.title : "未知").append("\n");
+            if (article.authorName != null) {
+                context.append("作者: ").append(article.authorName).append("\n");
+            }
+            context.append("内容摘要:\n");
+            // 限制每篇文章的内容长度
+            String content = article.content;
+            if (content != null && content.length() > 1500) {
+                content = content.substring(0, 1500) + "...";
+            }
+            context.append(content).append("\n");
+        }
+        return context.toString();
+    }
+
+    /**
+     * 检索到的文章内部类
+     */
+    @lombok.Data
+    private static class RetrievedArticle {
+        private String articleId;
+        private String title;
+        private String authorName;
+        private String content;
+        private double score;
     }
 }

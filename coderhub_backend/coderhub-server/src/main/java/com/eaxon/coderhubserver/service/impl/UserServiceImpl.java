@@ -330,4 +330,33 @@ public class UserServiceImpl implements UserService {
         
         userMapper.update(updateUser);
     }
+
+    /**
+     * 修改密码
+     * @param userId 用户ID
+     * @param oldPassword 旧密码
+     * @param newPassword 新密码
+     */
+    @Override
+    public void changePassword(String userId, String oldPassword, String newPassword) {
+        // 1. 查询用户
+        User user = userMapper.getUserById(userId);
+        if (user == null) {
+            throw new RuntimeException("用户不存在");
+        }
+
+        // 2. 验证旧密码
+        if (!MD5Util.verify(oldPassword, user.getPassword())) {
+            throw new PasswordErrorException("旧密码错误");
+        }
+
+        // 3. 更新密码
+        User updateUser = User.builder()
+                .id(userId)
+                .password(MD5Util.encrypt(newPassword))
+                .build();
+        
+        userMapper.update(updateUser);
+        log.info("用户{}密码修改成功", userId);
+    }
 }

@@ -4,6 +4,8 @@ import com.eaxon.coderhubpojo.entity.UserFollow;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 用户关注Mapper接口
  */
@@ -34,5 +36,15 @@ public interface UserFollowMapper {
      * 统计用户粉丝数（有多少人关注该用户）
      */
     Integer countFollowersByUserId(String userId);
+
+    /**
+     * 获取用户关注的人的ID列表
+     */
+    List<String> getFollowedIdsByUserId(String userId);
+
+    /**
+     * 获取用户的粉丝ID列表
+     */
+    List<String> getFollowerIdsByUserId(String userId);
 }
 

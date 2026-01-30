@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.TutorialCommentMapper">
+
+    <!-- 插入评论 -->
+    <insert id="insert">
+        INSERT INTO tutorial_comment (
+            id, tutorial_id, user_id, content, parent_id, like_count, create_time
+        ) VALUES (
+            #{id}, #{tutorialId}, #{userId}, #{content}, #{parentId}, #{likeCount}, #{createTime}
+        )
+    </insert>
+
+    <!-- 根据ID删除评论 -->
+    <delete id="deleteById">
+        DELETE FROM tutorial_comment WHERE id = #{id}
+    </delete>
+
+    <!-- 根据ID查询评论 -->
+    <select id="getById" resultType="com.eaxon.coderhubpojo.entity.TutorialComment">
+        SELECT id, tutorial_id, user_id, content, parent_id, like_count, create_time
+        FROM tutorial_comment WHERE id = #{id}
+    </select>
+
+    <!-- 查询教程的顶级评论列表 -->
+    <select id="getTopCommentsByTutorialId" resultType="com.eaxon.coderhubpojo.entity.TutorialComment">
+        SELECT id, tutorial_id, user_id, content, parent_id, like_count, create_time
+        FROM tutorial_comment
+        WHERE tutorial_id = #{tutorialId} AND parent_id IS NULL
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询某条评论的回复列表 -->
+    <select id="getRepliesByCommentId" resultType="com.eaxon.coderhubpojo.entity.TutorialComment">
+        SELECT id, tutorial_id, user_id, content, parent_id, like_count, create_time
+        FROM tutorial_comment
+        WHERE parent_id = #{commentId}
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 统计教程的评论数（只统计顶级评论） -->
+    <select id="countByTutorialId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM tutorial_comment
+        WHERE tutorial_id = #{tutorialId} AND parent_id IS NULL
+    </select>
+
+    <!-- 更新评论点赞数 -->
+    <update id="updateLikeCount">
+        UPDATE tutorial_comment
+        SET like_count = #{likeCount}
+        WHERE id = #{id}
+    </update>
+
+</mapper>
+

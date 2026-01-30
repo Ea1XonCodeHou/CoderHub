@@ -248,6 +248,181 @@ export function useChatStream() {
   }
 
   /**
+   * 发送RAG增强的消息（基于知识库检索）
+   * 用于延伸问题场景
+   * 
+   * @param {Object} options - 请求选项
+   * @param {string} options.message - 用户消息
+   * @param {string} options.model - AI 模型
+   * @param {Function} options.onToken - 收到 token 的回调
+   * @param {Function} options.onComplete - 完成的回调
+   * @param {Function} options.onError - 错误的回调
+   * @param {Function} options.onToolCall - 工具调用（RAG检索）的回调
+   * @param {Function} options.onToolResult - 工具结果的回调
+   * @returns {Promise<string>} - 完整的响应内容
+   */
+  async function sendMessageWithRAG({
+    message,
+    model = 'qwen-plus',
+    temperature = 0.7,
+    conversationId = null,
+    onToken = null,
+    onComplete = null,
+    onError = null,
+    onToolCall = null,
+    onToolResult = null
+  }) {
+    // 重置状态
+    isStreaming.value = true
+    streamingContent.value = ''
+    currentError.value = null
+    isThinking.value = true
+    isToolCalling.value = false
+    toolCallStatus.value = null
+    recommendations.value = []
+
+    // 创建 AbortController 用于取消请求
+    abortController.value = new AbortController()
+
+    try {
+      const requestBody = {
+        message,
+        model,
+        temperature,
+        conversationId,
+        sessionId: generateSessionId()
+      }
+
+      // 获取 token
+      const token = localStorage.getItem('token')
+      
+      // 使用 RAG 接口
+      const response = await fetch(`${API_BASE_URL}/ai/chat/rag`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+          'authentication': token || ''
+        },
+        body: JSON.stringify(requestBody),
+        signal: abortController.value.signal
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) {
+          break
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+
+        const events = buffer.split('\n\n')
+        buffer = events.pop() || ''
+
+        for (const eventStr of events) {
+          if (!eventStr.trim()) continue
+
+          const event = parseSSEEvent(eventStr)
+          
+          switch (event.type) {
+            case 'thinking':
+              isThinking.value = true
+              isToolCalling.value = false
+              break
+            
+            case 'tool_calling':
+              isThinking.value = false
+              isToolCalling.value = true
+              if (event.data?.toolCall) {
+                toolCallStatus.value = event.data.toolCall
+              }
+              if (onToolCall) {
+                onToolCall(event.data?.toolCall)
+              }
+              break
+            
+            case 'tool_result':
+              isToolCalling.value = false
+              if (event.data?.toolCall) {
+                toolCallStatus.value = event.data.toolCall
+              }
+              if (event.data?.recommendations) {
+                recommendations.value = event.data.recommendations
+              }
+              if (onToolResult) {
+                onToolResult(event.data?.toolCall, event.data?.recommendations)
+              }
+              break
+              
+            case 'message':
+              isThinking.value = false
+              isToolCalling.value = false
+              if (event.data?.content) {
+                streamingContent.value += event.data.content
+                if (onToken) {
+                  onToken(event.data.content)
+                }
+              }
+              break
+              
+            case 'done':
+              isStreaming.value = false
+              isThinking.value = false
+              isToolCalling.value = false
+              if (event.data?.recommendations) {
+                recommendations.value = event.data.recommendations
+              }
+              if (onComplete) {
+                onComplete(streamingContent.value, event.data?.tokenUsage, recommendations.value)
+              }
+              break
+              
+            case 'error':
+              const errorMsg = event.data?.error || '未知错误'
+              currentError.value = errorMsg
+              isStreaming.value = false
+              isThinking.value = false
+              isToolCalling.value = false
+              if (onError) {
+                onError(errorMsg)
+              }
+              break
+          }
+        }
+      }
+
+      return streamingContent.value
+
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('RAG请求被取消')
+        return streamingContent.value
+      }
+
+      const errorMessage = error.message || '网络请求失败'
+      currentError.value = errorMessage
+      isStreaming.value = false
+      isThinking.value = false
+      isToolCalling.value = false
+      
+      if (onError) {
+        onError(errorMessage)
+      }
+      
+      throw error
+    }
+  }
+
+  /**
    * 使用 GET 方式发送消息（兼容 EventSource）
    * 适用于简单场景，不支持历史对话
    */
@@ -394,6 +569,7 @@ export function useChatStream() {
     
     // 方法
     sendMessage,
+    sendMessageWithRAG,
     sendMessageGet,
     cancelStream,
     reset

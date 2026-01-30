@@ -204,4 +204,59 @@ public class AIController {
                                 .build()
                 ));
     }
+
+    /**
+     * RAG增强的流式对话接口
+     * 
+     * 用于延伸问题场景：
+     * 1. 用户在文章详情页点击延伸问题
+     * 2. 跳转到AI助手，自动发送问题
+     * 3. 后端检索知识库，基于博客内容生成回答
+     */
+    @PostMapping(value = "/chat/rag", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "RAG增强对话接口", description = "基于知识库检索的智能对话，用于延伸问题场景")
+    public Flux<ServerSentEvent<String>> streamChatWithRAG(@RequestBody ChatRequestDTO request) {
+        log.info("收到RAG增强对话请求，消息: {}, 模型: {}", 
+                request.getMessage(), request.getModel());
+        
+        String sessionId = request.getSessionId() != null ? 
+                request.getSessionId() : java.util.UUID.randomUUID().toString();
+        
+        return aiService.streamChatWithRAG(request)
+                .map(event -> createSSE(event, sessionId))
+                .onErrorResume(e -> {
+                    log.error("RAG对话出错: {}", e.getMessage());
+                    ChatStreamEvent errorEvent = ChatStreamEvent.error(e.getMessage(), sessionId);
+                    return Flux.just(createSSE(errorEvent, sessionId));
+                });
+    }
+
+    /**
+     * RAG对话接口（GET - 兼容 EventSource）
+     * 用于从文章详情页跳转时，通过URL参数传递问题
+     */
+    @GetMapping(value = "/chat/rag", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "RAG增强对话接口（GET）", description = "兼容URL参数的RAG对话接口")
+    public Flux<ServerSentEvent<String>> streamChatWithRAGGet(
+            @RequestParam("message") String message,
+            @RequestParam(value = "model", required = false, defaultValue = "qwen-plus") String model) {
+        
+        log.info("收到RAG增强对话请求 [GET]，消息: {}", message);
+        
+        String sessionId = java.util.UUID.randomUUID().toString();
+        
+        ChatRequestDTO request = ChatRequestDTO.builder()
+                .message(message)
+                .model(model)
+                .sessionId(sessionId)
+                .build();
+        
+        return aiService.streamChatWithRAG(request)
+                .map(event -> createSSE(event, sessionId))
+                .onErrorResume(e -> {
+                    log.error("RAG对话出错: {}", e.getMessage());
+                    ChatStreamEvent errorEvent = ChatStreamEvent.error(e.getMessage(), sessionId);
+                    return Flux.just(createSSE(errorEvent, sessionId));
+                });
+    }
 }

@@ -4,11 +4,16 @@ import com.aliyun.oss.ClientException;
 import com.aliyun.oss.OSS;
 import com.aliyun.oss.OSSException;
 import com.aliyun.oss.OSSClientBuilder;
+import com.aliyun.oss.model.OSSObject;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
 
 @Data
 @AllArgsConstructor
@@ -86,6 +91,43 @@ public class AliOssUtil {
         } catch (ClientException ce) {
             log.error("OSS客户端异常：{}", ce.getMessage());
             throw new RuntimeException("文件删除失败：" + ce.getMessage());
+        } finally {
+            if (ossClient != null) {
+                ossClient.shutdown();
+            }
+        }
+    }
+
+    /**
+     * 下载文件并转为字符串
+     *
+     * @param objectName 文件名（如：article/2024/10/21/xxx.md）
+     * @return 文件内容字符串
+     */
+    public String downloadAsString(String objectName) {
+        // 创建OSSClient实例
+        OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+
+        try {
+            // 获取文件对象
+            OSSObject ossObject = ossClient.getObject(bucketName, objectName);
+            
+            // 读取内容
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(ossObject.getObjectContent(), StandardCharsets.UTF_8))) {
+                String content = reader.lines().collect(Collectors.joining("\n"));
+                log.info("文件下载成功：{}，长度：{}", objectName, content.length());
+                return content;
+            }
+        } catch (OSSException oe) {
+            log.error("OSS下载文件失败：{}", oe.getErrorMessage());
+            throw new RuntimeException("文件下载失败：" + oe.getErrorMessage());
+        } catch (ClientException ce) {
+            log.error("OSS客户端异常：{}", ce.getMessage());
+            throw new RuntimeException("文件下载失败：" + ce.getMessage());
+        } catch (Exception e) {
+            log.error("读取文件内容异常：{}", e.getMessage());
+            throw new RuntimeException("文件读取失败：" + e.getMessage());
         } finally {
             if (ossClient != null) {
                 ossClient.shutdown();

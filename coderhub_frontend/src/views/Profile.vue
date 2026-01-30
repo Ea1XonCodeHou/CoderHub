@@ -45,8 +45,11 @@
         </div>
       </div>
 
-      <div class="profile-card">
-        <h1 class="page-title">个人信息</h1>
+      <!-- 左右布局容器 -->
+      <div class="profile-layout">
+        <!-- 左侧：个人信息卡片 -->
+        <div class="profile-card">
+          <h1 class="page-title">个人信息</h1>
         
         <!-- 头像上传区域 -->
         <div class="avatar-section">
@@ -148,53 +151,212 @@
           </div>
         </div>
 
-        <!-- 按钮区域 -->
-        <div class="button-group">
-          <button class="btn btn-cancel" @click="resetForm">重置</button>
-          <button class="btn btn-submit" @click="handleSubmit" :disabled="loading">
-            <span v-if="!loading">保存修改</span>
-            <span v-else>保存中...</span>
+          <!-- 按钮区域 -->
+          <div class="button-group">
+            <button class="btn btn-cancel" @click="resetForm">重置</button>
+            <button class="btn btn-submit" @click="handleSubmit" :disabled="loading">
+              <span v-if="!loading">保存修改</span>
+              <span v-else>保存中...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 右侧：内容标签页 -->
+        <div class="content-tabs-section">
+        <div class="tabs-header">
+          <button 
+            v-for="tab in contentTabs" 
+            :key="tab.id"
+            class="tab-btn"
+            :class="{ active: activeTab === tab.id }"
+            @click="switchTab(tab.id)"
+          >
+            <span class="material-symbols-outlined">{{ tab.icon }}</span>
+            {{ tab.label }}
           </button>
         </div>
-      </div>
-
-      <!-- 预留功能区域 -->
-      <div class="feature-preview">
-        <h2 class="section-title">更多功能</h2>
-        <div class="feature-grid">
-          <div class="feature-card disabled">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 15C15.866 15 19 11.866 19 8C19 4.13401 15.866 1 12 1C8.13401 1 5 4.13401 5 8C5 11.866 8.13401 15 12 15Z" stroke="currentColor" stroke-width="2"/>
-              <path d="M8.21 13.89L7 23L12 20L17 23L15.79 13.88" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <h3>会员升级</h3>
-            <p>即将开放</p>
+        
+        <!-- 我的博客 -->
+        <div v-show="activeTab === 'articles'" class="tab-content">
+          <div v-if="articlesLoading" class="content-loading">
+            <div class="mini-spinner"></div>
+            <span>加载中...</span>
           </div>
-          <div class="feature-card disabled">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2"/>
-              <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <h3>浏览历史</h3>
-            <p>即将开放</p>
+          <div v-else-if="myArticles.length === 0" class="empty-state">
+            <span class="material-symbols-outlined">article</span>
+            <p>暂无发布的文章</p>
+            <button class="btn-primary-small" @click="goToWrite">去发布</button>
           </div>
-          <div class="feature-card disabled">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <h3>我的收藏</h3>
-            <p>即将开放</p>
+          <div v-else class="articles-grid">
+            <div v-for="article in myArticles" :key="article.id" class="article-card" @click="goToArticle(article.id)">
+              <img :src="article.coverImage || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=400&h=200&fit=crop'" :alt="article.title" class="article-cover" />
+              <div class="article-info">
+                <h4 class="article-title">{{ article.title }}</h4>
+                <div class="article-meta">
+                  <span><span class="material-symbols-outlined">visibility</span> {{ article.viewCount || 0 }}</span>
+                  <span>{{ formatDate(article.createTime) }}</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="feature-card disabled">
-            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M10.325 4.317C10.751 2.561 13.249 2.561 13.675 4.317C13.7389 4.5808 13.8642 4.82578 14.0407 5.032C14.2172 5.23822 14.4399 5.39985 14.6907 5.50375C14.9414 5.60764 15.2132 5.65085 15.4838 5.62987C15.7544 5.60889 16.0162 5.5243 16.248 5.383C17.791 4.443 19.558 6.209 18.618 7.753C18.4769 7.98466 18.3924 8.24634 18.3715 8.51677C18.3506 8.78721 18.3938 9.05877 18.4975 9.30938C18.6013 9.55999 18.7627 9.78258 18.9687 9.95905C19.1747 10.1355 19.4194 10.2609 19.683 10.325C21.439 10.751 21.439 13.249 19.683 13.675C19.4192 13.7389 19.1742 13.8642 18.968 14.0407C18.7618 14.2172 18.6001 14.4399 18.4963 14.6907C18.3924 14.9414 18.3491 15.2132 18.3701 15.4838C18.3911 15.7544 18.4757 16.0162 18.617 16.248C19.557 17.791 17.791 19.558 16.247 18.618C16.0153 18.4769 15.7537 18.3924 15.4832 18.3715C15.2128 18.3506 14.9412 18.3938 14.6906 18.4975C14.44 18.6013 14.2174 18.7627 14.0409 18.9687C13.8645 19.1747 13.7391 19.4194 13.675 19.683C13.249 21.439 10.751 21.439 10.325 19.683C10.2611 19.4192 10.1358 19.1742 9.95929 18.968C9.7828 18.7618 9.56011 18.6001 9.30935 18.4963C9.05859 18.3924 8.78683 18.3491 8.51621 18.3701C8.24559 18.3911 7.98375 18.4757 7.752 18.617C6.209 19.557 4.442 17.791 5.382 16.247C5.5231 16.0153 5.60755 15.7537 5.62848 15.4832C5.64942 15.2128 5.60624 14.9412 5.50247 14.6906C5.3987 14.44 5.23726 14.2174 5.03127 14.0409C4.82529 13.8645 4.58056 13.7391 4.317 13.675C2.561 13.249 2.561 10.751 4.317 10.325C4.5808 10.2611 4.82578 10.1358 5.032 9.95929C5.23822 9.7828 5.39985 9.56011 5.50375 9.30935C5.60764 9.05859 5.65085 8.78683 5.62987 8.51621C5.60889 8.24559 5.5243 7.98375 5.383 7.752C4.443 6.209 6.209 4.442 7.753 5.382C8.753 5.99 10.049 5.452 10.325 4.317Z" stroke="currentColor" stroke-width="2"/>
-              <path d="M15 12C15 13.6569 13.6569 15 12 15C10.3431 15 9 13.6569 9 12C9 10.3431 10.3431 9 12 9C13.6569 9 15 10.3431 15 12Z" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            <h3>账号安全</h3>
-            <p>即将开放</p>
+        </div>
+        
+        <!-- 我的关注 -->
+        <div v-show="activeTab === 'following'" class="tab-content">
+          <div v-if="followingLoading" class="content-loading">
+            <div class="mini-spinner"></div>
+            <span>加载中...</span>
+          </div>
+          <div v-else-if="myFollowing.length === 0" class="empty-state">
+            <span class="material-symbols-outlined">group</span>
+            <p>暂无关注的用户</p>
+            <button class="btn-primary-small" @click="goToHome">去发现</button>
+          </div>
+          <div v-else class="following-grid">
+            <div v-for="user in myFollowing" :key="user.userId" class="user-card">
+              <img :src="user.avatar || 'https://i.pravatar.cc/150?img=0'" :alt="user.username" class="user-avatar" />
+              <div class="user-info">
+                <h4 class="user-name">{{ user.username }}</h4>
+                <p class="user-desc">{{ user.description || '这个人很懒，什么都没写' }}</p>
+              </div>
+              <button class="btn-unfollow" @click.stop="unfollowUser(user.userId)">取消关注</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 我的项目 -->
+        <div v-show="activeTab === 'projects'" class="tab-content">
+          <div v-if="projectsLoading" class="content-loading">
+            <div class="mini-spinner"></div>
+            <span>加载中...</span>
+          </div>
+          <div v-else-if="myProjects.length === 0" class="empty-state">
+            <span class="material-symbols-outlined">folder</span>
+            <p>暂无发布的项目</p>
+            <button class="btn-primary-small" @click="goToProjects">去发布</button>
+          </div>
+          <div v-else class="projects-grid">
+            <div v-for="project in myProjects" :key="project.id" class="project-card" @click="goToProject(project.id)">
+              <img :src="project.coverImage || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=400&h=200&fit=crop'" :alt="project.projectName" class="project-cover" />
+              <div class="project-info">
+                <h4 class="project-title">{{ project.projectName }}</h4>
+                <p class="project-desc">{{ project.shortDescription }}</p>
+                <div class="project-meta">
+                  <span><span class="material-symbols-outlined">visibility</span> {{ project.viewCount || 0 }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 设置 -->
+        <div v-show="activeTab === 'settings'" class="tab-content settings-content">
+          <div class="settings-nav">
+            <button 
+              v-for="setting in settingsTabs" 
+              :key="setting.id"
+              class="settings-nav-btn"
+              :class="{ active: activeSettingsTab === setting.id }"
+              @click="activeSettingsTab = setting.id"
+            >
+              <span class="material-symbols-outlined">{{ setting.icon }}</span>
+              {{ setting.label }}
+            </button>
+          </div>
+          
+          <!-- 基础资料设置 -->
+          <div v-show="activeSettingsTab === 'basic'" class="settings-panel">
+            <h3 class="settings-title">基础资料</h3>
+            <p class="settings-desc">修改您的个人基本信息</p>
+            <div class="settings-form">
+              <div class="form-row">
+                <label>用户名</label>
+                <input v-model="settingsForm.username" type="text" placeholder="请输入用户名" />
+              </div>
+              <div class="form-row">
+                <label>个人简介</label>
+                <textarea v-model="settingsForm.description" placeholder="介绍一下自己吧" rows="3"></textarea>
+              </div>
+              <button class="btn-save-settings" @click="saveBasicSettings" :disabled="savingSettings">
+                {{ savingSettings ? '保存中...' : '保存修改' }}
+              </button>
+            </div>
+          </div>
+          
+          <!-- 账号安全设置 -->
+          <div v-show="activeSettingsTab === 'security'" class="settings-panel">
+            <h3 class="settings-title">账号安全</h3>
+            <p class="settings-desc">管理您的账号安全设置</p>
+            <div class="settings-form">
+              <div class="form-row">
+                <label>当前密码</label>
+                <input v-model="passwordForm.oldPassword" type="password" placeholder="请输入当前密码" />
+              </div>
+              <div class="form-row">
+                <label>新密码</label>
+                <input v-model="passwordForm.newPassword" type="password" placeholder="请输入新密码" />
+              </div>
+              <div class="form-row">
+                <label>确认新密码</label>
+                <input v-model="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码" />
+              </div>
+              <button class="btn-save-settings" @click="changePassword" :disabled="savingSettings">
+                {{ savingSettings ? '修改中...' : '修改密码' }}
+              </button>
+            </div>
+          </div>
+          
+          <!-- 通知设置 -->
+          <div v-show="activeSettingsTab === 'notification'" class="settings-panel">
+            <h3 class="settings-title">通知设置</h3>
+            <p class="settings-desc">管理您的消息通知偏好</p>
+            <div class="settings-form notification-form">
+              <div class="notification-item">
+                <div class="notification-info">
+                  <span class="notification-label">评论通知</span>
+                  <span class="notification-desc">当有人评论您的内容时通知您</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" v-model="notificationSettings.comment" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="notification-item">
+                <div class="notification-info">
+                  <span class="notification-label">关注通知</span>
+                  <span class="notification-desc">当有新用户关注您时通知您</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" v-model="notificationSettings.follow" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="notification-item">
+                <div class="notification-info">
+                  <span class="notification-label">点赞通知</span>
+                  <span class="notification-desc">当有人点赞您的内容时通知您</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" v-model="notificationSettings.like" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="notification-item">
+                <div class="notification-info">
+                  <span class="notification-label">系统通知</span>
+                  <span class="notification-desc">接收系统公告和更新通知</span>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" v-model="notificationSettings.system" />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <p class="notification-tip">* 通知设置功能即将上线，敬请期待</p>
+            </div>
           </div>
         </div>
       </div>
+      </div> <!-- 关闭 profile-layout -->
     </main>
 
     <!-- 提示信息 -->
@@ -207,7 +369,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { updateUserInfo, uploadFile } from '@/api/user'
+import { updateUserInfo, uploadFile, getMyArticles, getMyFollowing, getMyProjects, changePassword as apiChangePassword } from '@/api/user'
 import NavBar from '@/components/NavBar.vue'
 import axios from 'axios'
 
@@ -233,6 +395,233 @@ const userStats = ref({
   followersCount: 0,
   projectCount: 0
 })
+
+// ==================== 标签页相关 ====================
+const activeTab = ref('articles')
+const contentTabs = [
+  { id: 'articles', label: '我的博客', icon: 'article' },
+  { id: 'following', label: '我的关注', icon: 'group' },
+  { id: 'projects', label: '我的项目', icon: 'folder' },
+  { id: 'settings', label: '设置', icon: 'settings' }
+]
+
+// 设置子标签
+const activeSettingsTab = ref('basic')
+const settingsTabs = [
+  { id: 'basic', label: '基础资料', icon: 'person' },
+  { id: 'security', label: '账号安全', icon: 'lock' },
+  { id: 'notification', label: '通知设置', icon: 'notifications' }
+]
+
+// ==================== 内容数据 ====================
+const myArticles = ref([])
+const myFollowing = ref([])
+const myProjects = ref([])
+const articlesLoading = ref(false)
+const followingLoading = ref(false)
+const projectsLoading = ref(false)
+
+// ==================== 设置表单 ====================
+const settingsForm = reactive({
+  username: '',
+  description: ''
+})
+
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+const notificationSettings = reactive({
+  comment: true,
+  follow: true,
+  like: true,
+  system: true
+})
+
+const savingSettings = ref(false)
+
+// 切换标签页
+const switchTab = (tabId) => {
+  activeTab.value = tabId
+  
+  // 按需加载数据
+  if (tabId === 'articles' && myArticles.value.length === 0) {
+    loadMyArticles()
+  } else if (tabId === 'following' && myFollowing.value.length === 0) {
+    loadMyFollowing()
+  } else if (tabId === 'projects' && myProjects.value.length === 0) {
+    loadMyProjects()
+  } else if (tabId === 'settings') {
+    // 初始化设置表单
+    settingsForm.username = userInfo.value.username || ''
+    settingsForm.description = userInfo.value.description || ''
+  }
+}
+
+// 加载我的文章
+const loadMyArticles = async () => {
+  articlesLoading.value = true
+  try {
+    const res = await getMyArticles()
+    if (res.code === 1) {
+      myArticles.value = res.data || []
+    }
+  } catch (error) {
+    console.error('加载文章失败：', error)
+  } finally {
+    articlesLoading.value = false
+  }
+}
+
+// 加载我的关注
+const loadMyFollowing = async () => {
+  followingLoading.value = true
+  try {
+    const res = await getMyFollowing()
+    if (res.code === 1) {
+      myFollowing.value = res.data || []
+    }
+  } catch (error) {
+    console.error('加载关注列表失败：', error)
+  } finally {
+    followingLoading.value = false
+  }
+}
+
+// 加载我的项目
+const loadMyProjects = async () => {
+  projectsLoading.value = true
+  try {
+    const res = await getMyProjects()
+    if (res.code === 1) {
+      myProjects.value = res.data || []
+    }
+  } catch (error) {
+    console.error('加载项目失败：', error)
+  } finally {
+    projectsLoading.value = false
+  }
+}
+
+// 取消关注
+const unfollowUser = async (userId) => {
+  if (!confirm('确定要取消关注吗？')) return
+  
+  try {
+    const token = localStorage.getItem('token')
+    // 使用 toggleFollow 接口（POST /user/{userId}/follow）
+    const res = await axios.post(`/api/user/${userId}/follow`, {}, {
+      headers: { authentication: token }
+    })
+    if (res.data.code === 1) {
+      // 如果 isFollowing 为 false 表示取消关注成功
+      if (!res.data.data.isFollowing) {
+        myFollowing.value = myFollowing.value.filter(u => u.userId !== userId)
+        userStats.value.followingCount = Math.max(0, userStats.value.followingCount - 1)
+        showMessageToast('已取消关注', 'success')
+      }
+    }
+  } catch (error) {
+    console.error('取消关注失败：', error)
+    showMessageToast('操作失败', 'error')
+  }
+}
+
+// 保存基础设置
+const saveBasicSettings = async () => {
+  if (!settingsForm.username.trim()) {
+    showMessageToast('用户名不能为空', 'error')
+    return
+  }
+  
+  savingSettings.value = true
+  try {
+    const res = await updateUserInfo({
+      username: settingsForm.username,
+      description: settingsForm.description
+    })
+    
+    if (res.code === 1) {
+      const newUserInfo = { ...userInfo.value, ...res.data }
+      localStorage.setItem('userInfo', JSON.stringify(newUserInfo))
+      userInfo.value = newUserInfo
+      showMessageToast('保存成功', 'success')
+    } else {
+      showMessageToast(res.msg || '保存失败', 'error')
+    }
+  } catch (error) {
+    console.error('保存设置失败：', error)
+    showMessageToast('保存失败', 'error')
+  } finally {
+    savingSettings.value = false
+  }
+}
+
+// 修改密码
+const changePassword = async () => {
+  if (!passwordForm.oldPassword) {
+    showMessageToast('请输入当前密码', 'error')
+    return
+  }
+  if (!passwordForm.newPassword) {
+    showMessageToast('请输入新密码', 'error')
+    return
+  }
+  if (passwordForm.newPassword.length < 6) {
+    showMessageToast('新密码长度不能少于6位', 'error')
+    return
+  }
+  if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+    showMessageToast('两次输入的密码不一致', 'error')
+    return
+  }
+  
+  savingSettings.value = true
+  try {
+    const res = await apiChangePassword({
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
+    })
+    
+    if (res.code === 1) {
+      showMessageToast('密码修改成功', 'success')
+      passwordForm.oldPassword = ''
+      passwordForm.newPassword = ''
+      passwordForm.confirmPassword = ''
+    } else {
+      showMessageToast(res.msg || '密码修改失败', 'error')
+    }
+  } catch (error) {
+    console.error('修改密码失败：', error)
+    showMessageToast(error.response?.data?.msg || '密码修改失败', 'error')
+  } finally {
+    savingSettings.value = false
+  }
+}
+
+// 格式化日期
+const formatDate = (time) => {
+  if (!time) return ''
+  
+  // 处理Java LocalDateTime数组格式
+  if (Array.isArray(time)) {
+    const [year, month, day] = time
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  }
+  
+  const date = new Date(time)
+  if (isNaN(date.getTime())) return ''
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+// 导航方法
+const goToArticle = (id) => router.push(`/article/${id}`)
+const goToProject = (id) => router.push(`/project/${id}`)
+const goToWrite = () => router.push('/write')
+const goToHome = () => router.push('/home')
+const goToProjects = () => router.push('/projects')
 
 // 获取用户统计数据
 const fetchUserStats = async () => {
@@ -266,6 +655,8 @@ onMounted(() => {
     userInfo.value = JSON.parse(storedUserInfo)
     resetForm()
     fetchUserStats()
+    // 默认加载文章列表
+    loadMyArticles()
   } else {
     router.push('/')
   }
@@ -443,7 +834,7 @@ const showMessageToast = (text, type = 'success') => {
 
 /* 主体内容 */
 .profile-main {
-  max-width: 1000px;
+  max-width: 1150px;
   margin: 0 auto;
   padding: 40px;
 }
@@ -509,13 +900,23 @@ const showMessageToast = (text, type = 'success') => {
   font-family: 'Inter', sans-serif;
 }
 
+/* 左右布局 */
+.profile-layout {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+}
+
 .profile-card {
+  width: 380px;
+  flex-shrink: 0;
   background: white;
   border-radius: 26px;
-  padding: 40px;
+  padding: 32px;
   border: 1px solid var(--border-warm);
   box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
-  margin-bottom: 32px;
+  position: sticky;
+  top: 96px;
 }
 
 .page-title {
@@ -808,7 +1209,576 @@ const showMessageToast = (text, type = 'success') => {
   color: white;
 }
 
+/* ==================== 内容标签页 ==================== */
+.content-tabs-section {
+  flex: 1;
+  min-width: 0;
+  background: white;
+  border-radius: 26px;
+  padding: 32px;
+  border: 1px solid var(--border-warm);
+  box-shadow: 0 10px 24px rgba(45, 42, 38, 0.08);
+}
+
+.tabs-header {
+  display: flex;
+  gap: 12px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid var(--border-warm);
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border-warm);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.tab-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.tab-btn:hover {
+  background: white;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.tab-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.25);
+}
+
+/* 标签页内容 */
+.tab-content {
+  min-height: 300px;
+}
+
+.content-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px;
+  color: var(--text-muted);
+}
+
+.mini-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--border-warm);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.empty-state .material-symbols-outlined {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.4;
+  color: var(--primary);
+}
+
+.empty-state p {
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.btn-primary-small {
+  padding: 10px 24px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary-small:hover {
+  background: #9a3412;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.3);
+}
+
+/* 文章网格 */
+.articles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.article-card {
+  background: var(--surface);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border-warm);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.article-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(194, 65, 12, 0.15);
+  border-color: var(--primary);
+}
+
+.article-cover {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+
+.article-info {
+  padding: 16px;
+}
+
+.article-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.article-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.article-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.article-meta .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* 关注列表 */
+.following-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--border-warm);
+  transition: all 0.2s;
+}
+
+.user-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.1);
+}
+
+.user-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-warm);
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.user-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-unfollow {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid var(--border-warm);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-unfollow:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.05);
+}
+
+/* 项目网格 */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.project-card {
+  background: var(--surface);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border-warm);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(194, 65, 12, 0.15);
+  border-color: var(--primary);
+}
+
+.project-cover {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+
+.project-info {
+  padding: 16px;
+}
+
+.project-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.project-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.project-meta {
+  display: flex;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.project-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.project-meta .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* ==================== 设置面板 ==================== */
+.settings-content {
+  display: flex;
+  gap: 32px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.settings-nav {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+}
+
+.settings-nav-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.settings-nav-btn:hover {
+  background: var(--surface);
+  color: var(--text-main);
+}
+
+.settings-nav-btn.active {
+  background: var(--surface);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.settings-panel {
+  flex: 1;
+  min-width: 0;
+  padding: 24px;
+  background: var(--surface);
+  border-radius: 20px;
+  border: 1px solid var(--border-warm);
+  overflow: hidden;
+}
+
+.settings-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.settings-desc {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.form-row label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.form-row input,
+.form-row textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 18px;
+  border: 1px solid var(--border-warm);
+  border-radius: 12px;
+  font-size: 15px;
+  background: white;
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s;
+}
+
+.form-row input:focus,
+.form-row textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.12);
+}
+
+.form-row textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.btn-save-settings {
+  align-self: flex-start;
+  padding: 12px 28px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+  margin-top: 12px;
+}
+
+.btn-save-settings:hover:not(:disabled) {
+  background: #9a3412;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.3);
+}
+
+.btn-save-settings:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 通知设置 */
+.notification-form {
+  gap: 0;
+}
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-warm);
+}
+
+.notification-item:last-of-type {
+  border-bottom: none;
+}
+
+.notification-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notification-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.notification-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--border-warm);
+  transition: 0.3s;
+  border-radius: 28px;
+}
+
+.toggle-slider::before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--primary);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(22px);
+}
+
+.notification-tip {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-warm);
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* 响应式 */
+@media (max-width: 1200px) {
+  .profile-layout {
+    flex-direction: column;
+  }
+
+  .profile-card {
+    width: 100%;
+    position: static;
+    margin-bottom: 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .profile-main {
     padding: 24px 16px;
@@ -830,8 +1800,35 @@ const showMessageToast = (text, type = 'success') => {
     width: 100%;
   }
 
-  .feature-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .tabs-header {
+    flex-direction: column;
+  }
+
+  .tab-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .settings-content {
+    flex-direction: column;
+  }
+
+  .settings-nav {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .settings-nav-btn {
+    flex: 1;
+    justify-content: center;
+    min-width: auto;
+    padding: 12px;
+  }
+
+  .articles-grid,
+  .projects-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

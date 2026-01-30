@@ -6,10 +6,12 @@ import com.eaxon.coderhubpojo.DTO.ArticlePublishDTO;
 import com.eaxon.coderhubpojo.VO.ArticleDetailVO;
 import com.eaxon.coderhubpojo.VO.ArticleVO;
 import com.eaxon.coderhubpojo.entity.Tag;
+import com.eaxon.coderhubpojo.VO.ArticleSummaryVO;
 import com.eaxon.coderhubserver.service.ArticleService;
 import com.eaxon.coderhubserver.service.ArticleLikeService;
 import com.eaxon.coderhubserver.service.ArticleCommentService;
 import com.eaxon.coderhubserver.service.ArticleCommentLikeService;
+import com.eaxon.coderhubserver.service.ArticleSummaryService;
 import com.eaxon.coderhubserver.mapper.TagMapper;
 import com.eaxon.coderhubpojo.DTO.CommentPublishDTO;
 import com.eaxon.coderhubpojo.VO.CommentVO;
@@ -42,6 +44,9 @@ public class ArticleController {
 
     @Autowired
     private ArticleCommentLikeService commentLikeService;
+
+    @Autowired
+    private ArticleSummaryService articleSummaryService;
 
     @Autowired
     private TagMapper tagMapper;
@@ -240,5 +245,26 @@ public class ArticleController {
 
         Boolean isLiked = commentLikeService.isLiked(userId, commentId);
         return Result.success(isLiked);
+    }
+
+    /**
+     * 获取文章智能摘要（AI生成）
+     * 
+     * 核心逻辑：
+     * 1. Redis缓存优先（键 abstract:{id}，14天过期）
+     * 2. 缓存未命中则调用阿里百炼LLM生成
+     * 3. 返回150-200字摘要 + 3-5个延伸学习问题
+     */
+    @GetMapping("/{articleId}/summary")
+    @Operation(summary = "获取文章智能摘要")
+    public Result<ArticleSummaryVO> getArticleSummary(@PathVariable String articleId) {
+        log.info("获取文章智能摘要: articleId={}", articleId);
+        
+        ArticleSummaryVO summaryVO = articleSummaryService.getArticleSummary(articleId);
+        if (summaryVO == null) {
+            return Result.error("获取摘要失败，文章不存在或内容为空");
+        }
+        
+        return Result.success(summaryVO);
     }
 }

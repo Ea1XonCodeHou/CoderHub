@@ -52,6 +52,14 @@ public class RedisConstant {
      */
     public static final String ARTICLE_LIKE_USERS = "article:like:users:";
     
+    /**
+     * 文章AI智能摘要缓存
+     * Key: abstract:{articleId}
+     * Value: ArticleSummaryVO (JSON)
+     * 过期时间: 14天
+     */
+    public static final String ARTICLE_SUMMARY = "abstract:";
+    
     // ==================== 用户相关 ====================
     
     /**
@@ -122,6 +130,8 @@ public class RedisConstant {
     public static final long EXPIRE_1_HOUR = 60 * 60;
     public static final long EXPIRE_2_HOURS = 2 * 60 * 60;
     public static final long EXPIRE_1_DAY = 24 * 60 * 60;
+    public static final long EXPIRE_7_DAYS = 7 * 24 * 60 * 60;
+    public static final long EXPIRE_14_DAYS = 14 * 24 * 60 * 60;
     public static final long EXPIRE_5_MINUTES = 5 * 60;
     public static final long EXPIRE_10_MINUTES = 10 * 60;
     public static final long EXPIRE_1_MINUTE = 60;
