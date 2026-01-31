@@ -17,8 +17,9 @@ jobs:
           script: |
             cd /opt/coderhub
             git pull origin main
-            # 确保服务器上有 .env 文件
-            if [ ! -f .env ]; then
-              echo "Warning: .env file not found on server!"
+            # 兼容性检查：优先使用新版 docker compose
+            if docker compose version &> /dev/null; then
+              docker compose up -d --build
+            else
+              docker-compose up -d --build
             fi
-            docker-compose up -d --build
