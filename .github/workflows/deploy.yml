@@ -1,0 +1,24 @@
+name: CoderHub CD
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.REMOTE_HOST }}
+          username: ${{ secrets.REMOTE_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /root/CoderHub
+            git pull origin main
+            # 确保服务器上有 .env 文件
+            if [ ! -f .env ]; then
+              echo "Warning: .env file not found on server!"
+            fi
+            docker-compose up -d --build
