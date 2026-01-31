@@ -58,31 +58,47 @@ CoderHub 是一个面向开发/学习者的智能技术博客交流社区平台�
 
 #### 1. 环境准备
 - **Java**: JDK 17+
-- **Node.js**: v20.x 或更高 (推荐使用 pnpm / npm)
-- **MySQL**: 8.0+
-- **Redis**: 推荐 6.0+
-- **对象存储**: Aliyun OSS +本地 MinIO (可在配置文件中切换)，Minio可用于存储大文件
-- **AI 模型**: 需准备通义千问 (DashScope) 或 OpenAI 的 API Key
+- **Node.js**: v20.x 或更高
+- **Docker Desktop**: 用于一键启动中间件（MySQL, Redis, MinIO, ChromaDB）
+- **AI 模型**: 准备通义千问 (DashScope) 或 OpenAI 的 API Key
 
-#### 2. 后端部署步骤
-1. 克隆仓库：`git clone https://github.com/Ea1XonCodeHou/CoderHub.git`
-2. 数据库初始化：运行 `coder_hub.sql` 脚本创建表结构及基础测试数据。
-3. 修改配置：在 `coderhub-server/src/main/resources/application.yml` 中修改数据库、Redis、OSS 以及大模型的 API Key 信息。
-4. 编译启动：在根目录运行 `./mvnw clean install`，随后启动 `CoderHubApplication`。
+#### 2. 核心：隐私保护与配置
+项目采用 **“代码与配置分离”** 方案，所有敏感信息（密码、密钥）均不存放在代码库中。
+1. 在项目根目录创建 `.env` 文件（已加入 `.gitignore`）。
+2. 参考项目根目录下的环境变量配置要求，填入你的真实 `DB_PASSWORD`、`OSS_AK`、`AI_KEY` 等。
 
-#### 3. 前端部署步骤
-1. 进入前端目录：`cd coderhub_frontend`
-2. 安装依赖：`npm install`
-3. 启动项目：`npm run dev`
-4. 访问地址：浏览器打开 `http://localhost:5173`。
+#### 3. 启动中间件 (Docker)
+在根目录下运行以下命令，即可一键拉起与生产环境 100% 一致的基础设施：
+```powershell
+docker-compose up -d mysql redis minio chroma
+```
+
+#### 4. 后端启动 (IDEA)
+1. 在 IDEA 的启动配置中指定 `Active profiles: dev`。
+2. 在 `Environment variables` 中加载 `.env` 里的变量（或使用 EnvFile 插件）。
+3. 运行 `CoderHubApplication`。
+
+#### 5. 前端启动
+```bash
+cd coderhub_frontend
+npm install
+npm run dev
+```
 
 ---
 
-### 关于部署
+### 关于部署与 CICD
 
-本项目目前已使用 **Aliyun ECS** 实现生产环境部署，并结合 **Docker** 容器化技术保证了服务的一致性。
+本项目已实现标准化的 **Docker 容器化部署**，并支持基于 GitHub Actions 的 CICD 流程。
+
+- **环境变量驱动**：服务器端只需维护一份独立的 `.env` 文件，镜像构建时会自动注入配置。
+- **一键发布**：通过修改后的 `docker-compose.yml`，宿主机不再需要安装任何基础软件。
+- **部署命令**：
+  ```bash
+  docker-compose up -d --build
+  ```
 - **演示地址**：[http://8.140.19.7/](http://8.140.19.7/)
-- **部署方案**：Spring Boot 被打包为 Jar 包镜像，通过 Docker-compose 统一编排，前端 Vite 项目经 Nginx 构建后对外暴露。
+
 
 ### 参与贡献
 

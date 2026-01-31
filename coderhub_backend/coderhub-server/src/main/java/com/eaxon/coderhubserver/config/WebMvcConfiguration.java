@@ -13,7 +13,7 @@ import org.springframework.web.servlet.config.annotation.AsyncSupportConfigurer;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import com.eaxon.coderhubserver.interceptor.JwtTokenAdminInterceptor;
 import com.eaxon.coderhubserver.interceptor.JwtTokenUserInterceptor;
@@ -32,7 +32,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Configuration
 @Slf4j
-public class WebMvcConfiguration extends WebMvcConfigurationSupport {
+public class WebMvcConfiguration implements WebMvcConfigurer {
 
     @Autowired
     private JwtTokenUserInterceptor jwtTokenUserInterceptor;
@@ -44,7 +44,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
      * 注册自定义拦截器
      */
     @Override
-    protected void addInterceptors(InterceptorRegistry registry) {
+    public void addInterceptors(InterceptorRegistry registry) {
         log.info("开始注册JWT拦截器...");
         
         // 注册管理员端拦截器
@@ -72,7 +72,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
      * 配置异步支持（用于响应式流式输出）
      */
     @Override
-    protected void configureAsyncSupport(AsyncSupportConfigurer configurer) {
+    public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
         log.info("开始配置异步任务执行器...");
         
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
@@ -92,7 +92,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
      * 配置 CORS（跨域资源共享）
      */
     @Override
-    protected void addCorsMappings(CorsRegistry registry) {
+    public void addCorsMappings(CorsRegistry registry) {
         log.info("开始配置CORS跨域...");
         
         registry.addMapping("/**")
@@ -110,7 +110,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
      * 扩展消息转换器，确保使用 UTF-8 编码
      */
     @Override
-    protected void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+    public void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
         log.info("开始扩展消息转换器（UTF-8编码）...");
         
         StringHttpMessageConverter stringConverter = new StringHttpMessageConverter(StandardCharsets.UTF_8);
@@ -144,7 +144,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
      * 设置静态资源映射
      */
     @Override
-    protected void addResourceHandlers(ResourceHandlerRegistry registry) {
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
         log.info("开始配置静态资源映射...");
         
         // SpringDoc OpenAPI UI 资源映射

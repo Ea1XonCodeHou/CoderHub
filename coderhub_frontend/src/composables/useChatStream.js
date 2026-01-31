@@ -15,7 +15,7 @@ import { ref, shallowRef } from 'vue'
 /**
  * 后端 API 地址
  */
-const API_BASE_URL = 'http://localhost:8080'
+const API_BASE_URL = '/api'
 
 /**
  * 解析 SSE 事件

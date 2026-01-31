@@ -1,0 +1,24 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# Build outputs
+target/
+dist/
+node_modules/
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# Docker data (Exclude persistent storage from Git)
+mysql/data/
+redis/data/
+minio/data/
+chroma/data/

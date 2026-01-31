@@ -1,0 +1,120 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0
+    container_name: coderhub-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: coder_hub
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/init:/docker-entrypoint-initdb.d # 自动执行初始化SQL
+    command: --default-authentication-plugin=mysql_native_password
+    deploy:
+      resources:
+        limits:
+          memory: 512M # 针对 2G 内存进行精细化限制
+
+  # Redis 缓存
+  redis:
+    image: redis:7.0
+    container_name: coderhub-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis/data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio
+    container_name: coderhub-minio
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9090:9090"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD}
+    volumes:
+      - ./minio/data:/data
+    command: server /data --console-address ":9090"
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+          
+  # ChromaDB 向量数据库  
+  chroma:
+    image: chromadb/chroma:0.5.0
+    container_name: coderhub-chroma
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./chroma/data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+
+
+  # CoderHub 后端应用 (Java)
+  app:
+    build:
+      context: ./coderhub_backend
+      dockerfile: Dockerfile
+    container_name: coderhub-app
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+      - redis
+      - chroma
+      - minio
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/coder_hub?useUnicode=true&characterEncoding=utf-8&useSSL=false
+      - SPRING_DATASOURCE_USERNAME=root
+      - DB_PASSWORD=${DB_PASSWORD}
+      - OSS_ENDPOINT=${OSS_ENDPOINT}
+      - OSS_ACCESS_KEY_ID=${OSS_ACCESS_KEY_ID}
+      - OSS_ACCESS_KEY_SECRET=${OSS_ACCESS_KEY_SECRET}
+      - OSS_BUCKET_NAME=${OSS_BUCKET_NAME}
+      - MINIO_USER=${MINIO_USER}
+      - MINIO_PASSWORD=${MINIO_PASSWORD}
+      - AI_API_KEY=${AI_API_KEY}
+    deploy:
+      resources:
+        limits:
+          memory: 800M
+          
+  # CoderHub 前端应用 (Vue + Nginx)
+  web:
+    build:
+      context: ./coderhub_frontend
+      dockerfile: Dockerfile
+    container_name: coderhub-web
+    restart: always
+    ports:
+      - "80:80"        # 映射公网 80 端口（HTTP 默认端口）
+    depends_on:
+      - app            # 确保后端先启动
+    deploy:
+      resources:
+        limits:
+          memory: 300M # 前端运行期（Nginx）占内存极小，主要是构建期占内存

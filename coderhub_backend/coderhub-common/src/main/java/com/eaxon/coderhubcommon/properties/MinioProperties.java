@@ -20,6 +20,12 @@ public class MinioProperties {
     private String endpoint;
 
     /**
+     * MinIO公共访问地址（前端访问路径）
+     * 生产环境建议通过 Nginx 代理，例如：/minio
+     */
+    private String publicEndpoint;
+
+    /**
      * MinIO访问密钥（用户名）
      */
     private String accessKey;
