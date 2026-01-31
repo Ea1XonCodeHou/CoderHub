@@ -28,4 +28,17 @@
         </dependency>
     </dependencies>
 
+    <!-- 禁用 Spring Boot Maven Plugin 的 repackage（因为这是纯 POJO 模块，没有 main 方法）-->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

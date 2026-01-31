@@ -5,21 +5,20 @@ WORKDIR /app
 
 # 1. 复制父 pom 和子模块 pom 以利用 Docker 缓存
 COPY pom.xml .
+COPY settings.xml .
 COPY coderhub-common/pom.xml coderhub-common/
 COPY coderhub-pojo/pom.xml coderhub-pojo/
 COPY coderhub-server/pom.xml coderhub-server/
 
-# 下载依赖（如果不改变 pom.xml，这一步将被缓存）
-# 注意：国内环境由于 Maven 中央仓库连接较慢，建议在本地打包后上传 JAR，
-# 或者在此处配置阿里云 Maven 镜像。为了规范，我们这里展示容器内构建过程。
-RUN mvn dependency:go-offline -B
+# 下载依赖（使用阿里云镜像加速）
+RUN mvn dependency:go-offline -B -s settings.xml
 
 # 2. 复制源码并执行打包
 COPY coderhub-common/src coderhub-common/src
 COPY coderhub-pojo/src coderhub-pojo/src
 COPY coderhub-server/src coderhub-server/src
 
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -s settings.xml
 
 # 第二阶段：运行阶段 (Runtime Stage)
 # 使用轻量级 JRE 环境
