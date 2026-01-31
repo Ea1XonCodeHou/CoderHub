@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.ArticleCommentMapper">
+
+    <!-- 插入评论 -->
+    <insert id="insert">
+        INSERT INTO article_comment (
+            id, article_id, user_id, content, reply_id, like_count, create_time, update_time
+        ) VALUES (
+            #{id}, #{articleId}, #{userId}, #{content}, #{replyId}, #{likeCount}, #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <!-- 根据ID删除评论 -->
+    <delete id="deleteById">
+        DELETE FROM article_comment WHERE id = #{id}
+    </delete>
+
+    <!-- 根据ID查询评论 -->
+    <select id="getById" resultType="com.eaxon.coderhubpojo.entity.ArticleComment">
+        SELECT * FROM article_comment WHERE id = #{id}
+    </select>
+
+    <!-- 查询文章的顶级评论列表 -->
+    <select id="getTopCommentsByArticleId" resultType="com.eaxon.coderhubpojo.entity.ArticleComment">
+        SELECT * FROM article_comment
+        WHERE article_id = #{articleId} AND reply_id IS NULL
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询某条评论的回复列表 -->
+    <select id="getRepliesByCommentId" resultType="com.eaxon.coderhubpojo.entity.ArticleComment">
+        SELECT * FROM article_comment
+        WHERE reply_id = #{commentId}
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 统计文章的评论数（只统计顶级评论） -->
+    <select id="countByArticleId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM article_comment
+        WHERE article_id = #{articleId} AND reply_id IS NULL
+    </select>
+
+    <!-- 更新评论点赞数 -->
+    <update id="updateLikeCount">
+        UPDATE article_comment
+        SET like_count = #{likeCount}
+        WHERE id = #{id}
+    </update>
+
+</mapper>
+

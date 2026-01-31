@@ -1,0 +1,101 @@
+server:
+  port: 8080
+  # 配置 Tomcat 字符编码
+  tomcat:
+    uri-encoding: UTF-8
+
+spring:
+  profiles:
+    active: dev
+  main:
+    allow-circular-references: true
+  # 文件上传配置 - 支持大文件（视频）
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+  # Jackson日期格式配置
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
+    serialization:
+      write-dates-as-timestamps: false
+  datasource:
+    druid:
+      driver-class-name: ${coder.datasource.driver-class-name}
+      url: jdbc:mysql://${coder.datasource.host}:${coder.datasource.port}/${coder.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+      username: ${coder.datasource.username}
+      password: ${coder.datasource.password}
+  # Redis配置
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 1
+      password: # 如果没有密码则留空
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 100ms
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.eaxon.coderhubpojo.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    # log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 注释掉SQL日志
+
+coder:
+  jwt:
+    user-secret-key: coderHubUser
+    user-ttl: 7200000
+    user-token-name: authentication
+
+    admin-secret-key: coderHubAdmin
+    admin-ttl: 7200000
+    admin-token-name: authentication
+
+  alioss:
+    endpoint: ${coder.alioss.endpoint}
+    access-key-id: ${coder.alioss.access-key-id}
+    access-key-secret: ${coder.alioss.access-key-secret}
+    bucket-name: ${coder.alioss.bucket-name}
+
+  # MinIO配置（大文件存储）
+  minio:
+    endpoint: ${coder.minio.endpoint}
+    access-key: ${coder.minio.access-key}
+    secret-key: ${coder.minio.secret-key}
+    bucket-name: ${coder.minio.bucket-name}
+
+# LangChain4j AI 配置
+langchain4j:
+  open-ai:
+    chat-model:
+      api-key: ${langchain4j.open-ai.chat-model.api-key}
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      model-name: qwen-plus
+      log-requests: false
+      log-responses: false
+
+    streaming-chat-model:
+      api-key: ${langchain4j.open-ai.streaming-chat-model.api-key}
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      model-name: qwen-plus
+      log-requests: false
+      log-responses: false
+
+  # ChromaDB向量数据库配置
+  chroma:
+    base-url: http://127.0.0.1:8000
+    collection-name: coderhub_articles
+
+# SpringDoc OpenAPI 配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true

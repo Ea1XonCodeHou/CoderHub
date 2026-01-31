@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.TutorialMapper">
+
+    <!-- 插入教程 -->
+    <insert id="insertTutorial">
+        INSERT INTO tutorial (
+            id, title, description, cover_image,
+            category_id, difficulty,
+            instructor_name, instructor_avatar, instructor_desc,
+            price, status,
+            view_count, like_count, recommend_count, student_count,
+            rating, chapter_count,
+            create_user, create_time, update_time
+        ) VALUES (
+            #{id}, #{title}, #{description}, #{coverImage},
+            #{categoryId}, #{difficulty},
+            #{instructorName}, #{instructorAvatar}, #{instructorDesc},
+            #{price}, #{status},
+            #{viewCount}, #{likeCount}, #{recommendCount}, #{studentCount},
+            #{rating}, #{chapterCount},
+            #{createUser}, #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <!-- 分页查询教程列表 -->
+    <select id="pageQuery" resultType="com.eaxon.coderhubpojo.entity.Tutorial">
+        SELECT 
+            id, title, description, cover_image as coverImage,
+            category_id as categoryId, difficulty,
+            instructor_name as instructorName, 
+            instructor_avatar as instructorAvatar, 
+            instructor_desc as instructorDesc,
+            price, status,
+            view_count as viewCount, 
+            like_count as likeCount, 
+            recommend_count as recommendCount, 
+            student_count as studentCount,
+            rating, chapter_count as chapterCount,
+            create_user as createUser, 
+            create_time as createTime, 
+            update_time as updateTime
+        FROM tutorial
+        <where>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+            <if test="categoryId != null">
+                AND category_id = #{categoryId}
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据ID查询教程详情 -->
+    <select id="selectById" resultType="com.eaxon.coderhubpojo.entity.Tutorial">
+        SELECT 
+            id, title, description, cover_image as coverImage,
+            category_id as categoryId, difficulty,
+            instructor_name as instructorName, 
+            instructor_avatar as instructorAvatar, 
+            instructor_desc as instructorDesc,
+            price, status,
+            view_count as viewCount, 
+            like_count as likeCount, 
+            recommend_count as recommendCount, 
+            student_count as studentCount,
+            rating, chapter_count as chapterCount,
+            create_user as createUser, 
+            create_time as createTime, 
+            update_time as updateTime
+        FROM tutorial
+        WHERE id = #{id}
+    </select>
+
+    <!-- 更新教程 -->
+    <update id="updateTutorial">
+        UPDATE tutorial
+        SET title = #{title},
+            description = #{description},
+            cover_image = #{coverImage},
+            category_id = #{categoryId},
+            difficulty = #{difficulty},
+            instructor_name = #{instructorName},
+            instructor_avatar = #{instructorAvatar},
+            instructor_desc = #{instructorDesc},
+            price = #{price},
+            status = #{status},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除教程 -->
+    <delete id="deleteById">
+        DELETE FROM tutorial WHERE id = #{id}
+    </delete>
+
+    <!-- 根据关键词搜索教程（用于AI工具调用） -->
+    <select id="searchByKeyword" resultType="com.eaxon.coderhubpojo.entity.Tutorial">
+        SELECT 
+            id, title, description, cover_image as coverImage,
+            category_id as categoryId, difficulty,
+            instructor_name as instructorName, 
+            instructor_avatar as instructorAvatar, 
+            instructor_desc as instructorDesc,
+            price, status,
+            view_count as viewCount, 
+            like_count as likeCount, 
+            recommend_count as recommendCount, 
+            student_count as studentCount,
+            rating, chapter_count as chapterCount,
+            create_user as createUser, 
+            create_time as createTime, 
+            update_time as updateTime
+        FROM tutorial
+        WHERE status = 1
+        AND (
+            title LIKE CONCAT('%', #{keyword}, '%')
+            OR description LIKE CONCAT('%', #{keyword}, '%')
+        )
+        ORDER BY student_count DESC, rating DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取热门教程（按学习人数排序） -->
+    <select id="getHotTutorials" resultType="com.eaxon.coderhubpojo.entity.Tutorial">
+        SELECT 
+            id, title, description, cover_image as coverImage,
+            category_id as categoryId, difficulty,
+            instructor_name as instructorName, 
+            instructor_avatar as instructorAvatar, 
+            instructor_desc as instructorDesc,
+            price, status,
+            view_count as viewCount, 
+            like_count as likeCount, 
+            recommend_count as recommendCount, 
+            student_count as studentCount,
+            rating, chapter_count as chapterCount,
+            create_user as createUser, 
+            create_time as createTime, 
+            update_time as updateTime
+        FROM tutorial
+        WHERE status = 1
+        ORDER BY student_count DESC, rating DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

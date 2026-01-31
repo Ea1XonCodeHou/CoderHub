@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.ArticleMapper">
+
+    <!-- 插入文章 -->
+    <insert id="insert">
+        INSERT INTO article (
+            id, user_id, title, summary, content_url, cover_image,
+            category_id, status, is_top, is_original,
+            view_count, like_count, comment_count, collect_count,
+            audit_status, publish_time, create_time, update_time
+        ) VALUES (
+            #{id}, #{userId}, #{title}, #{summary}, #{contentUrl}, #{coverImage},
+            #{categoryId}, #{status}, #{isTop}, #{isOriginal},
+            #{viewCount}, #{likeCount}, #{commentCount}, #{collectCount},
+            #{auditStatus}, #{publishTime}, #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <!-- 根据ID查询文章 -->
+    <select id="getById" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article WHERE id = #{id}
+    </select>
+
+    <!-- 根据ID删除文章 -->
+    <delete id="deleteById">
+        DELETE FROM article WHERE id = #{id}
+    </delete>
+
+    <!-- 更新文章 -->
+    <update id="update">
+        UPDATE article
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="summary != null">summary = #{summary},</if>
+            <if test="contentUrl != null">content_url = #{contentUrl},</if>
+            <if test="coverImage != null">cover_image = #{coverImage},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="isTop != null">is_top = #{isTop},</if>
+            <if test="isOriginal != null">is_original = #{isOriginal},</if>
+            <if test="likeCount != null">like_count = #{likeCount},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 查询文章列表 -->
+    <select id="list" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        <where>
+            <!-- 默认只显示已发布且审核通过的文章 -->
+            status = 1 AND audit_status = 1
+            <if test="userId != null">AND user_id = #{userId}</if>
+            <if test="categoryId != null">AND category_id = #{categoryId}</if>
+        </where>
+        ORDER BY
+            is_top DESC,
+            publish_time DESC
+    </select>
+
+    <!-- 根据标签ID查询文章 -->
+    <select id="getByTagId" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT DISTINCT a.*
+        FROM article a
+        INNER JOIN article_tag_relation atr ON a.id = atr.article_id
+        WHERE atr.tag_id = #{tagId}
+        AND a.status = 1
+        AND a.audit_status = 1
+        ORDER BY a.publish_time DESC
+    </select>
+
+    <!-- 增加阅读量 -->
+    <update id="incrementViewCount">
+        UPDATE article
+        SET view_count = view_count + 1
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 直接更新浏览量（用于Redis同步） -->
+    <update id="updateViewCountDirect">
+        UPDATE article
+        SET view_count = #{viewCount}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据用户ID查询文章 -->
+    <select id="getByUserId" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询待审核文章列表 -->
+    <select id="getPendingArticles" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        WHERE status = 2 AND audit_status = 0
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询已发布文章列表（管理端） -->
+    <select id="getPublishedArticles" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        WHERE status = 1 AND audit_status = 1
+        ORDER BY publish_time DESC
+    </select>
+
+    <!-- 更新审核状态 -->
+    <update id="updateAuditStatus">
+        UPDATE article
+        SET audit_status = #{auditStatus},
+            audit_reason = #{auditReason},
+            audit_time = NOW(),
+            status = #{status},
+            <if test="status == 1">
+                publish_time = NOW(),
+            </if>
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 统计指定分类下指定状态的文章数量 -->
+    <select id="countByCategoryIdAndStatus" resultType="int">
+        SELECT COUNT(*)
+        FROM article
+        WHERE category_id = #{categoryId}
+        AND status = #{status}
+        AND audit_status = #{auditStatus}
+    </select>
+
+    <!-- 更新文章点赞数 -->
+    <update id="updateLikeCount">
+        UPDATE article
+        SET like_count = #{likeCount}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新文章评论数 -->
+    <update id="updateCommentCount">
+        UPDATE article
+        SET comment_count = #{commentCount}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 统计用户发布的文章数量（已发布且已审核通过） -->
+    <select id="countByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM article
+        WHERE user_id = #{userId}
+        AND status = 1
+        AND audit_status = 1
+    </select>
+    
+    <!-- 获取点赞数最多的文章（用于预热） -->
+    <select id="getTopLikedArticles" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        WHERE status = 1 AND audit_status = 1
+        ORDER BY like_count DESC, view_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 根据关键词搜索文章（用于AI工具调用） -->
+    <select id="searchByKeyword" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        WHERE status = 1 AND audit_status = 1
+        AND (
+            title LIKE CONCAT('%', #{keyword}, '%')
+            OR summary LIKE CONCAT('%', #{keyword}, '%')
+        )
+        ORDER BY view_count DESC, like_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 获取热门文章（按浏览量排序） -->
+    <select id="getHotArticles" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        WHERE status = 1 AND audit_status = 1
+        ORDER BY view_count DESC, like_count DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>
+

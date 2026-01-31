@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.TagMapper">
+
+    <!-- 插入标签 -->
+    <insert id="insert">
+        INSERT INTO tag (id, tag_name, use_count, reference_count, view_count, status, create_time, update_time)
+        VALUES (#{id}, #{tagName}, #{usageCount}, #{referenceCount}, #{viewCount}, #{status}, #{createTime}, #{updateTime})
+    </insert>
+
+    <!-- 根据名称查询标签 -->
+    <select id="getByName" resultType="com.eaxon.coderhubpojo.entity.Tag">
+        SELECT * FROM tag WHERE tag_name = #{tagName}
+    </select>
+
+    <!-- 根据ID查询标签 -->
+    <select id="getById" resultType="com.eaxon.coderhubpojo.entity.Tag">
+        SELECT * FROM tag WHERE id = #{id}
+    </select>
+
+    <!-- 增加标签使用次数 -->
+    <update id="incrementUsageCount">
+        UPDATE tag SET use_count = use_count + 1, reference_count = reference_count + 1 WHERE id = #{id}
+    </update>
+
+    <!-- 减少标签使用次数 -->
+    <update id="decrementUsageCount">
+        UPDATE tag SET use_count = use_count - 1, reference_count = reference_count - 1 WHERE id = #{id} AND use_count > 0
+    </update>
+
+    <!-- 根据文章ID查询标签列表 -->
+    <select id="getByArticleId" resultType="com.eaxon.coderhubpojo.entity.Tag">
+        SELECT t.*
+        FROM tag t
+        INNER JOIN article_tag_relation atr ON t.id = atr.tag_id
+        WHERE atr.article_id = #{articleId}
+        ORDER BY atr.create_time ASC
+    </select>
+
+    <!-- 根据ID列表批量查询标签 -->
+    <select id="getByIds" resultType="com.eaxon.coderhubpojo.entity.Tag">
+        SELECT * FROM tag
+        WHERE id IN
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 根据关键词搜索标签 -->
+    <select id="searchByKeyword" resultType="com.eaxon.coderhubpojo.entity.Tag">
+        SELECT * FROM tag
+        WHERE tag_name LIKE CONCAT(#{keyword}, '%')
+        AND status = 1
+        ORDER BY use_count DESC
+        LIMIT 10
+    </select>
+
+    <!-- 查询热门标签 -->
+    <select id="getHotTags" resultType="com.eaxon.coderhubpojo.entity.Tag">
+        SELECT * FROM tag
+        WHERE status = 1
+        ORDER BY use_count DESC, view_count DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询所有标签 -->
+    <select id="list" resultType="com.eaxon.coderhubpojo.entity.Tag">
+        SELECT * FROM tag 
+        WHERE status = 1
+        ORDER BY use_count DESC
+    </select>
+
+</mapper>
+

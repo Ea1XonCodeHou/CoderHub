@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.ProjectTechRelationMapper">
+
+    <resultMap id="techStackResultMap" type="com.eaxon.coderhubpojo.entity.TechStackDict">
+        <id property="id" column="id"/>
+        <result property="techName" column="tech_name"/>
+        <result property="isActive" column="is_active"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="batchInsert">
+        INSERT INTO project_tech_relation (project_id, tech_id) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.projectId}, #{item.techId})
+        </foreach>
+    </insert>
+
+    <select id="getTechStacksByProjectId" resultMap="techStackResultMap">
+        SELECT ts.* FROM tech_stack_dict ts
+        INNER JOIN project_tech_relation ptr ON ts.id = ptr.tech_id
+        WHERE ptr.project_id = #{projectId}
+        ORDER BY ts.id ASC
+    </select>
+
+    <delete id="deleteByProjectId">
+        DELETE FROM project_tech_relation WHERE project_id = #{projectId}
+    </delete>
+</mapper>
+

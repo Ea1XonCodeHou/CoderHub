@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.ProjectCategoryMapper">
+
+    <resultMap id="categoryResultMap" type="com.eaxon.coderhubpojo.entity.ProjectCategory">
+        <id property="id" column="id"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="isActive" column="is_active"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="getAllActive" resultMap="categoryResultMap">
+        SELECT * FROM project_category WHERE is_active = 1 ORDER BY id ASC
+    </select>
+
+    <select id="getById" resultMap="categoryResultMap">
+        SELECT * FROM project_category WHERE id = #{id}
+    </select>
+</mapper>
+

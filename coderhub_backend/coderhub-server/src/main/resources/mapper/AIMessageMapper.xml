@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.AIMessageMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="messageResultMap" type="com.eaxon.coderhubpojo.entity.AIMessage">
+        <id property="id" column="id"/>
+        <result property="conversationId" column="conversation_id"/>
+        <result property="role" column="role"/>
+        <result property="content" column="content"/>
+        <result property="tokenCount" column="token_count"/>
+        <result property="toolCalls" column="tool_calls"/>
+        <result property="recommendations" column="recommendations"/>
+        <result property="model" column="model"/>
+        <result property="durationMs" column="duration_ms"/>
+        <result property="isError" column="is_error"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <!-- 插入消息 -->
+    <insert id="insert">
+        INSERT INTO ai_message (
+            id, conversation_id, role, content, token_count,
+            tool_calls, recommendations, model, duration_ms, is_error,
+            created_at
+        ) VALUES (
+            #{id}, #{conversationId}, #{role}, #{content}, #{tokenCount},
+            #{toolCalls}, #{recommendations}, #{model}, #{durationMs}, #{isError},
+            #{createdAt}
+        )
+    </insert>
+
+    <!-- 批量插入 -->
+    <insert id="batchInsert">
+        INSERT INTO ai_message (
+            id, conversation_id, role, content, token_count,
+            tool_calls, recommendations, model, duration_ms, is_error,
+            created_at
+        ) VALUES
+        <foreach collection="messages" item="msg" separator=",">
+            (
+                #{msg.id}, #{msg.conversationId}, #{msg.role}, #{msg.content}, #{msg.tokenCount},
+                #{msg.toolCalls}, #{msg.recommendations}, #{msg.model}, #{msg.durationMs}, #{msg.isError},
+                #{msg.createdAt}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 根据ID查询 -->
+    <select id="getById" resultMap="messageResultMap">
+        SELECT * FROM ai_message WHERE id = #{id}
+    </select>
+
+    <!-- 根据会话ID查询所有消息（升序） -->
+    <select id="getByConversationId" resultMap="messageResultMap">
+        SELECT * FROM ai_message 
+        WHERE conversation_id = #{conversationId}
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 查询最近N条消息（用于上下文） -->
+    <select id="getRecentMessages" resultMap="messageResultMap">
+        SELECT * FROM (
+            SELECT * FROM ai_message 
+            WHERE conversation_id = #{conversationId}
+            ORDER BY created_at DESC
+            LIMIT #{limit}
+        ) sub
+        ORDER BY created_at ASC
+    </select>
+
+    <!-- 统计会话消息数量 -->
+    <select id="countByConversationId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM ai_message 
+        WHERE conversation_id = #{conversationId}
+    </select>
+
+    <!-- 获取最后一条消息 -->
+    <select id="getLastMessage" resultMap="messageResultMap">
+        SELECT * FROM ai_message 
+        WHERE conversation_id = #{conversationId}
+        ORDER BY created_at DESC
+        LIMIT 1
+    </select>
+
+    <!-- 删除会话的所有消息 -->
+    <delete id="deleteByConversationId">
+        DELETE FROM ai_message WHERE conversation_id = #{conversationId}
+    </delete>
+
+    <!-- 删除单条消息 -->
+    <delete id="delete">
+        DELETE FROM ai_message WHERE id = #{id}
+    </delete>
+
+</mapper>
+

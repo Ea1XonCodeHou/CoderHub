@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.DocumentMapper">
+
+    <!-- 插入文档 -->
+    <insert id="insertDocument">
+        INSERT INTO document (
+            id, chapter_id, document_title, document_url,
+            document_type, file_size,
+            create_time, update_time
+        ) VALUES (
+            #{id}, #{chapterId}, #{documentTitle}, #{documentUrl},
+            #{documentType}, #{fileSize},
+            #{createTime}, #{updateTime}
+        )
+    </insert>
+
+    <!-- 根据章节ID查询文档列表 -->
+    <select id="selectByChapterId" resultType="com.eaxon.coderhubpojo.entity.Document">
+        SELECT 
+            id, chapter_id as chapterId, document_title as documentTitle,
+            document_url as documentUrl, document_type as documentType,
+            file_size as fileSize,
+            create_time as createTime, update_time as updateTime
+        FROM document
+        WHERE chapter_id = #{chapterId}
+        ORDER BY create_time ASC
+    </select>
+
+    <!-- 根据文档ID查询文档 -->
+    <select id="selectById" resultType="com.eaxon.coderhubpojo.entity.Document">
+        SELECT 
+            id, chapter_id as chapterId, document_title as documentTitle,
+            document_url as documentUrl, document_type as documentType,
+            file_size as fileSize,
+            create_time as createTime, update_time as updateTime
+        FROM document
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据文档ID删除文档 -->
+    <delete id="deleteById">
+        DELETE FROM document WHERE id = #{documentId}
+    </delete>
+
+</mapper>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.AIConversationMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="conversationResultMap" type="com.eaxon.coderhubpojo.entity.AIConversation">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="title" column="title"/>
+        <result property="model" column="model"/>
+        <result property="messageCount" column="message_count"/>
+        <result property="lastMessagePreview" column="last_message_preview"/>
+        <result property="isPinned" column="is_pinned"/>
+        <result property="isArchived" column="is_archived"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 插入会话 -->
+    <insert id="insert">
+        INSERT INTO ai_conversation (
+            id, user_id, title, model, message_count, 
+            last_message_preview, is_pinned, is_archived, status,
+            created_at, updated_at
+        ) VALUES (
+            #{id}, #{userId}, #{title}, #{model}, #{messageCount},
+            #{lastMessagePreview}, #{isPinned}, #{isArchived}, #{status},
+            #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <!-- 根据ID查询 -->
+    <select id="getById" resultMap="conversationResultMap">
+        SELECT * FROM ai_conversation 
+        WHERE id = #{id}
+    </select>
+
+    <!-- 根据用户ID查询列表 -->
+    <select id="getByUserId" resultMap="conversationResultMap">
+        SELECT * FROM ai_conversation 
+        WHERE user_id = #{userId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY is_pinned DESC, updated_at DESC
+    </select>
+
+    <!-- 更新会话 -->
+    <update id="update">
+        UPDATE ai_conversation
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="model != null">model = #{model},</if>
+            <if test="messageCount != null">message_count = #{messageCount},</if>
+            <if test="lastMessagePreview != null">last_message_preview = #{lastMessagePreview},</if>
+            <if test="isPinned != null">is_pinned = #{isPinned},</if>
+            <if test="isArchived != null">is_archived = #{isArchived},</if>
+            <if test="status != null">status = #{status},</if>
+            updated_at = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新消息信息 -->
+    <update id="updateMessageInfo">
+        UPDATE ai_conversation
+        SET message_count = #{messageCount},
+            last_message_preview = #{lastMessagePreview},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 更新标题 -->
+    <update id="updateTitle">
+        UPDATE ai_conversation
+        SET title = #{title},
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 软删除 -->
+    <update id="softDelete">
+        UPDATE ai_conversation
+        SET status = 0,
+            updated_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 硬删除 -->
+    <delete id="delete">
+        DELETE FROM ai_conversation WHERE id = #{id}
+    </delete>
+
+    <!-- 统计数量 -->
+    <select id="countByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM ai_conversation 
+        WHERE user_id = #{userId} AND status = 1
+    </select>
+
+</mapper>
+

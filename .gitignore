@@ -1,0 +1,82 @@
+# ==========================================
+# CoderHub Server Deploy - Git Ignore
+# ==========================================
+
+# ============ 数据目录（绝对不提交）============
+chroma/
+minio/
+mysql/
+redis/
+
+# ============ 敏感配置 ============
+.env
+*.env
+.env.local
+.env.*.local
+!.env.example
+
+# 避免提交明文密码的配置（如果有）
+**/application-prod.yml
+**/application-prod.properties
+
+# ============ IDE 相关 ============
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+*.swp
+*.swo
+*~
+
+# ============ 后端构建产物 ============
+coderhub_backend/target/
+coderhub_backend/**/target/
+*.class
+*.jar
+*.war
+
+# Maven 相关
+coderhub_backend/.mvn/
+coderhub_backend/mvnw
+coderhub_backend/mvnw.cmd
+
+# ============ 前端构建产物 ============
+coderhub_frontend/node_modules/
+coderhub_frontend/dist/
+coderhub_frontend/.temp/
+coderhub_frontend/.cache/
+
+# 前端依赖锁文件（可选，团队协作时建议保留）
+# coderhub_frontend/package-lock.json
+
+# ============ 日志文件 ============
+*.log
+logs/
+log/
+*.log.*
+
+# ============ 临时文件 ============
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+
+# ============ Docker 相关 ============
+# 保留 Dockerfile 和 docker-compose.yml
+# 但排除可能的本地覆盖文件
+docker-compose.override.yml
+
+# ============ 备份文件 ============
+*.bak
+*.backup
+*.old
+*.orig
+
+# ============ 系统文件 ============
+Thumbs.db
+.Spotlight-V100
+.Trashes
+

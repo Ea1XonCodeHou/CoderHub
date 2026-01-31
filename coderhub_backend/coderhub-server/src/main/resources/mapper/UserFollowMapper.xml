@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eaxon.coderhubserver.mapper.UserFollowMapper">
+
+    <!-- 插入关注记录 -->
+    <insert id="insert">
+        INSERT INTO user_follow (
+            id, follower_id, followed_id, create_time
+        ) VALUES (
+            #{id}, #{followerId}, #{followedId}, #{createTime}
+        )
+    </insert>
+
+    <!-- 删除关注记录 -->
+    <delete id="delete">
+        DELETE FROM user_follow
+        WHERE follower_id = #{followerId} AND followed_id = #{followedId}
+    </delete>
+
+    <!-- 查询是否已关注 -->
+    <select id="getByFollowerIdAndFollowedId" resultType="com.eaxon.coderhubpojo.entity.UserFollow">
+        SELECT * FROM user_follow
+        WHERE follower_id = #{followerId} AND followed_id = #{followedId}
+    </select>
+
+    <!-- 统计用户关注数（该用户关注了多少人） -->
+    <select id="countFollowingByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM user_follow
+        WHERE follower_id = #{userId}
+    </select>
+
+    <!-- 统计用户粉丝数（有多少人关注该用户） -->
+    <select id="countFollowersByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM user_follow
+        WHERE followed_id = #{userId}
+    </select>
+
+    <!-- 获取用户关注的人的ID列表 -->
+    <select id="getFollowedIdsByUserId" resultType="java.lang.String">
+        SELECT followed_id FROM user_follow
+        WHERE follower_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 获取用户的粉丝ID列表 -->
+    <select id="getFollowerIdsByUserId" resultType="java.lang.String">
+        SELECT follower_id FROM user_follow
+        WHERE followed_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>
+

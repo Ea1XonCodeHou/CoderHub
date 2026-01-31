@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CoderHub | A Cozy Digital Library for Developers</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&amp;family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+        :root {
+            --primary: #c2410c;--accent: #d97706;--background: #faf7f2;--surface: #f3eee5;--text-main: #2d2a26;
+            --text-muted: #7c7267;
+            --border-warm: #e8e2d9;
+            --golden-glow: rgba(251, 191, 36, 0.25);
+        }
+        body {
+            background-color: var(--background);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+        .font-serif-warm {
+            font-family: 'Crimson Pro', serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hero-gradient {
+            background: linear-gradient(135deg, #fdfcfb 0%, #f5eadd 100%);
+        }
+        .ai-glow-card {
+            box-shadow: 0 0 50px var(--golden-glow);
+            border: 1px solid rgba(251, 191, 36, 0.4);
+            background: rgba(255, 255, 255, 0.7);
+        }
+        .article-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .article-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -10px rgba(194, 65, 12, 0.15);
+        }
+        .terracotta-link {
+            color: var(--primary);
+            transition: color 0.2s;
+        }
+        .terracotta-link:hover {
+            color: #9a3412;
+            text-decoration: underline;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c2410c",
+                        "amber-warm": "#d97706",
+                        "linen": "#faf7f2",
+                        "surface-warm": "#f3eee5",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"],
+                        "serif": ["Crimson Pro", "serif"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display">
+<header class="sticky top-0 z-50 w-full border-b border-border-warm bg-white/90 backdrop-blur-md px-4 md:px-10 py-4">
+<div class="max-w-[1440px] mx-auto flex items-center justify-between">
+<div class="flex items-center gap-10">
+<div class="flex items-center gap-2.5 text-primary">
+<span class="material-symbols-outlined text-3xl font-bold">book_4</span>
+<h1 class="text-slate-900 text-2xl font-serif-warm font-bold tracking-tight">CoderHub</h1>
+</div>
+<nav class="hidden lg:flex items-center gap-8">
+<a class="text-slate-600 hover:text-primary text-sm font-semibold transition-colors" href="#">Library</a>
+<a class="text-slate-600 hover:text-primary text-sm font-semibold transition-colors" href="#">Community</a>
+<a class="text-slate-600 hover:text-primary text-sm font-semibold transition-colors" href="#">Insights</a>
+</nav>
+</div>
+<div class="flex items-center gap-5">
+<button class="hidden md:flex items-center gap-2 text-slate-600 hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">auto_stories</span>
+<span class="text-sm font-medium">My Shelf</span>
+</button>
+<div class="h-6 w-[1px] bg-border-warm hidden md:block"></div>
+<button class="bg-primary hover:bg-[#9a3412] text-white px-6 py-2.5 rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all">
+                Join Community
+            </button>
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary/10" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBGi7yZIfahTwKzuJDSeEX60xM4_veTJCHMUPy04mkECcnlXksKXWv0sa1Av5eJcuT8SITKfAn2tH-ncfORRl0JkIc7jPr0IHp5KSfrKfw_evGCUbFfq6fy5BwlYTFhXjXBIHQ3vjKgoUU5VzWO2fsOPz_Wk7GTzJVwVldouQAxgLpsSX006QI4Mj7PSn5lEdkGxRBTOaKGLeuVqLMyolK5dyIBbcTtVwe5qITT1q1s3NP2Inj5wQ7Iv3Z9wy5XJUAyLE-FW38JtA");'></div>
+</div>
+</div>
+</header>
+<main class="max-w-[1440px] mx-auto px-4 md:px-10">
+<section class="py-16 md:py-24 hero-gradient rounded-b-[3rem] -mx-4 md:-mx-10 px-4 md:px-10 mb-12 border-b border-border-warm">
+<div class="max-w-4xl mx-auto text-center">
+<h2 class="text-4xl md:text-6xl font-serif-warm font-bold text-slate-900 mb-6 leading-tight">
+                Your cozy digital library for <br/>
+<span class="text-primary italic">modern engineering.</span>
+</h2>
+<p class="text-lg md:text-xl text-slate-600 font-serif-warm italic mb-10 max-w-2xl mx-auto">
+                Explore curated technical insights and engage with a community of thoughtful developers.
+            </p>
+<div class="relative max-w-2xl mx-auto">
+<div class="absolute inset-y-0 left-5 flex items-center pointer-events-none text-amber-warm">
+<span class="material-symbols-outlined">auto_awesome</span>
+</div>
+<input class="w-full h-16 pl-14 pr-32 rounded-2xl border-2 border-border-warm bg-white focus:ring-4 focus:ring-amber-warm/10 focus:border-amber-warm text-slate-800 shadow-xl shadow-slate-200/50 outline-none transition-all placeholder:text-slate-400 font-serif-warm text-lg" placeholder="Ask AI for architectural advice or search the library..." type="text"/>
+<button class="absolute right-3 top-3 bottom-3 px-6 bg-amber-warm hover:bg-amber-600 text-white rounded-xl font-bold text-sm shadow-md transition-all">
+                    Search
+                </button>
+</div>
+<div class="mt-4 flex flex-wrap justify-center gap-3">
+<span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Trending:</span>
+<a class="text-xs font-bold text-primary hover:underline" href="#">#RAG_Optimization</a>
+<a class="text-xs font-bold text-primary hover:underline" href="#">#System_Design</a>
+<a class="text-xs font-bold text-primary hover:underline" href="#">#Python_Patterns</a>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-12 gap-10">
+<div class="col-span-12 lg:col-span-8 space-y-10">
+<div class="flex items-center justify-between border-b border-border-warm pb-4">
+<h3 class="text-2xl font-serif-warm font-bold text-slate-800">Curated Articles</h3>
+<div class="flex gap-4">
+<button class="text-sm font-bold text-primary border-b-2 border-primary pb-1">Latest</button>
+<button class="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors">Popular</button>
+</div>
+</div>
+<div class="space-y-6">
+<article class="article-card group bg-white p-6 md:p-8 rounded-[2rem] border border-border-warm shadow-sm flex flex-col md:flex-row gap-8">
+<div class="w-full md:w-64 h-48 rounded-2xl overflow-hidden flex-shrink-0">
+<img alt="Article thumbnail" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA27K95paHnZTujfGVPDrQUl8ZP55I2Kh3T4DoH-RX1mXQQmOWVV-cY3SowfefVVWQsbaQQjaiSM_HqhfNyQksNAGISFZOjihJU5Ats9d44uAD2wWbsGMfNxruL3WAzGZStaIwJu6-yTZXvww1lNQDjCRjDBtulvRULsgPmpMgs48uiPnUdakSwGROXKaiA4gjCO5v9nq_5JdpWwYH1ZL_g6CY7mGge-o8nKpPAurLnvw6JQd6v-EYuVGsehsqHwMhp0kY24RlZbw"/>
+</div>
+<div class="flex flex-col flex-1">
+<div class="flex items-center gap-3 mb-3">
+<span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase tracking-widest rounded-full">Architecture</span>
+<span class="text-slate-400 text-xs font-medium">12 min read</span>
+</div>
+<h4 class="text-2xl md:text-3xl font-serif-warm font-bold text-slate-900 mb-3 group-hover:text-primary transition-colors leading-tight">
+                            Building Scalable Systems with LLM Integration
+                        </h4>
+<p class="text-slate-600 font-serif-warm text-lg line-clamp-2 mb-6">
+                            Integrating Large Language Models into production requires more than just an API call. We explore latency and token management...
+                        </p>
+<div class="mt-auto flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-slate-200 border border-border-warm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBkdd8O2WgLiZFngMB9MSp_pdeSD8Hi1N1KBdxggV_50vMaitM62gxU3vWlPtHLAOdic9AY40m78iaJBUdhU_Hwn2g1FstkqEnt9qn53ab8yVerTzZzYUb4XG5ef7PNSjykjJyJQuM2ibnMn948QBaZzdE8Rv7OpJtL9zzJkJmq25kdbjKBdBU-wKE5rr6A8T6vNgODRwI38oxRlYCaWJ19DZ_FoxDzBpiRaz3aH6Ios43d8bsQyPABz6nAxK4aG-jRt9-_Cvhdsw"); background-size: cover;'></div>
+<span class="text-sm font-bold text-slate-800">Alex Rivera</span>
+</div>
+<button class="text-primary hover:text-amber-800 transition-colors font-bold text-sm flex items-center gap-1">
+                                Read More <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</article>
+<article class="article-card group bg-white p-6 md:p-8 rounded-[2rem] border border-border-warm shadow-sm flex flex-col md:flex-row gap-8">
+<div class="w-full md:w-64 h-48 rounded-2xl overflow-hidden flex-shrink-0">
+<img alt="Article thumbnail" class="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiIT1wDi4dXhkQPFtDtfKid1hWSP6jteQIKaXJjloYKvVScOqUoqiph-rQwuUagHe8swPAm6pwILh44mFICQbjjisWK_JUn-zV_UMmQfkUSnyoY67XmzrXoLBIyldd_CprRC8O3llruF8Y3BuzeY0hx1Kr_QfzsHiaFM3rtyit3-OIj4EqxljKLIwcLqodQRyW2yg-pv1S0aX1V-RtX7bz3YiK3ofBP_-ZqQjWnIePCBCHZaulPncbk7jDoAuJUwY7Fvn1YUP-Qg"/>
+</div>
+<div class="flex flex-col flex-1">
+<div class="flex items-center gap-3 mb-3">
+<span class="px-3 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase tracking-widest rounded-full">Performance</span>
+<span class="text-slate-400 text-xs font-medium">8 min read</span>
+</div>
+<h4 class="text-2xl md:text-3xl font-serif-warm font-bold text-slate-900 mb-3 group-hover:text-primary transition-colors leading-tight">
+                            The Hidden Cost of JavaScript Hydration
+                        </h4>
+<p class="text-slate-600 font-serif-warm text-lg line-clamp-2 mb-6">
+                            Modern frameworks offer seamless interactivity, but at what cost to the initial load? Let's dive into server-side performance metrics.
+                        </p>
+<div class="mt-auto flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-slate-200 border border-border-warm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBDqmV9YA76aJzib8LznQ7-VMlnjsZ-mqAFuH7LWNhJBpwgsjO1jvfPXSZijOrvi1idy6zEiROx9CBsh49ysydWA9DmooF-ok2AxI3KZcBXhCYL0luuZZMiXWabmxlCYKwf-biNyAOFOiwt7RF4i_wC7f49ymRWZdGgmFokk4_crGxvfunBp65jvwgf14mbQx10HL5O68OlLSBGRi28kg9f-TPHWKQnmoyRyua5H35m71EUwG1MeaOwGh-crhQI8PaAGLvsj7ji8Q"); background-size: cover;'></div>
+<span class="text-sm font-bold text-slate-800">Sarah Dev</span>
+</div>
+<button class="text-primary hover:text-amber-800 transition-colors font-bold text-sm flex items-center gap-1">
+                                Read More <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</article>
+</div>
+<button class="w-full py-5 bg-white border-2 border-dashed border-border-warm text-slate-500 font-bold rounded-2xl hover:border-primary hover:text-primary transition-all">
+                Load more volumes from the library
+            </button>
+</div>
+<aside class="col-span-12 lg:col-span-4 space-y-8">
+<div class="p-8 rounded-[2rem] ai-glow-card relative overflow-hidden group">
+<div class="flex items-center gap-2 text-amber-warm mb-6">
+<span class="material-symbols-outlined font-bold">auto_awesome</span>
+<h3 class="font-bold text-sm uppercase tracking-[0.2em]">Smart Assistant</h3>
+</div>
+<p class="text-slate-800 font-serif-warm text-lg mb-6 leading-relaxed italic">
+                    "I noticed you're exploring architecture. You might enjoy our latest deep-dive on <span class="text-primary font-bold">Distributed Caching Strategies</span>."
+                </p>
+<div class="space-y-4">
+<button class="w-full py-3 bg-amber-warm text-white rounded-xl text-sm font-bold shadow-lg shadow-amber-200 hover:brightness-110 transition-all">
+                        Talk to AI Librarian
+                    </button>
+</div>
+</div>
+<div class="bg-white p-8 rounded-[2rem] border border-border-warm shadow-sm">
+<h3 class="text-slate-900 text-sm font-bold uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">trending_up</span>
+                    Trending Topics
+                </h3>
+<div class="space-y-4">
+<a class="flex items-center justify-between group" href="#">
+<span class="text-slate-700 font-serif-warm text-lg group-hover:text-primary transition-colors">Micro-frontends 2024</span>
+<span class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono">1.2k</span>
+</a>
+<a class="flex items-center justify-between group" href="#">
+<span class="text-slate-700 font-serif-warm text-lg group-hover:text-primary transition-colors">Type-safe SQL with Zod</span>
+<span class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono">840</span>
+</a>
+<a class="flex items-center justify-between group" href="#">
+<span class="text-slate-700 font-serif-warm text-lg group-hover:text-primary transition-colors">Vector DB Comparison</span>
+<span class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono">650</span>
+</a>
+</div>
+</div>
+<div class="bg-white p-8 rounded-[2rem] border border-border-warm shadow-sm">
+<h3 class="text-slate-900 text-sm font-bold uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">forum</span>
+                    Community
+                </h3>
+<div class="space-y-6">
+<div class="flex gap-4">
+<div class="size-10 rounded-full flex-shrink-0 bg-surface-warm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuA1ZWFR7SY5kBXVQVr3WimZDLe_ERF6cD08i1pEMRb1k19PFp9TZmhSyCvAEUuylSQ-FsRupkfNXbwU1kjGn3047KXNGvAyLaFoCtd-dbkwYyvZlEdRc4TCklQRCEanOv9vdw9xXsDzkghLGc_TebcIQLrxI-pBctSwpSMOXl--6aK-KFcHvEs3rUMt6b2ISON8s-whbO7wsJavyG3sfM0qqtd4wZN00HV8pFD4Cv45QXGoLYUcXZgDKd2wzUw5cYr9D0KQcwBOMw"); background-size: cover;'></div>
+<div>
+<p class="text-sm font-bold text-slate-800">Mike Chen</p>
+<p class="text-xs text-slate-500 italic font-serif-warm">"Just finished a 10-hour debug session on WebSockets..."</p>
+<a class="text-[10px] font-bold text-primary uppercase mt-1 inline-block" href="#">View Discussion</a>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="size-10 rounded-full flex-shrink-0 bg-surface-warm" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBGi7yZIfahTwKzuJDSeEX60xM4_veTJCHMUPy04mkECcnlXksKXWv0sa1Av5eJcuT8SITKfAn2tH-ncfORRl0JkIc7jPr0IHp5KSfrKfw_evGCUbFfq6fy5BwlYTFhXjXBIHQ3vjKgoUU5VzWO2fsOPz_Wk7GTzJVwVldouQAxgLpsSX006QI4Mj7PSn5lEdkGxRBTOaKGLeuVqLMyolK5dyIBbcTtVwe5qITT1q1s3NP2Inj5wQ7Iv3Z9wy5XJUAyLE-FW38JtA"); background-size: cover;'></div>
+<div>
+<p class="text-sm font-bold text-slate-800">Liam O'Neill</p>
+<p class="text-xs text-slate-500 italic font-serif-warm">"Shared my new open-source Go logging library!"</p>
+<a class="text-[10px] font-bold text-primary uppercase mt-1 inline-block" href="#">Check it out</a>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<footer class="mt-24 bg-surface-warm border-t border-border-warm pt-20 pb-12">
+<div class="max-w-[1440px] mx-auto px-10">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+<div class="col-span-1 md:col-span-1">
+<div class="flex items-center gap-2.5 text-primary mb-6">
+<span class="material-symbols-outlined text-3xl font-bold">book_4</span>
+<h1 class="text-slate-900 text-2xl font-serif-warm font-bold tracking-tight">CoderHub</h1>
+</div>
+<p class="text-slate-600 font-serif-warm leading-relaxed">
+                    A thoughtfully curated space for developers to learn, discuss, and grow. Designed with warmth for the modern engineer.
+                </p>
+</div>
+<div>
+<h4 class="font-bold text-slate-900 mb-6 uppercase tracking-widest text-xs">The Library</h4>
+<ul class="space-y-4 text-sm text-slate-600 font-medium">
+<li><a class="hover:text-primary transition-colors" href="#">All Articles</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Technical Guides</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Architecture Patterns</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Open Source</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-slate-900 mb-6 uppercase tracking-widest text-xs">Community</h4>
+<ul class="space-y-4 text-sm text-slate-600 font-medium">
+<li><a class="hover:text-primary transition-colors" href="#">Forum Discussions</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Upcoming Meetups</a></li>
+<li><a class="hover:text-primary transition-colors" href="#">Code Reviews</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-bold text-slate-900 mb-6 uppercase tracking-widest text-xs">Newsletter</h4>
+<p class="text-xs text-slate-500 mb-4 font-serif-warm italic">Get weekly highlights from the librarian.</p>
+<div class="flex gap-2">
+<input class="flex-1 bg-white border-border-warm rounded-lg text-xs px-3 focus:ring-primary focus:border-primary" placeholder="Email address" type="email"/>
+<button class="bg-primary text-white p-2 px-4 rounded-lg font-bold text-xs hover:bg-[#9a3412]">Sub</button>
+</div>
+</div>
+</div>
+<div class="flex flex-col md:flex-row justify-between items-center gap-6 pt-10 border-t border-slate-200">
+<p class="text-slate-400 text-xs font-medium italic">© 2024 CoderHub. Built with care and warmth for developers everywhere.</p>
+<div class="flex gap-8">
+<a class="text-slate-400 text-xs hover:text-primary transition-colors font-bold uppercase tracking-tighter" href="#">Privacy</a>
+<a class="text-slate-400 text-xs hover:text-primary transition-colors font-bold uppercase tracking-tighter" href="#">Terms</a>
+<a class="text-slate-400 text-xs hover:text-primary transition-colors font-bold uppercase tracking-tighter" href="#">Twitter</a>
+</div>
+</div>
+</div>
+</footer>
+
+</body></html>

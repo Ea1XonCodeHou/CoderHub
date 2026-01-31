@@ -1,0 +1,688 @@
+package com.eaxon.coderhubserver.service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.eaxon.coderhubpojo.DTO.ChatRequestDTO;
+import com.eaxon.coderhubpojo.DTO.ChatStreamEvent;
+import com.eaxon.coderhubpojo.DTO.ChatStreamEvent.RecommendItem;
+import com.eaxon.coderhubpojo.DTO.ChatStreamEvent.ToolCall;
+import com.eaxon.coderhubpojo.entity.AIMessage;
+import com.eaxon.coderhubserver.agent.CoderHubTools;
+import com.eaxon.coderhubserver.mapper.AIMessageMapper;
+
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import dev.langchain4j.model.output.Response;
+import dev.langchain4j.service.AiServices;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
+
+/**
+ * AI 对话服务层
+ * 使用 LangChain4j 实现流式对话，支持工具调用
+ * 
+ * 核心功能：
+ * 1. 流式响应 - 使用 Reactor Flux 实现真正的响应式流
+ * 2. 工具调用 - 支持搜索教程、文章等工具
+ * 3. 多模型支持 - 可动态切换不同的AI模型
+ * 4. 上下文管理 - 支持对话历史
+ * 
+ * @author CoderHub
+ */
+@Service
+@Slf4j
+public class AIService {
+
+    @Value("${langchain4j.open-ai.streaming-chat-model.api-key}")
+    private String apiKey;
+
+    @Value("${langchain4j.open-ai.streaming-chat-model.base-url}")
+    private String baseUrl;
+
+    @Value("${langchain4j.open-ai.streaming-chat-model.model-name:qwen-plus}")
+    private String defaultModelName;
+
+    @Autowired
+    private CoderHubTools coderHubTools;
+
+    @Autowired
+    private AIMessageMapper messageMapper;
+
+    @Autowired
+    private EmbeddingStore<TextSegment> embeddingStore;
+
+    @Autowired
+    private EmbeddingModel embeddingModel;
+
+    /** 上下文窗口最大消息数 */
+    private static final int MAX_CONTEXT_MESSAGES = 20;
+
+    /** RAG检索返回的最大文章数 */
+    private static final int RAG_TOP_K = 5;
+
+    /**
+     * 流式模型缓存
+     */
+    private final Map<String, OpenAiStreamingChatModel> streamingModelCache = new ConcurrentHashMap<>();
+
+    /**
+     * 同步模型缓存（用于工具调用判断）
+     */
+    private final Map<String, OpenAiChatModel> syncModelCache = new ConcurrentHashMap<>();
+
+    /**
+     * 工具调用Agent接口
+     */
+    private CoderHubAgent coderHubAgent;
+
+    /**
+     * 带工具的系统提示词
+     */
+    private static final String SYSTEM_PROMPT_WITH_TOOLS = """
+            你是 CoderHub AI 助手，一个专业的编程技术顾问。你可以帮助用户学习编程技术，并推荐平台上的相关教程和文章。
+            
+            你具有以下特点：
+            1. 专业知识：精通各种编程语言、框架和最佳实践
+            2. 代码能力：能够编写清晰、高效、可维护的代码
+            3. 资源推荐：可以搜索和推荐 CoderHub 平台上的教程和文章
+            4. 沟通技巧：用清晰简洁的语言解释复杂概念
+            
+            当用户询问想要学习某个技术时，你应该：
+            1. 使用工具搜索相关的教程和文章
+            2. 基于搜索结果给出推荐
+            3. 同时提供一些学习建议
+            
+            在回答时请注意：
+            - 提供准确、实用的技术建议
+            - 代码示例要完整且可运行
+            - 适当使用 Markdown 格式组织回答
+            - 对于代码块，请标注编程语言以便语法高亮
+            - 当推荐资源时，请告知用户这些都来自 CoderHub 平台
+            """;
+
+    /**
+     * Agent接口定义
+     */
+    public interface CoderHubAgent {
+        String chat(String message);
+    }
+
+    @PostConstruct
+    public void init() {
+        log.info("初始化 AI 服务，默认模型: {}, baseUrl: {}", defaultModelName, baseUrl);
+        
+        // 创建同步模型用于工具调用
+        OpenAiChatModel syncModel = OpenAiChatModel.builder()
+                .apiKey(apiKey)
+                .baseUrl(baseUrl)
+                .modelName(defaultModelName)
+                .temperature(0.7)
+                .maxTokens(4096)
+                .logRequests(false)
+                .logResponses(false)
+                .build();
+        
+        // 使用AiServices构建Agent
+        coderHubAgent = AiServices.builder(CoderHubAgent.class)
+                .chatLanguageModel(syncModel)
+                .tools(coderHubTools)
+                .build();
+        
+        // 预热流式模型
+        getOrCreateStreamingModel(defaultModelName, 0.7, 4096);
+        
+        log.info("AI 服务初始化完成，已加载工具: searchTutorials, searchArticles, getHotContent, getHotTags");
+    }
+
+    @PreDestroy
+    public void destroy() {
+        log.info("清理 AI 服务资源");
+        streamingModelCache.clear();
+        syncModelCache.clear();
+    }
+
+    /**
+     * 流式对话 - 核心方法（支持工具调用）
+     */
+    public Flux<ChatStreamEvent> streamChat(ChatRequestDTO request) {
+        String sessionId = request.getSessionId() != null ? 
+                request.getSessionId() : java.util.UUID.randomUUID().toString();
+        String model = request.getModel() != null ? request.getModel() : defaultModelName;
+        double temperature = request.getTemperature() != null ? request.getTemperature() : 0.7;
+        int maxTokens = request.getMaxTokens() != null ? request.getMaxTokens() : 4096;
+        
+        log.info("开始流式对话 - sessionId: {}, model: {}", sessionId, model);
+        String userMessage = request.getMessage();
+
+        return Flux.create(sink -> {
+            try {
+                // 1. 发送思考中事件
+                sink.next(ChatStreamEvent.thinking(sessionId, model));
+                
+                // 2. 检测是否需要工具调用（基于关键词）
+                boolean needsToolCall = detectToolCallIntent(userMessage);
+                List<RecommendItem> recommendations = new ArrayList<>();
+                String toolResult = null;
+
+                if (needsToolCall) {
+                    log.info("检测到工具调用意图，开始执行工具调用");
+                    
+                    // 发送工具调用状态
+                    ToolCall tutorialToolCall = ToolCall.builder()
+                            .toolName("searchTutorials")
+                            .displayName("搜索教程")
+                            .icon("📚")
+                            .parameters("关键词: " + extractKeyword(userMessage))
+                            .status("calling")
+                            .build();
+                    sink.next(ChatStreamEvent.toolCalling(sessionId, tutorialToolCall));
+
+                    try {
+                        // 使用Agent执行工具调用
+                        toolResult = coderHubAgent.chat(userMessage);
+                        
+                        // 提取关键词获取推荐列表
+                        String keyword = extractKeyword(userMessage);
+                        recommendations = coderHubTools.searchAndGetRecommendations(keyword, 3, 3);
+
+                        // 发送工具调用完成状态
+                        tutorialToolCall.setStatus("success");
+                        tutorialToolCall.setResultCount(recommendations.size());
+                        sink.next(ChatStreamEvent.toolResult(sessionId, tutorialToolCall, recommendations));
+                        
+                        log.info("工具调用完成，获取到 {} 个推荐结果", recommendations.size());
+                        
+                    } catch (Exception e) {
+                        log.error("工具调用失败: {}", e.getMessage());
+                        tutorialToolCall.setStatus("failed");
+                        sink.next(ChatStreamEvent.toolResult(sessionId, tutorialToolCall, null));
+                    }
+                }
+
+                // 3. 获取流式模型
+                OpenAiStreamingChatModel streamingModel = getOrCreateStreamingModel(model, temperature, maxTokens);
+                
+                // 4. 构建消息列表
+                List<ChatMessage> messages = buildMessages(request, toolResult);
+                
+                // 5. 执行流式生成
+                AtomicInteger tokenCount = new AtomicInteger(0);
+                StringBuilder fullResponse = new StringBuilder();
+                List<RecommendItem> finalRecommendations = recommendations;
+                
+                streamingModel.generate(messages, new StreamingResponseHandler<AiMessage>() {
+                    
+                    @Override
+                    public void onNext(String token) {
+                        if (token != null && !token.isEmpty()) {
+                            fullResponse.append(token);
+                            tokenCount.incrementAndGet();
+                            sink.next(ChatStreamEvent.message(token, sessionId));
+                        }
+                    }
+
+                    @Override
+                    public void onComplete(Response<AiMessage> response) {
+                        log.info("流式响应完成 - sessionId: {}, 总字符数: {}", 
+                                sessionId, fullResponse.length());
+                        
+                        ChatStreamEvent.TokenUsage usage = ChatStreamEvent.TokenUsage.builder()
+                                .outputTokens(tokenCount.get())
+                                .build();
+                        
+                        // 如果有推荐内容，附带在完成事件中
+                        if (!finalRecommendations.isEmpty()) {
+                            sink.next(ChatStreamEvent.doneWithRecommendations(sessionId, usage, finalRecommendations));
+                        } else {
+                        sink.next(ChatStreamEvent.done(sessionId, usage));
+                        }
+                        sink.complete();
+                    }
+
+                    @Override
+                    public void onError(Throwable error) {
+                        log.error("流式响应出错 - sessionId: {}, error: {}", sessionId, error.getMessage());
+                        sink.next(ChatStreamEvent.error(parseErrorMessage(error), sessionId));
+                        sink.complete();
+                    }
+                });
+                
+            } catch (Exception e) {
+                log.error("创建流式对话失败: {}", e.getMessage(), e);
+                sink.next(ChatStreamEvent.error("服务初始化失败: " + e.getMessage(), sessionId));
+                sink.complete();
+            }
+        }, FluxSink.OverflowStrategy.BUFFER);
+    }
+
+    /**
+     * 检测是否需要工具调用
+     */
+    private boolean detectToolCallIntent(String message) {
+        if (message == null) return false;
+        
+        String lowerMessage = message.toLowerCase();
+        
+        // 学习意图关键词
+        String[] learnKeywords = {
+            "想学", "学习", "入门", "教程", "推荐", "怎么学", "如何学", 
+            "有什么", "教我", "帮我找", "搜索", "查找", "了解", "掌握",
+            "课程", "资源", "资料", "视频", "文章", "博客"
+        };
+        
+        for (String keyword : learnKeywords) {
+            if (lowerMessage.contains(keyword)) {
+                return true;
+            }
+        }
+        
+        // 技术关键词检测
+        String[] techKeywords = {
+            "java", "spring", "vue", "react", "python", "redis", "mysql",
+            "docker", "kubernetes", "微服务", "分布式", "算法", "数据结构"
+        };
+        
+        for (String tech : techKeywords) {
+            if (lowerMessage.contains(tech)) {
+                // 如果包含技术关键词，再检查是否有疑问或请求意图
+                if (lowerMessage.contains("?") || lowerMessage.contains("？") ||
+                    lowerMessage.contains("吗") || lowerMessage.contains("呢") ||
+                    lowerMessage.contains("有") || lowerMessage.contains("推荐")) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * 从消息中提取搜索关键词
+     */
+    private String extractKeyword(String message) {
+        if (message == null) return "";
+        
+        // 移除常见的意图词，保留技术关键词
+        String[] removePatterns = {
+            "我想学习?", "想学", "想了解", "帮我找", "帮我搜索", 
+            "有什么", "有没有", "推荐一些", "推荐", "教程", "课程",
+            "如何学", "怎么学", "入门", "请问", "请", "吗", "呢", "？", "?"
+        };
+        
+        String result = message;
+        for (String pattern : removePatterns) {
+            result = result.replace(pattern, " ");
+        }
+        
+        // 清理并返回
+        return result.trim().replaceAll("\\s+", " ");
+    }
+
+    /**
+     * 获取或创建流式模型
+     */
+    private OpenAiStreamingChatModel getOrCreateStreamingModel(String modelName, double temperature, int maxTokens) {
+        String cacheKey = modelName + "_" + temperature + "_" + maxTokens;
+        
+        return streamingModelCache.computeIfAbsent(cacheKey, k -> {
+            log.info("创建新的流式模型实例: {}", cacheKey);
+            
+            return OpenAiStreamingChatModel.builder()
+                    .apiKey(apiKey)
+                    .baseUrl(baseUrl)
+                    .modelName(modelName)
+                    .temperature(temperature)
+                    .maxTokens(maxTokens)
+                    .logRequests(false)
+                    .logResponses(false)
+                    .build();
+        });
+    }
+
+    /**
+     * 构建消息列表
+     */
+    private List<ChatMessage> buildMessages(ChatRequestDTO request, String toolResult) {
+        List<ChatMessage> messages = new ArrayList<>();
+        
+        // 1. 添加系统提示词
+        String systemPrompt = request.getSystemPrompt() != null ? 
+                request.getSystemPrompt() : SYSTEM_PROMPT_WITH_TOOLS;
+        messages.add(SystemMessage.from(systemPrompt));
+        
+        // 2. 从数据库加载历史对话（如果有 conversationId）
+        String conversationId = request.getConversationId();
+        if (conversationId != null && !conversationId.isEmpty()) {
+            List<AIMessage> dbMessages = messageMapper.getRecentMessages(conversationId, MAX_CONTEXT_MESSAGES);
+            for (AIMessage dbMsg : dbMessages) {
+                if ("user".equalsIgnoreCase(dbMsg.getRole())) {
+                    messages.add(UserMessage.from(dbMsg.getContent()));
+                } else if ("assistant".equalsIgnoreCase(dbMsg.getRole())) {
+                    messages.add(AiMessage.from(dbMsg.getContent()));
+                }
+            }
+            log.debug("从数据库加载了 {} 条历史消息", dbMessages.size());
+        } 
+        // 兼容旧的 history 参数
+        else if (request.getHistory() != null && !request.getHistory().isEmpty()) {
+            for (ChatRequestDTO.ChatMessage historyMsg : request.getHistory()) {
+                if ("user".equalsIgnoreCase(historyMsg.getRole())) {
+                    messages.add(UserMessage.from(historyMsg.getContent()));
+                } else if ("assistant".equalsIgnoreCase(historyMsg.getRole())) {
+                    messages.add(AiMessage.from(historyMsg.getContent()));
+                }
+            }
+        }
+        
+        // 3. 如果有工具调用结果，添加为上下文
+        if (toolResult != null && !toolResult.isEmpty()) {
+            String contextMessage = "【平台资源检索结果】\n" + toolResult + 
+                    "\n\n请基于以上检索结果，结合你的专业知识，为用户提供学习建议和推荐。";
+            messages.add(SystemMessage.from(contextMessage));
+        }
+        
+        // 4. 添加当前用户消息
+        messages.add(UserMessage.from(request.getMessage()));
+        
+        log.debug("构建消息列表完成，共 {} 条消息", messages.size());
+        return messages;
+    }
+
+    /**
+     * 解析错误消息
+     */
+    private String parseErrorMessage(Throwable error) {
+        String message = error.getMessage();
+        if (message == null) {
+            return "未知错误";
+        }
+        
+        if (message.contains("rate limit")) {
+            return "请求频率过高，请稍后重试";
+        }
+        if (message.contains("timeout")) {
+            return "请求超时，请稍后重试";
+        }
+        if (message.contains("unauthorized") || message.contains("401")) {
+            return "API 认证失败，请检查配置";
+        }
+        if (message.contains("quota")) {
+            return "API 配额已用完";
+        }
+        
+        if (message.length() > 200) {
+            return message.substring(0, 200) + "...";
+        }
+        
+        return message;
+    }
+
+    // ==================== RAG 增强对话 ====================
+
+    /**
+     * RAG增强系统提示词
+     */
+    private static final String RAG_SYSTEM_PROMPT = """
+            你是 CoderHub AI 助手，一个专业的编程技术顾问。
+            
+            以下是从 CoderHub 知识库中检索到的与用户问题相关的博客文章内容，请基于这些内容回答用户的问题：
+            
+            【知识库参考资料】
+            %s
+            
+            回答要求：
+            1. 优先基于上述参考资料回答，确保答案准确且有据可查
+            2. 如果参考资料不足以完整回答问题，可以结合你的专业知识补充
+            3. 适当引用参考资料中的内容，增强可信度
+            4. 使用 Markdown 格式组织回答，代码块标注语言
+            5. 如果问题超出参考资料范围，坦诚告知并给出你的专业建议
+            """;
+
+    /**
+     * RAG增强的流式对话 - 基于知识库检索
+     * 
+     * 核心逻辑：
+     * 1. 将问题向量化
+     * 2. 从ChromaDB检索Top-K篇相似博客
+     * 3. 将检索结果作为上下文
+     * 4. 调用LLM生成回答
+     */
+    public Flux<ChatStreamEvent> streamChatWithRAG(ChatRequestDTO request) {
+        String sessionId = request.getSessionId() != null ? 
+                request.getSessionId() : java.util.UUID.randomUUID().toString();
+        String model = request.getModel() != null ? request.getModel() : defaultModelName;
+        double temperature = request.getTemperature() != null ? request.getTemperature() : 0.7;
+        int maxTokens = request.getMaxTokens() != null ? request.getMaxTokens() : 4096;
+        
+        log.info("开始RAG增强对话 - sessionId: {}, model: {}", sessionId, model);
+        String userMessage = request.getMessage();
+
+        return Flux.create(sink -> {
+            try {
+                // 1. 发送思考中事件
+                sink.next(ChatStreamEvent.thinking(sessionId, model));
+                
+                // 2. 发送RAG检索状态
+                ToolCall ragToolCall = ToolCall.builder()
+                        .toolName("ragRetrieval")
+                        .displayName("知识库检索")
+                        .icon("🔍")
+                        .parameters("检索问题: " + (userMessage.length() > 50 ? 
+                                userMessage.substring(0, 50) + "..." : userMessage))
+                        .status("calling")
+                        .build();
+                sink.next(ChatStreamEvent.toolCalling(sessionId, ragToolCall));
+
+                // 3. 执行RAG检索
+                List<RetrievedArticle> retrievedArticles = retrieveRelevantArticles(userMessage);
+                
+                if (retrievedArticles.isEmpty()) {
+                    log.info("RAG检索无结果，使用普通对话模式");
+                    ragToolCall.setStatus("no_result");
+                    sink.next(ChatStreamEvent.toolResult(sessionId, ragToolCall, null));
+                } else {
+                    log.info("RAG检索成功，获取到 {} 篇相关文章", retrievedArticles.size());
+                    ragToolCall.setStatus("success");
+                    ragToolCall.setResultCount(retrievedArticles.size());
+                    
+                    // 构建推荐列表
+                    List<RecommendItem> recommendations = new ArrayList<>();
+                    for (RetrievedArticle a : retrievedArticles) {
+                        recommendations.add(RecommendItem.builder()
+                                .id(a.articleId)
+                                .title(a.title)
+                                .type("article")
+                                .rating(a.score * 100) // 转换为百分比
+                                .build());
+                    }
+                    sink.next(ChatStreamEvent.toolResult(sessionId, ragToolCall, recommendations));
+                }
+
+                // 4. 获取流式模型
+                OpenAiStreamingChatModel streamingModel = getOrCreateStreamingModel(model, temperature, maxTokens);
+                
+                // 5. 构建带RAG上下文的消息列表
+                List<ChatMessage> messages = buildRAGMessages(request, retrievedArticles);
+                
+                // 6. 执行流式生成
+                AtomicInteger tokenCount = new AtomicInteger(0);
+                StringBuilder fullResponse = new StringBuilder();
+                
+                streamingModel.generate(messages, new StreamingResponseHandler<AiMessage>() {
+                    
+                    @Override
+                    public void onNext(String token) {
+                        if (token != null && !token.isEmpty()) {
+                            fullResponse.append(token);
+                            tokenCount.incrementAndGet();
+                            sink.next(ChatStreamEvent.message(token, sessionId));
+                        }
+                    }
+
+                    @Override
+                    public void onComplete(Response<AiMessage> response) {
+                        log.info("RAG对话完成 - sessionId: {}, 总字符数: {}", 
+                                sessionId, fullResponse.length());
+                        
+                        ChatStreamEvent.TokenUsage usage = ChatStreamEvent.TokenUsage.builder()
+                                .outputTokens(tokenCount.get())
+                                .build();
+                        
+                        sink.next(ChatStreamEvent.done(sessionId, usage));
+                        sink.complete();
+                    }
+
+                    @Override
+                    public void onError(Throwable error) {
+                        log.error("RAG对话出错 - sessionId: {}, error: {}", sessionId, error.getMessage());
+                        sink.next(ChatStreamEvent.error(parseErrorMessage(error), sessionId));
+                        sink.complete();
+                    }
+                });
+                
+            } catch (Exception e) {
+                log.error("RAG对话失败: {}", e.getMessage(), e);
+                sink.next(ChatStreamEvent.error("RAG服务异常: " + e.getMessage(), sessionId));
+                sink.complete();
+            }
+        }, FluxSink.OverflowStrategy.BUFFER);
+    }
+
+    /**
+     * 从向量数据库检索相关文章
+     */
+    private List<RetrievedArticle> retrieveRelevantArticles(String query) {
+        try {
+            // 1. 将问题向量化
+            TextSegment querySegment = TextSegment.from(query);
+            Embedding queryEmbedding = embeddingModel.embed(querySegment).content();
+            
+            // 2. 检索相似文章
+            EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                    .queryEmbedding(queryEmbedding)
+                    .maxResults(RAG_TOP_K)
+                    .minScore(0.5) // 最低相似度阈值
+                    .build();
+            EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
+            List<EmbeddingMatch<TextSegment>> matches = searchResult.matches();
+            
+            // 3. 构建结果列表
+            return matches.stream()
+                    .map(match -> {
+                        RetrievedArticle article = new RetrievedArticle();
+                        article.content = match.embedded().text();
+                        article.score = match.score();
+                        
+                        // 从metadata中提取信息
+                        if (match.embedded().metadata() != null) {
+                            article.articleId = match.embedded().metadata().getString("articleId");
+                            article.title = match.embedded().metadata().getString("title");
+                            article.authorName = match.embedded().metadata().getString("authorName");
+                        }
+                        return article;
+                    })
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            log.error("RAG检索失败: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 构建带RAG上下文的消息列表
+     */
+    private List<ChatMessage> buildRAGMessages(ChatRequestDTO request, List<RetrievedArticle> articles) {
+        List<ChatMessage> messages = new ArrayList<>();
+        
+        // 1. 构建RAG系统提示词
+        String ragContext = buildRAGContext(articles);
+        String systemPrompt = String.format(RAG_SYSTEM_PROMPT, ragContext);
+        messages.add(SystemMessage.from(systemPrompt));
+        
+        // 2. 添加历史对话（如果有）
+        String conversationId = request.getConversationId();
+        if (conversationId != null && !conversationId.isEmpty()) {
+            List<AIMessage> dbMessages = messageMapper.getRecentMessages(conversationId, MAX_CONTEXT_MESSAGES);
+            for (AIMessage dbMsg : dbMessages) {
+                if ("user".equalsIgnoreCase(dbMsg.getRole())) {
+                    messages.add(UserMessage.from(dbMsg.getContent()));
+                } else if ("assistant".equalsIgnoreCase(dbMsg.getRole())) {
+                    messages.add(AiMessage.from(dbMsg.getContent()));
+                }
+            }
+        }
+        
+        // 3. 添加当前用户消息
+        messages.add(UserMessage.from(request.getMessage()));
+        
+        log.debug("RAG消息列表构建完成，共 {} 条消息", messages.size());
+        return messages;
+    }
+
+    /**
+     * 构建RAG检索结果上下文
+     */
+    private String buildRAGContext(List<RetrievedArticle> articles) {
+        if (articles.isEmpty()) {
+            return "（未找到相关参考资料，请基于你的专业知识回答）";
+        }
+        
+        StringBuilder context = new StringBuilder();
+        for (int i = 0; i < articles.size(); i++) {
+            RetrievedArticle article = articles.get(i);
+            context.append(String.format("\n--- 参考文章 %d (相似度: %.1f%%) ---\n", 
+                    i + 1, article.score * 100));
+            context.append("标题: ").append(article.title != null ? article.title : "未知").append("\n");
+            if (article.authorName != null) {
+                context.append("作者: ").append(article.authorName).append("\n");
+            }
+            context.append("内容摘要:\n");
+            // 限制每篇文章的内容长度
+            String content = article.content;
+            if (content != null && content.length() > 1500) {
+                content = content.substring(0, 1500) + "...";
+            }
+            context.append(content).append("\n");
+        }
+        return context.toString();
+    }
+
+    /**
+     * 检索到的文章内部类
+     */
+    @lombok.Data
+    private static class RetrievedArticle {
+        private String articleId;
+        private String title;
+        private String authorName;
+        private String content;
+        private double score;
+    }
+}
