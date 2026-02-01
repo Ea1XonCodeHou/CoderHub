@@ -7,9 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -23,22 +20,23 @@ import com.eaxon.coderhubserver.agent.CoderHubTools;
 import com.eaxon.coderhubserver.mapper.AIMessageMapper;
 
 import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.store.embedding.EmbeddingMatch;
-import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
-import dev.langchain4j.store.embedding.EmbeddingSearchResult;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -58,6 +56,13 @@ import reactor.core.publisher.FluxSink;
 @Service
 @Slf4j
 public class AIService {
+
+    /**
+     * ThreadLocal用于在Tool执行时传递原始JSON结果
+     * 避免LLM改写导致无法提取结构化数据
+     */
+    public static final ThreadLocal<String> TOOL_RESULT_JSON = new ThreadLocal<>();
+    public static final ThreadLocal<String> TOOL_NAME = new ThreadLocal<>();
 
     @Value("${langchain4j.open-ai.streaming-chat-model.api-key}")
     private String apiKey;
@@ -118,6 +123,12 @@ public class AIService {
             2. 基于搜索结果给出推荐
             3. 同时提供一些学习建议
             
+            ⚠️ 重要约束（防止幻觉）：
+            1. **严禁编造不存在的内容**：当使用工具搜索文章/教程时，只能介绍工具返回的真实文章标题。
+            2. **禁止发挥想象**：不要基于文章标题推测、编造或扩展其他不存在的文章。
+            3. **如实陈述**：如果工具返回了5篇文章，就说"找到5篇"，不要说"等等"或暗示还有更多。
+            4. **原文引用**：直接引用工具返回的文章标题和简介，不要改写或美化。
+            
             在回答时请注意：
             - 提供准确、实用的技术建议
             - 代码示例要完整且可运行
@@ -151,13 +162,16 @@ public class AIService {
         // 使用AiServices构建Agent
         coderHubAgent = AiServices.builder(CoderHubAgent.class)
                 .chatLanguageModel(syncModel)
-                .tools(coderHubTools)
+                .tools(coderHubTools,  // 注册主工具类
+                       coderHubTools.articleSearchSkill,  // 注册文章搜索技能
+                       coderHubTools.articleContentReaderSkill,  // 注册文章阅读技能
+                       coderHubTools.smartAssistantSkill)  // 注册智能助手技能
                 .build();
         
         // 预热流式模型
         getOrCreateStreamingModel(defaultModelName, 0.7, 4096);
         
-        log.info("AI 服务初始化完成，已加载工具: searchTutorials, searchArticles, getHotContent, getHotTags");
+        log.info("AI 服务初始化完成，已加载工具: CoderHubTools + ArticleSearchSkill + ArticleContentReaderSkill + SmartAssistantSkill");
     }
 
     @PreDestroy
@@ -185,44 +199,65 @@ public class AIService {
                 // 1. 发送思考中事件
                 sink.next(ChatStreamEvent.thinking(sessionId, model));
                 
-                // 2. 检测是否需要工具调用（基于关键词）
-                boolean needsToolCall = detectToolCallIntent(userMessage);
-                List<RecommendItem> recommendations = new ArrayList<>();
+                // 2. 直接使用Agent进行对话（让Agent自主决策是否调用工具）
                 String toolResult = null;
-
-                if (needsToolCall) {
-                    log.info("检测到工具调用意图，开始执行工具调用");
+                List<RecommendItem> recommendations = new ArrayList<>();
+                
+                try {
+                    log.info("Agent开始处理消息，将自动决策是否调用工具");
                     
-                    // 发送工具调用状态
-                    ToolCall tutorialToolCall = ToolCall.builder()
-                            .toolName("searchTutorials")
-                            .displayName("搜索教程")
-                            .icon("📚")
-                            .parameters("关键词: " + extractKeyword(userMessage))
-                            .status("calling")
-                            .build();
-                    sink.next(ChatStreamEvent.toolCalling(sessionId, tutorialToolCall));
-
-                    try {
-                        // 使用Agent执行工具调用
-                        toolResult = coderHubAgent.chat(userMessage);
-                        
-                        // 提取关键词获取推荐列表
-                        String keyword = extractKeyword(userMessage);
-                        recommendations = coderHubTools.searchAndGetRecommendations(keyword, 3, 3);
-
-                        // 发送工具调用完成状态
-                        tutorialToolCall.setStatus("success");
-                        tutorialToolCall.setResultCount(recommendations.size());
-                        sink.next(ChatStreamEvent.toolResult(sessionId, tutorialToolCall, recommendations));
-                        
-                        log.info("工具调用完成，获取到 {} 个推荐结果", recommendations.size());
-                        
-                    } catch (Exception e) {
-                        log.error("工具调用失败: {}", e.getMessage());
-                        tutorialToolCall.setStatus("failed");
-                        sink.next(ChatStreamEvent.toolResult(sessionId, tutorialToolCall, null));
+                    // 清理上一次的ThreadLocal（防止残留）
+                    TOOL_RESULT_JSON.remove();
+                    TOOL_NAME.remove();
+                    
+                    // Agent自主执行（可能调用工具，也可能直接回答）
+                    toolResult = coderHubAgent.chat(userMessage);
+                    
+                    log.info("Agent处理完成，工具结果: {}", toolResult != null ? toolResult.substring(0, Math.min(100, toolResult.length())) : "无");
+                    
+                    // 从ThreadLocal读取Tool执行时存储的原始JSON（绕过LLM改写）
+                    String capturedJson = TOOL_RESULT_JSON.get();
+                    String capturedToolName = TOOL_NAME.get();
+                    
+                    if (capturedJson != null) {
+                        try {
+                            log.info("✅ 从ThreadLocal捕获到原始JSON，长度: {} 字符，工具: {}", capturedJson.length(), capturedToolName);
+                            
+                            // 从JSON中提取keyword字段作为关键词（Tool已经提取过了）
+                            String keyword = "";
+                            try {
+                                com.fasterxml.jackson.databind.JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(capturedJson);
+                                keyword = jsonNode.get("keyword").asText();
+                                log.info("从Tool返回的JSON中提取关键词: {}", keyword);
+                            } catch (Exception ex) {
+                                log.warn("提取JSON中的keyword失败，使用fallback", ex);
+                                keyword = extractKeyword(userMessage);
+                            }
+                            recommendations = coderHubTools.searchAndGetRecommendations(keyword, 0, 6);
+                            log.info("获取 {} 个推荐结果", recommendations.size());
+                            
+                            // 发送工具调用完成状态（使用捕获的原始JSON）
+                            ToolCall toolCall = ToolCall.builder()
+                                    .toolName(capturedToolName != null ? capturedToolName : "智能检索")
+                                    .displayName("AI智能体")
+                                    .icon("🤖")
+                                    .parameters("关键词: " + keyword)
+                                    .status("success")
+                                    .resultCount(recommendations.size())
+                                    .toolResult(capturedJson)  // 使用ThreadLocal捕获的原始JSON
+                                    .build();
+                            sink.next(ChatStreamEvent.toolResult(sessionId, toolCall, recommendations));
+                        } catch (Exception e) {
+                            log.warn("解析工具结果失败: {}", e.getMessage());
+                        } finally {
+                            // 清理ThreadLocal避免内存泄漏
+                            TOOL_RESULT_JSON.remove();
+                            TOOL_NAME.remove();
+                        }
                     }
+                    
+                } catch (Exception e) {
+                    log.error("Agent执行失败: {}", e.getMessage(), e);
                 }
 
                 // 3. 获取流式模型
@@ -279,47 +314,6 @@ public class AIService {
                 sink.complete();
             }
         }, FluxSink.OverflowStrategy.BUFFER);
-    }
-
-    /**
-     * 检测是否需要工具调用
-     */
-    private boolean detectToolCallIntent(String message) {
-        if (message == null) return false;
-        
-        String lowerMessage = message.toLowerCase();
-        
-        // 学习意图关键词
-        String[] learnKeywords = {
-            "想学", "学习", "入门", "教程", "推荐", "怎么学", "如何学", 
-            "有什么", "教我", "帮我找", "搜索", "查找", "了解", "掌握",
-            "课程", "资源", "资料", "视频", "文章", "博客"
-        };
-        
-        for (String keyword : learnKeywords) {
-            if (lowerMessage.contains(keyword)) {
-                return true;
-            }
-        }
-        
-        // 技术关键词检测
-        String[] techKeywords = {
-            "java", "spring", "vue", "react", "python", "redis", "mysql",
-            "docker", "kubernetes", "微服务", "分布式", "算法", "数据结构"
-        };
-        
-        for (String tech : techKeywords) {
-            if (lowerMessage.contains(tech)) {
-                // 如果包含技术关键词，再检查是否有疑问或请求意图
-                if (lowerMessage.contains("?") || lowerMessage.contains("？") ||
-                    lowerMessage.contains("吗") || lowerMessage.contains("呢") ||
-                    lowerMessage.contains("有") || lowerMessage.contains("推荐")) {
-                    return true;
-                }
-            }
-        }
-        
-        return false;
     }
 
     /**
@@ -672,6 +666,31 @@ public class AIService {
             context.append(content).append("\n");
         }
         return context.toString();
+    }
+
+    /**
+     * 从AI回复中提取XML标记的JSON数据
+     * Tool返回时会添加 <TOOL_RESULT_JSON>{...}</TOOL_RESULT_JSON> 标记
+     */
+    private String extractToolResultJson(String text) {
+        if (text == null || !text.contains("<TOOL_RESULT_JSON>")) {
+            return null;
+        }
+        
+        try {
+            int startTag = text.indexOf("<TOOL_RESULT_JSON>");
+            int endTag = text.indexOf("</TOOL_RESULT_JSON>");
+            
+            if (startTag != -1 && endTag != -1 && endTag > startTag) {
+                String json = text.substring(startTag + "<TOOL_RESULT_JSON>".length(), endTag).trim();
+                log.info("成功提取工具返回的JSON，长度: {} 字符", json.length());
+                return json;
+            }
+        } catch (Exception e) {
+            log.warn("提取工具JSON失败: {}", e.getMessage());
+        }
+        
+        return null;
     }
 
     /**

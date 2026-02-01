@@ -1,12 +1,12 @@
 package com.eaxon.coderhubpojo.DTO;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 
 /**
  * AI 对话流式响应事件
@@ -108,6 +108,9 @@ public class ChatStreamEvent {
 
         @Schema(description = "结果数量")
         private Integer resultCount;
+        
+        @Schema(description = "工具返回的JSON结果（用于前端解析渲染）")
+        private String toolResult;
     }
 
     /**

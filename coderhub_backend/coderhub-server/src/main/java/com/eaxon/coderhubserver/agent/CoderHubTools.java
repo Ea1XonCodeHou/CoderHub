@@ -9,11 +9,14 @@ import org.springframework.stereotype.Component;
 
 import com.eaxon.coderhubpojo.DTO.ChatStreamEvent.RecommendItem;
 import com.eaxon.coderhubpojo.entity.Article;
-import com.eaxon.coderhubpojo.entity.Tutorial;
-import com.eaxon.coderhubserver.mapper.ArticleMapper;
-import com.eaxon.coderhubserver.mapper.TutorialMapper;
-import com.eaxon.coderhubserver.mapper.TagMapper;
 import com.eaxon.coderhubpojo.entity.Tag;
+import com.eaxon.coderhubpojo.entity.Tutorial;
+import com.eaxon.coderhubserver.agent.skills.ArticleContentReaderSkill;
+import com.eaxon.coderhubserver.agent.skills.ArticleSearchSkill;
+import com.eaxon.coderhubserver.agent.skills.SmartAssistantSkill;
+import com.eaxon.coderhubserver.mapper.ArticleMapper;
+import com.eaxon.coderhubserver.mapper.TagMapper;
+import com.eaxon.coderhubserver.mapper.TutorialMapper;
 
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -37,12 +40,25 @@ public class CoderHubTools {
 
     @Autowired
     private TagMapper tagMapper;
+    
+    // Skills需要暴露给AIService注册
+    @Autowired
+    public ArticleSearchSkill articleSearchSkill;
+    
+    @Autowired
+    public ArticleContentReaderSkill articleContentReaderSkill;
+    
+    @Autowired
+    public SmartAssistantSkill smartAssistantSkill;
 
     /**
      * 搜索教程
      * 当用户想学习某个技术或主题时，使用此工具搜索平台上的相关教程
      */
-    @Tool("搜索CoderHub平台上的技术教程。当用户询问想学习某个技术、想看教程、或者询问某个技术怎么学时，应该调用此工具。")
+    @Tool("【系统教程专用工具】搜索CoderHub平台上的视频教程和课程。" +
+          "🔴触发条件（必须包含以下关键词之一）：'教程'、'课程'、'视频'、'学习路线'、'系统学习'、'怎么学'、'入门指南'。" +
+          "🚫禁止触发：如果用户问'博客'、'文章'、'博文'，请使用ArticleSearchSkill工具。" +
+          "✅典型问题示例：'SpringBoot教程'、'想学Vue课程'、'Redis学习路线'。")
     public String searchTutorials(
             @P("搜索关键词，如：Spring Boot、Vue3、Redis等") String keyword,
             @P("返回结果数量，默认5") int limit) {
@@ -79,50 +95,6 @@ public class CoderHubTools {
                 result.append("   - 简介：").append(desc).append("\n");
             }
             result.append("   - 链接：/tutorial/").append(t.getId()).append("\n\n");
-        }
-        
-        return result.toString();
-    }
-
-    /**
-     * 搜索文章
-     * 当用户想查找技术文章或博客时，使用此工具
-     */
-    @Tool("搜索CoderHub平台上的技术文章和博客。当用户询问某个技术问题、想看相关文章、或者想了解某个技术话题时，应该调用此工具。")
-    public String searchArticles(
-            @P("搜索关键词，如：事务、缓存、微服务等") String keyword,
-            @P("返回结果数量，默认5") int limit) {
-        
-        log.info("【工具调用】searchArticles - 关键词: {}, 数量: {}", keyword, limit);
-        
-        if (limit <= 0 || limit > 10) {
-            limit = 5;
-        }
-        
-        List<Article> articles = articleMapper.searchByKeyword(keyword, limit);
-        
-        if (articles == null || articles.isEmpty()) {
-            log.info("【工具调用】searchArticles - 未找到相关文章");
-            return "未找到与「" + keyword + "」相关的文章。";
-        }
-        
-        log.info("【工具调用】searchArticles - 找到 {} 篇文章", articles.size());
-        
-        // 构建返回结果
-        StringBuilder result = new StringBuilder();
-        result.append("找到 ").append(articles.size()).append(" 篇与「").append(keyword).append("」相关的文章：\n\n");
-        
-        for (int i = 0; i < articles.size(); i++) {
-            Article a = articles.get(i);
-            result.append(i + 1).append(". **").append(a.getTitle()).append("**\n");
-            result.append("   - 浏览量：").append(a.getViewCount() != null ? a.getViewCount() : 0).append("\n");
-            result.append("   - 点赞数：").append(a.getLikeCount() != null ? a.getLikeCount() : 0).append(" 👍\n");
-            if (a.getSummary() != null && !a.getSummary().isEmpty()) {
-                String summary = a.getSummary().length() > 100 ? 
-                    a.getSummary().substring(0, 100) + "..." : a.getSummary();
-                result.append("   - 摘要：").append(summary).append("\n");
-            }
-            result.append("   - 链接：/article/").append(a.getId()).append("\n\n");
         }
         
         return result.toString();

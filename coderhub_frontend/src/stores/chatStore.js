@@ -6,7 +6,7 @@
  * @author CoderHub
  */
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 
 export const useChatStore = defineStore('chat', () => {
   // ==================== 状态 ====================
@@ -66,6 +66,7 @@ export const useChatStore = defineStore('chat', () => {
    * @param {Object} options - 可选参数
    * @param {Array} options.recommendations - 推荐内容列表
    * @param {Object} options.toolCall - 工具调用信息
+   * @param {Object} options.articleSearchResult - 文章搜索结果
    */
   function addAssistantMessage(content, options = {}) {
     const message = {
@@ -84,6 +85,11 @@ export const useChatStore = defineStore('chat', () => {
     // 如果有工具调用信息，添加到消息中
     if (options.toolCall) {
       message.toolCall = options.toolCall
+    }
+    
+    // 如果有文章搜索结果，添加到消息中
+    if (options.articleSearchResult) {
+      message.articleSearchResult = options.articleSearchResult
     }
     
     messages.value.push(message)

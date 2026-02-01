@@ -191,6 +191,16 @@
                       </div>
                     </div>
                     
+                    <!-- 文章搜索结果卡片（新增：ArticleSearchResult DTO） -->
+                    <!-- 智能操作推荐面板（新增：SmartActionRecommendation DTO） -->
+                    <SmartActionPanel
+                      v-if="msg.smartActionRecommendation && msg.smartActionRecommendation.actions"
+                      :recommendation="msg.smartActionRecommendation"
+                      :isDarkMode="isDarkMode"
+                      @execute-action="executeAction"
+                      @dismiss="dismissActionPanel(msg.id)"
+                    />
+                    
                     <!-- 已完成消息的推荐卡片（置于回答前） -->
                     <div v-if="msg.recommendations && msg.recommendations.length > 0" class="recommendation-cards saved">
                       <div class="cards-header">
@@ -207,7 +217,22 @@
                           :target="isExternalLink(item) ? '_blank' : '_self'"
                           @click.prevent="openRecommendation(item)"
                         >
-                          <div class="card-badge">{{ item.type === 'tutorial' ? '教程' : '文章' }}</div>
+                          <div class="card-badge-group">
+                            <button 
+                              v-if="item.type === 'article'"
+                              class="btn-ask-more"
+                              @click.stop.prevent="askAboutArticle(item)"
+                              title="基于文章内容继续提问"
+                            >
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                              </svg>
+                              继续问
+                            </button>
+                            <div class="card-badge">{{ item.type === 'tutorial' ? '教程' : '文章' }}</div>
+                          </div>
                           <div class="card-cover" v-if="item.coverImage">
                             <img :src="item.coverImage" :alt="item.title" />
                           </div>
@@ -259,6 +284,35 @@
                 <div class="message-header">
                   <span class="sender-name">CoderHub AI</span>
                   <span class="typing-status">{{ isToolCalling ? '工具调用中...' : (isThinking ? '思考中...' : '输入中...') }}</span>
+                </div>
+
+                <!-- Agent进度胶囊（追问时显示） -->
+                <div v-if="showAgentProgress" class="agent-progress">
+                  <div class="agent-progress-pill">
+                    <span class="agent-progress-title"> Agent处理流程</span>
+                        <div class="agent-progress-steps">
+                          <span 
+                            v-for="(step, idx) in agentProgressSteps" 
+                            :key="step"
+                            class="agent-step"
+                            :class="{ active: idx === agentProgressStep, done: idx < agentProgressStep }"
+                          >
+                            {{ step }}
+                          </span>
+                        </div>
+                  </div>
+                </div>
+
+                <!-- 实时思考区域（固定高度，不扩展） -->
+                <div v-if="showAgentProgress" class="agent-thinking-box">
+                  <div
+                    v-for="(line, idx) in getThinkingLines()"
+                    :key="idx"
+                    class="thinking-line"
+                    :class="{ active: idx === 0 }"
+                  >
+                    {{ line }}
+                  </div>
                 </div>
                 
                 <!-- 工具调用状态区域 -->
@@ -399,13 +453,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useChatStore } from '@/stores/chatStore'
+import conversationApi from '@/api/conversationApi'
+import NavBar from '@/components/NavBar.vue'
+import SmartActionPanel from '@/components/SmartActionPanel.vue'
 import { useChatStream } from '@/composables/useChatStream'
 import { useMarkdownRenderer } from '@/composables/useMarkdownRenderer'
-import NavBar from '@/components/NavBar.vue'
-import conversationApi from '@/api/conversationApi'
+import { useChatStore } from '@/stores/chatStore'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 // Router
 const router = useRouter()
@@ -442,6 +497,16 @@ const inputFocused = ref(false)
 const selectedModel = ref('qwen-plus')
 const sidebarOpen = ref(true) // 默认展开侧边栏
 const lastToolCall = ref(null) // 保存最近的工具调用信息
+const showAgentProgress = ref(false)
+const agentProgressStep = ref(0)
+const agentProgressSteps = [
+  '读取ing',
+  '检索ing',
+  '提取ing',
+  '回答ing'
+]
+const agentProgressStarted = ref(false)
+const liveTrace = ref([])
 
 const toast = ref({
   visible: false,
@@ -538,6 +603,8 @@ async function sendMessage() {
     scrollToBottom()
 
     const startTime = Date.now()
+    let capturedArticleSearchResult = null  // 用于存储ArticleSearchResult
+    let hasFirstToken = false
 
     // 发送流式请求，传入 conversationId 让后端自动加载上下文
     await streamSendMessage({
@@ -546,18 +613,48 @@ async function sendMessage() {
       temperature: 0.7,
       conversationId: convId, // 传入会话ID
       onToken: () => {
+        if (showAgentProgress.value && !hasFirstToken) {
+          hasFirstToken = true
+          setAgentProgressStep(3) // 回答ing
+        }
         scrollToBottom()
       },
       onToolCall: (toolCall) => {
         console.log('工具调用中:', toolCall)
+        if (showAgentProgress.value) {
+          setAgentProgressStep(1) // 检索ing
+        }
+        if (toolCall?.displayName || toolCall?.parameters) {
+          appendLiveTrace(`工具调用：${toolCall.displayName || '调用工具'} ${toolCall.parameters || ''}`)
+        }
         scrollToBottom()
       },
       onToolResult: (toolCall, recommendations) => {
         console.log('工具调用完成:', toolCall, '推荐数:', recommendations?.length)
         lastToolCall.value = toolCall
+        if (showAgentProgress.value) {
+          setAgentProgressStep(2) // 提取ing
+        }
+        appendLiveTrace('工具结果已返回，正在提取答案…')
+        
+        // 解析ArticleSearchResult JSON
+        if (toolCall?.toolResult) {
+          try {
+            const parsed = JSON.parse(toolCall.toolResult)
+            // 如果是文章搜索结果，存储以便后续附加到消息
+            if (parsed.articles && parsed.articles.length > 0) {
+              capturedArticleSearchResult = parsed
+              console.log('✅ 捕获到ArticleSearchResult，文章数:', parsed.articles.length)
+            }
+          } catch (e) {
+            console.warn('解析toolResult失败:', e)
+          }
+        }
+        
         scrollToBottom()
       },
       onComplete: async (fullContent, tokenUsage, recommendations) => {
+        stopAgentProgress()
         const durationMs = Date.now() - startTime
 
         // 保存AI回复到数据库
@@ -588,6 +685,7 @@ async function sendMessage() {
         scrollToBottom()
       },
       onError: (error) => {
+        stopAgentProgress()
         showToast(error, 'error')
       }
     })
@@ -602,6 +700,7 @@ async function sendMessage() {
  */
 function cancelStream() {
   cancelStreamRequest()
+  stopAgentProgress()
   
   // 如果已有部分内容，保存它
   if (streamingContent.value) {
@@ -917,6 +1016,132 @@ function formatMatchScore(score) {
 function isExternalLink(item) {
   const link = item?.link || ''
   return /^https?:\/\//i.test(link)
+}
+
+/**
+ * 查看文章详情（ArticleCard事件）
+ */
+function viewArticle(articleId) {
+  router.push({ name: 'ArticleDetail', params: { id: articleId } })
+}
+
+/**
+ * 继续提问文章内容（ArticleCard事件）
+ * 自动发送RAG问题触发ArticleContentReaderSkill下载OSS内容
+ */
+async function askAboutArticle(article) {
+  try {
+    // 使用文章ID和触发词“继续了解/深入阅读”触发ArticleContentReaderSkill
+    inputText.value = `请继续了解并深入阅读这篇文章，文章ID=${article.id}，标题《${article.title}》。请详细讲解核心内容。`
+    startAgentProgress()
+    showToast('正在下载文章内容并分析...', 'info')
+    await nextTick()
+    sendMessage()
+  } catch (error) {
+    console.error('继续提问失败:', error)
+    showToast('操作失败', 'error')
+    stopAgentProgress()
+  }
+}
+
+function startAgentProgress() {
+  stopAgentProgress()
+  showAgentProgress.value = true
+  agentProgressStarted.value = true
+  setAgentProgressStep(0) // 读取ing
+  liveTrace.value = ['开始读取文章内容…']
+}
+
+function stopAgentProgress() {
+  showAgentProgress.value = false
+  agentProgressStarted.value = false
+  liveTrace.value = []
+}
+
+function setAgentProgressStep(stepIndex) {
+  if (!agentProgressStarted.value) return
+  agentProgressStep.value = Math.max(0, Math.min(stepIndex, agentProgressSteps.length - 1))
+  const stageText = agentProgressSteps[agentProgressStep.value] || '处理中'
+  appendLiveTrace(`阶段：${stageText}`)
+}
+
+function appendLiveTrace(text) {
+  if (!text) return
+  liveTrace.value.push(text)
+  if (liveTrace.value.length > 3) {
+    liveTrace.value = liveTrace.value.slice(-3)
+  }
+}
+
+function getThinkingLines() {
+  const lines = []
+
+  // 行1：阶段
+  const stageText = agentProgressSteps[agentProgressStep.value] || '处理中'
+  lines.push(`阶段：${stageText}`)
+
+  // 行2：工具/参数（真实信息）
+  if (currentToolCall.value?.displayName || currentToolCall.value?.parameters) {
+    lines.push(`工具：${currentToolCall.value.displayName || '调用工具'} · ${currentToolCall.value.parameters || ''}`)
+  } else {
+    lines.push('工具：等待调用…')
+  }
+
+  // 行3：实时输出片段（真实内容）
+  if (streamingContent.value) {
+    const tail = streamingContent.value.replace(/\s+/g, ' ').slice(-80)
+    lines.push(`输出片段：${tail}`)
+  } else if (liveTrace.value.length > 0) {
+    lines.push(liveTrace.value[liveTrace.value.length - 1])
+  } else {
+    lines.push('输出片段：等待内容输出…')
+  }
+
+  return lines
+}
+
+/**
+ * 执行智能操作（SmartActionPanel事件）
+ */
+async function executeAction(action) {
+  console.log('执行智能操作:', action)
+  
+  switch (action.actionId) {
+    case 'generate_notes':
+      inputText.value = '请为这篇文章生成学习笔记，包括核心知识点、代码示例和实践建议'
+      showToast('正在生成学习笔记...', 'info')
+      await nextTick()
+      sendMessage()
+      break
+      
+    case 'find_tutorials':
+      inputText.value = '请推荐与这篇文章相关的教程，帮助我系统学习'
+      showToast('正在搜索相关教程...', 'info')
+      await nextTick()
+      sendMessage()
+      break
+      
+    case 'generate_demo':
+      inputText.value = '请根据文章中的代码示例，生成一个完整的可运行Demo项目'
+      showToast('正在生成Demo代码...', 'info')
+      await nextTick()
+      sendMessage()
+      break
+      
+    default:
+      showToast('该功能即将上线', 'info')
+  }
+}
+
+/**
+ * 关闭智能操作面板
+ */
+function dismissActionPanel(messageId) {
+  // 从消息中移除smartActionRecommendation
+  const message = messages.value.find(m => m.id === messageId)
+  if (message) {
+    message.smartActionRecommendation = null
+  }
 }
 
 /**
@@ -2610,10 +2835,17 @@ watch(streamingContent, () => {
   --card-accent: #f97316;
 }
 
-.card-badge {
+.card-badge-group {
   position: absolute;
   bottom: 10px;
   right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 2;
+}
+
+.card-badge {
   padding: 3px 10px;
   font-size: 10px;
   font-weight: 600;
@@ -2623,7 +2855,6 @@ watch(streamingContent, () => {
   border-radius: 999px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  z-index: 2;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -2688,6 +2919,143 @@ watch(streamingContent, () => {
   font-size: 11px;
   color: #9a3412;
   flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+/* 继续问按钮样式（与badge同等尺寸） */
+.btn-ask-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 10px;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
+}
+
+.btn-ask-more svg {
+  width: 11px;
+  height: 11px;
+}
+
+.btn-ask-more:hover {
+  background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.4);
+}
+
+.btn-ask-more:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(249, 115, 22, 0.3);
+}
+
+/* Agent进度胶囊 */
+.agent-progress {
+  margin: 10px 0 4px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.agent-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.12), rgba(234, 88, 12, 0.18));
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  box-shadow: 0 6px 14px rgba(124, 45, 18, 0.12);
+}
+
+.agent-progress-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9a3412;
+  white-space: nowrap;
+}
+
+.agent-progress-steps {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.agent-step {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: #7c2d12;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px dashed rgba(249, 115, 22, 0.25);
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.agent-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  width: 8px;
+  height: 2px;
+  background: rgba(249, 115, 22, 0.25);
+  transform: translateY(-50%);
+}
+
+.agent-step.done {
+  opacity: 0.95;
+  color: #fff;
+  background: rgba(249, 115, 22, 0.75);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+}
+
+.agent-step.active {
+  opacity: 1;
+  color: #fff;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.35);
+}
+
+/* 实时思考区域（固定高度，不扩展） */
+.agent-thinking-box {
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  height: 78px;
+  border-radius: 10px;
+  background: rgba(255, 247, 237, 0.9);
+  border: 1px dashed rgba(249, 115, 22, 0.35);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.thinking-line {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #7c2d12;
+  opacity: 0.6;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  transition: opacity 0.2s ease;
+}
+
+.thinking-line.active {
+  opacity: 1;
+  color: #c2410c;
+  font-weight: 600;
 }
 
 .meta-author {
@@ -3001,6 +3369,50 @@ watch(streamingContent, () => {
 
 .ai-assistant:not(.dark-mode) .markdown-content :deep(a) {
   color: #c2410c;
+}
+
+/* ==================== 文章搜索结果区域 ==================== */
+.article-search-section {
+  margin: 20px 0;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.dark-mode .section-header {
+  border-bottom-color: #333;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dark-mode .section-title {
+  color: #e0e0e0;
+}
+
+.article-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ==================== 响应式布局 ==================== */
+@media (max-width: 768px) {
+  .article-cards-container {
+    gap: 12px;
+  }
 }
 
 .ai-assistant:not(.dark-mode) .markdown-content :deep(a:hover) {
