@@ -43,6 +43,7 @@
         <langchain4j.version>0.35.0</langchain4j.version>
         <okhttp.version>4.12.0</okhttp.version>
         <minio.version>8.5.9</minio.version>
+        <spring-amqp.version>3.2.5</spring-amqp.version>
     </properties>
 
     <!-- 依赖版本统一管理 -->
@@ -210,6 +211,13 @@
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp</artifactId>
                 <version>${okhttp.version}</version>
+            </dependency>
+
+            <!-- Spring Boot AMQP (RabbitMQ) -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-amqp</artifactId>
+                <version>${spring-boot.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

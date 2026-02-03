@@ -70,6 +70,23 @@ services:
         limits:
           memory: 300M
 
+  # RabbitMQ 消息队列
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: coderhub-rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"    # AMQP 协议端口
+      - "15672:15672"  # 管理界面端口
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - ./rabbitmq/data:/var/lib/rabbitmq
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   # CoderHub 后端应用 (Java)
   app:
@@ -85,6 +102,7 @@ services:
       - redis
       - chroma
       - minio
+      - rabbitmq
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - SPRING_DATA_REDIS_HOST=redis
@@ -98,6 +116,8 @@ services:
       - MINIO_USER=${MINIO_USER}
       - MINIO_PASSWORD=${MINIO_PASSWORD}
       - AI_API_KEY=${AI_API_KEY}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     deploy:
       resources:
         limits:

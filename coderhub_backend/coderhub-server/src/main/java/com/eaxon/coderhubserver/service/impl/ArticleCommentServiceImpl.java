@@ -1,19 +1,23 @@
 package com.eaxon.coderhubserver.service.impl;
 
 import com.eaxon.coderhubpojo.DTO.CommentPublishDTO;
+import com.eaxon.coderhubpojo.DTO.NotificationEvent;
 import com.eaxon.coderhubpojo.VO.CommentVO;
+import com.eaxon.coderhubpojo.entity.Article;
 import com.eaxon.coderhubpojo.entity.ArticleComment;
 import com.eaxon.coderhubpojo.entity.User;
 import com.eaxon.coderhubserver.mapper.ArticleCommentLikeMapper;
 import com.eaxon.coderhubserver.mapper.ArticleCommentMapper;
 import com.eaxon.coderhubserver.mapper.ArticleMapper;
 import com.eaxon.coderhubserver.mapper.UserMapper;
+import com.eaxon.coderhubserver.mq.NotificationProducer;
 import com.eaxon.coderhubserver.service.ArticleCommentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -37,6 +41,9 @@ public class ArticleCommentServiceImpl implements ArticleCommentService {
 
     @Autowired
     private ArticleMapper articleMapper;
+
+    @Autowired
+    private NotificationProducer notificationProducer;
 
     /**
      * 发布评论（包括顶级评论和回复）
@@ -63,6 +70,9 @@ public class ArticleCommentServiceImpl implements ArticleCommentService {
         if (commentPublishDTO.getReplyId() == null) {
             updateArticleCommentCount(commentPublishDTO.getArticleId());
         }
+
+        // 【消息通知】发送评论消息给文章作者
+        sendCommentNotification(userId, commentPublishDTO.getArticleId());
 
         log.info("评论发布成功，评论ID：{}", comment.getId());
         return comment.getId();
@@ -172,6 +182,48 @@ public class ArticleCommentServiceImpl implements ArticleCommentService {
         Integer count = commentMapper.countByArticleId(articleId);
         articleMapper.updateCommentCount(articleId, count != null ? count : 0);
         log.info("更新文章{}的评论数为{}", articleId, count);
+    }
+
+    /**
+     * 发送评论通知消息
+     */
+    private void sendCommentNotification(String userId, String articleId) {
+        try {
+            // 1. 查询文章信息
+            Article article = articleMapper.getById(articleId);
+            if (article == null) {
+                log.warn("文章不存在，无法发送评论通知: articleId={}", articleId);
+                return;
+            }
+
+            // 2. 不给自己发通知
+            if (article.getUserId().equals(userId)) {
+                return;
+            }
+
+            // 3. 查询评论用户信息
+            User trigger = userMapper.getUserById(userId);
+            String triggerName = trigger != null ? trigger.getUsername() : "某用户";
+
+            // 4. 构建消息事件（userId 和 articleId 都是 UUID 字符串）
+            NotificationEvent event = NotificationEvent.builder()
+                    .receiverId(article.getUserId())  // 文章作者
+                    .type("COMMUNITY_COMMENT")
+                    .sourceId(articleId)
+                    .sourceType("ARTICLE")
+                    .triggerId(userId)  // 评论者
+                    .triggerName(triggerName)
+                    .extraInfo("《" + article.getTitle() + "》")
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            // 5. 发送到 RabbitMQ
+            notificationProducer.sendCommentNotification(event);
+
+        } catch (Exception e) {
+            log.error("发送评论通知失败: userId={}, articleId={}", userId, articleId, e);
+            // 不影响主流程，仅记录日志
+        }
     }
 }
 

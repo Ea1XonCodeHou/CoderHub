@@ -38,6 +38,22 @@ spring:
         max-idle: 8
         min-idle: 0
         max-wait: 100ms
+  
+  # RabbitMQ配置
+  rabbitmq:
+    host: ${coder.rabbitmq.host}
+    port: 5672
+    username: ${coder.rabbitmq.username}
+    password: ${coder.rabbitmq.password}
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: auto  # 自动确认（消费成功后自动删除消息）
+        retry:
+          enabled: true
+          initial-interval: 3000  # 首次重试间隔 3 秒
+          max-attempts: 3         # 最多重试 3 次
+          multiplier: 2.0         # 重试间隔翻倍（3s → 6s → 12s）
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
@@ -68,6 +84,12 @@ coder:
     access-key: ${coder.minio.access-key}
     secret-key: ${coder.minio.secret-key}
     bucket-name: ${coder.minio.bucket-name}
+  
+  # RabbitMQ配置
+  rabbitmq:
+    host: ${coder.rabbitmq.host}
+    username: ${coder.rabbitmq.username}
+    password: ${coder.rabbitmq.password}
 
 # LangChain4j AI 配置
 langchain4j:

@@ -176,4 +176,61 @@ public class RedisServiceImpl implements RedisService {
         
         return result;
     }
+
+    // ==================== 通用操作 ====================
+
+    @Override
+    public void set(String key, Object value) {
+        try {
+            // 将值转为 String 存储，避免序列化问题
+            redisTemplate.opsForValue().set(key, String.valueOf(value));
+            log.debug("Redis SET: key={}", key);
+        } catch (Exception e) {
+            log.error("Redis SET 失败: key={}", key, e);
+        }
+    }
+
+    @Override
+    public Object get(String key) {
+        try {
+            return redisTemplate.opsForValue().get(key);
+        } catch (Exception e) {
+            log.error("Redis GET 失败: key={}", key, e);
+            return null;
+        }
+    }
+
+    @Override
+    public void delete(String key) {
+        try {
+            redisTemplate.delete(key);
+            log.debug("Redis DELETE: key={}", key);
+        } catch (Exception e) {
+            log.error("Redis DELETE 失败: key={}", key, e);
+        }
+    }
+
+    @Override
+    public Long increment(String key, long delta) {
+        try {
+            Long result = redisTemplate.opsForValue().increment(key, delta);
+            log.debug("Redis INCR: key={}, delta={}, result={}", key, delta, result);
+            return result;
+        } catch (Exception e) {
+            log.error("Redis INCR 失败: key={}, delta={}", key, delta, e);
+            return null;
+        }
+    }
+
+    @Override
+    public Long decrement(String key, long delta) {
+        try {
+            Long result = redisTemplate.opsForValue().decrement(key, delta);
+            log.debug("Redis DECR: key={}, delta={}, result={}", key, delta, result);
+            return result;
+        } catch (Exception e) {
+            log.error("Redis DECR 失败: key={}, delta={}", key, delta, e);
+            return null;
+        }
+    }
 }

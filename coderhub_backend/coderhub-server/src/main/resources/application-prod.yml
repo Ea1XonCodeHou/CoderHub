@@ -20,6 +20,12 @@ coder:
     access-key: ${MINIO_USER}
     secret-key: ${MINIO_PASSWORD}
     bucket-name: coderhub-videos
+  
+  # RabbitMQ配置（生产环境，使用Docker网络）
+  rabbitmq:
+    host: rabbitmq
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
 
 spring:
   # 覆盖 application.yml 中的 Redis 配置

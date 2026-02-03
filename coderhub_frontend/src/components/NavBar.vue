@@ -35,6 +35,9 @@
 
       <!-- 右侧操作区 -->
       <div class="nav-right">
+        <!-- 消息通知 -->
+        <NotificationBell />
+        
         <!-- 我的收藏 -->
         <button class="nav-btn-shelf" @click="goToProfile">
           <span class="material-symbols-outlined">auto_stories</span>
@@ -79,6 +82,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import NotificationBell from './notification/NotificationBell.vue'
 
 // Props
 const props = defineProps({

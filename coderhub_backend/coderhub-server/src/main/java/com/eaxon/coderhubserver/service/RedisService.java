@@ -50,4 +50,42 @@ public interface RedisService {
      * @return 所有浏览量的文章ID -> 浏览量映射
      */
     Map<String, Long> scanAllViewCounts();
+
+    // ==================== 通用操作 ====================
+
+    /**
+     * 设置值
+     * @param key 键
+     * @param value 值
+     */
+    void set(String key, Object value);
+
+    /**
+     * 获取值
+     * @param key 键
+     * @return 值
+     */
+    Object get(String key);
+
+    /**
+     * 删除键
+     * @param key 键
+     */
+    void delete(String key);
+
+    /**
+     * 递增
+     * @param key 键
+     * @param delta 增量
+     * @return 递增后的值
+     */
+    Long increment(String key, long delta);
+
+    /**
+     * 递减
+     * @param key 键
+     * @param delta 减量
+     * @return 递减后的值
+     */
+    Long decrement(String key, long delta);
 }

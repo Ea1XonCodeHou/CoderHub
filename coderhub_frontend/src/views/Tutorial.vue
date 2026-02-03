@@ -377,7 +377,7 @@
 </template>
 
 <script setup>
-import { getTutorialList } from '@/api/user'
+import { getTutorialList, getCategoryList } from '@/api/user'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import NavBar from '@/components/NavBar.vue'
@@ -459,11 +459,12 @@ const loadCategories = async () => {
     const res = await getCategoryList()
     if (res.code === 1 && res.data) {
       // 构建分类列表（只显示启用的一级分类）
+      // 后端返回字段是 categoryName，不是 name
       const activeCategories = res.data
-        .filter(cat => cat.status === 1)
+        .filter(cat => cat.status === 1 && cat.categoryName)
         .map(cat => ({
           id: cat.id,
-          name: cat.name
+          name: cat.categoryName
         }))
       
       categories.value = [
@@ -474,7 +475,9 @@ const loadCategories = async () => {
       // 构建分类映射
       categoryMap.value.clear()
       res.data.forEach(cat => {
-        categoryMap.value.set(cat.id, cat.name)
+        if (cat.categoryName) {
+          categoryMap.value.set(cat.id, cat.categoryName)
+        }
       })
       
       console.log('加载分类成功：', categories.value.length - 1, '个')

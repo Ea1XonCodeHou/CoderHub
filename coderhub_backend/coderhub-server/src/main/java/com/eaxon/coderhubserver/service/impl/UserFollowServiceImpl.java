@@ -1,7 +1,11 @@
 package com.eaxon.coderhubserver.service.impl;
 
+import com.eaxon.coderhubpojo.DTO.NotificationEvent;
+import com.eaxon.coderhubpojo.entity.User;
 import com.eaxon.coderhubpojo.entity.UserFollow;
 import com.eaxon.coderhubserver.mapper.UserFollowMapper;
+import com.eaxon.coderhubserver.mapper.UserMapper;
+import com.eaxon.coderhubserver.mq.NotificationProducer;
 import com.eaxon.coderhubserver.service.UserFollowService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +24,12 @@ public class UserFollowServiceImpl implements UserFollowService {
 
     @Autowired
     private UserFollowMapper userFollowMapper;
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private NotificationProducer notificationProducer;
 
     /**
      * 关注/取消关注（toggle）
@@ -51,6 +61,10 @@ public class UserFollowServiceImpl implements UserFollowService {
                     .build();
 
             userFollowMapper.insert(userFollow);
+
+            // 【消息通知】发送关注消息
+            sendFollowNotification(followerId, followedId);
+
             return true; // 返回true表示已关注
         }
     }
@@ -80,6 +94,35 @@ public class UserFollowServiceImpl implements UserFollowService {
     public Integer getFollowersCount(String userId) {
         Integer count = userFollowMapper.countFollowersByUserId(userId);
         return count != null ? count : 0;
+    }
+
+    /**
+     * 发送关注通知消息
+     */
+    private void sendFollowNotification(String followerId, String followedId) {
+        try {
+            // 1. 查询关注者信息
+            User follower = userMapper.getUserById(followerId);
+            String followerName = follower != null ? follower.getUsername() : "某用户";
+
+            // 2. 构建消息事件（userId 是 UUID 字符串）
+            NotificationEvent event = NotificationEvent.builder()
+                    .receiverId(followedId)  // 被关注者
+                    .type("COMMUNITY_FOLLOW")
+                    .sourceId(null)  // 关注事件无来源
+                    .sourceType(null)
+                    .triggerId(followerId)  // 关注者
+                    .triggerName(followerName)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            // 3. 发送到 RabbitMQ
+            notificationProducer.sendFollowNotification(event);
+
+        } catch (Exception e) {
+            log.error("发送关注通知失败: followerId={}, followedId={}", followerId, followedId, e);
+            // 不影响主流程，仅记录日志
+        }
     }
 }
 

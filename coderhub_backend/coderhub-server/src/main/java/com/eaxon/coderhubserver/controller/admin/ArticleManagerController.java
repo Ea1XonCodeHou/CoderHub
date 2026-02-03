@@ -1,6 +1,7 @@
 package com.eaxon.coderhubserver.controller.admin;
 
 import com.eaxon.coderhubcommon.result.Result;
+import com.eaxon.coderhubpojo.DTO.NotificationEvent;
 import com.eaxon.coderhubpojo.VO.ArticleVO;
 import com.eaxon.coderhubpojo.entity.Article;
 import com.eaxon.coderhubpojo.entity.Tag;
@@ -10,11 +11,13 @@ import com.eaxon.coderhubserver.mapper.TagMapper;
 import com.eaxon.coderhubserver.mapper.UserMapper;
 import com.eaxon.coderhubpojo.entity.Category;
 import com.eaxon.coderhubpojo.entity.User;
+import com.eaxon.coderhubserver.mq.NotificationProducer;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +38,9 @@ public class ArticleManagerController {
     
     @Autowired
     private TagMapper tagMapper;
+
+    @Autowired
+    private NotificationProducer notificationProducer;
     
     /**
      * 获取待审核文章列表
@@ -133,8 +139,36 @@ public class ArticleManagerController {
                 categoryMapper.incrementArticleCount(category.getParentId());
             }
         }
+
+        // 【消息通知】发送审核通过消息给作者
+        sendAuditPassNotification(article);
         
         return Result.success("审核通过");
+    }
+
+    /**
+     * 发送审核通过通知消息
+     */
+    private void sendAuditPassNotification(Article article) {
+        try {
+            // userId 和 articleId 都是 UUID 字符串
+            NotificationEvent event = NotificationEvent.builder()
+                    .receiverId(article.getUserId())  // 文章作者
+                    .type("SYSTEM_AUDIT")
+                    .sourceId(article.getId())
+                    .sourceType("ARTICLE")
+                    .triggerId(null)  // 系统消息无触发者
+                    .extraInfo("《" + article.getTitle() + "》")
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            notificationProducer.sendAuditNotification(event);
+            log.info("审核通过消息已发送: articleId={}, userId={}", article.getId(), article.getUserId());
+
+        } catch (Exception e) {
+            log.error("发送审核通过消息失败: articleId={}", article.getId(), e);
+            // 不影响主流程
+        }
     }
     
     /**
