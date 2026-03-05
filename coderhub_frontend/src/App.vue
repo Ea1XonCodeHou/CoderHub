@@ -3,7 +3,6 @@
 </template>
 
 <script setup>
-import { watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotificationStore } from '@/stores/notificationStore'
 
@@ -11,16 +10,14 @@ const router = useRouter()
 const notificationStore = useNotificationStore()
 
 // 监听路由变化，根据登录态全局管理通知轮询
-// 在 App.vue 层管理，避免轮询生命周期被单个组件挂载/卸载影响
 router.afterEach((to) => {
   const token = localStorage.getItem('token')
-  const requiresAuth = to.meta?.requiresAuth
 
-  if (token && requiresAuth) {
-    // 已登录且进入需要鉴权的页面，确保轮询运行
+  if (token && to.meta?.requiresAuth) {
+    // 已登录且进入需要鉴权的页面，确保轮询运行（startPolling 内部有去重保护）
     notificationStore.startPolling()
-  } else if (!token) {
-    // 未登录（退出登录后），停止轮询并重置状态
+  } else if (!token && (to.name === 'login' || to.name === 'register')) {
+    // 明确到达登录/注册页且无 token，说明是退出登录或未登录状态，停止轮询
     notificationStore.reset()
   }
 })
