@@ -115,6 +115,9 @@
         <!-- 通知管理 -->
         <SystemNotification v-if="activeMenu === 'notification'" />
 
+        <!-- AI 额度管理 -->
+        <AIQuotaManagement v-if="activeMenu === 'ai-quota'" />
+
         <!-- 通用设置 -->
         <div v-if="activeMenu === 'settings'" class="section">
           <div class="section-header">
@@ -152,6 +155,7 @@
 import ArticleReview from '@/components/admin/ArticleReview.vue'
 import CategoryManagement from '@/components/admin/CategoryManagement.vue'
 import EmbeddingManagement from '@/components/admin/EmbeddingManagement.vue'
+import AIQuotaManagement from '@/components/admin/AIQuotaManagement.vue'
 import SystemNotification from '@/components/admin/SystemNotification.vue'
 import TutorialDetail from '@/components/admin/TutorialDetail.vue'
 import TutorialManagement from '@/components/admin/TutorialManagement.vue'
@@ -195,6 +199,11 @@ const menuItems = ref([
     key: 'notification',
     label: '通知管理',
     icon: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+  },
+  {
+    key: 'ai-quota',
+    label: 'AI 额度管理',
+    icon: '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><polyline points="12 6 12 12 16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
   },
   {
     key: 'embedding',
