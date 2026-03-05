@@ -81,12 +81,14 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      # 限制内存水位为系统内存的 20%，避免在 2G 机器上 OOM
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "-rabbit vm_memory_high_watermark 0.2"
     volumes:
       - ./rabbitmq/data:/var/lib/rabbitmq
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 300M
 
   # CoderHub 后端应用 (Java)
   app:
