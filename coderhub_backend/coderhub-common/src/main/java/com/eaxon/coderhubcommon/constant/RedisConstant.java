@@ -104,6 +104,19 @@ public class RedisConstant {
      */
     public static final String HOT_TAGS = "hot:tags";
     
+    // ==================== AI 提问额度 ====================
+
+    /**
+     * 普通用户（user_level=0）AI 提问剩余额度
+     * Key: ai:quota:{userId}
+     * Value: Integer（剩余次数，初始 10）
+     * 过期时间：永久
+     */
+    public static final String AI_QUOTA = "ai:quota:";
+
+    /** 免费用户默认初始额度 */
+    public static final int AI_QUOTA_FREE = 10;
+
     // ==================== 接口限流 ====================
     
     /**

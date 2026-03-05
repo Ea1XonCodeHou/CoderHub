@@ -97,4 +97,43 @@ public interface RedisService {
      * @return true 表示设置成功（key 原本不存在），false 表示 key 已存在未作修改
      */
     Boolean setIfAbsent(String key, Object value);
+
+    // ==================== AI 提问额度 ====================
+
+    /**
+     * 获取用户 AI 提问剩余额度
+     * @param userId 用户ID
+     * @return 剩余次数，key 不存在时返回 null
+     */
+    Integer getAiQuota(String userId);
+
+    /**
+     * 初始化用户 AI 提问额度（若已存在则不覆盖）
+     * @param userId 用户ID
+     * @param quota  初始额度
+     * @return true=初始化成功，false=已存在未操作
+     */
+    Boolean initAiQuota(String userId, int quota);
+
+    /**
+     * 强制设置用户 AI 提问额度（覆盖已有值）
+     * @param userId 用户ID
+     * @param quota  额度值
+     */
+    void setAiQuota(String userId, int quota);
+
+    /**
+     * 扣减 AI 提问额度（原子操作，返回扣减后剩余次数）
+     * 注意：不检查是否已为 0，调用方需提前判断
+     * @param userId 用户ID
+     * @return 扣减后剩余次数（可能为负数）
+     */
+    Long decrementAiQuota(String userId);
+
+    /**
+     * 判断用户 AI 额度是否存在（key 是否在 Redis 中）
+     * @param userId 用户ID
+     * @return true=存在
+     */
+    Boolean hasAiQuota(String userId);
 }

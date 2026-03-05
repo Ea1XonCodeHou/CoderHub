@@ -67,16 +67,48 @@
       <main class="chat-main">
         <!-- 顶部工具栏 -->
         <div class="chat-toolbar">
-          <div class="model-selector">
-            <select v-model="selectedModel" @change="onModelChange">
-              <option v-for="m in availableModels" :key="m.id" :value="m.id">
-                {{ m.icon }} {{ m.name }}
-              </option>
-            </select>
-            <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
+          <div class="model-selector" v-click-outside="closeModelDropdown">
+            <button class="model-trigger" @click="toggleModelDropdown">
+              <span class="model-icon">{{ currentModel?.icon }}</span>
+              <span class="model-name">{{ currentModel?.name }}</span>
+              <svg class="select-arrow" :class="{ open: modelDropdownOpen }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <transition name="dropdown">
+              <div v-if="modelDropdownOpen" class="model-dropdown">
+                <div class="model-dropdown-header">选择模型</div>
+                <div
+                  v-for="m in availableModels"
+                  :key="m.id"
+                  class="model-option"
+                  :class="{ active: selectedModel === m.id }"
+                  @click="selectModel(m.id)"
+                >
+                  <span class="option-icon">{{ m.icon }}</span>
+                  <div class="option-info">
+                    <span class="option-name">{{ m.name }}</span>
+                    <span class="option-desc">{{ m.desc }}</span>
+                  </div>
+                  <svg v-if="selectedModel === m.id" class="option-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+              </div>
+            </transition>
           </div>
+          <!-- AI 提问剩余额度 -->
+          <div class="quota-badge" :class="{ exhausted: !aiQuotaUnlimited && aiQuota === 0 }">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span v-if="aiQuotaUnlimited" class="quota-text">无限制</span>
+            <span v-else-if="aiQuota === null" class="quota-text">--</span>
+            <span v-else-if="aiQuota <= 0" class="quota-text">额度已用完</span>
+            <span v-else class="quota-text">剩余 {{ aiQuota }} 次</span>
+          </div>
+
           <button class="theme-btn" @click="toggleTheme" :title="isDarkMode ? '浅色模式' : '深色模式'">
             <svg v-if="isDarkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="5"></circle>
@@ -462,6 +494,19 @@ import { useChatStore } from '@/stores/chatStore'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+// 点击外部关闭下拉的自定义指令
+const vClickOutside = {
+  mounted(el, binding) {
+    el._clickOutsideHandler = (e) => {
+      if (!el.contains(e.target)) binding.value()
+    }
+    document.addEventListener('click', el._clickOutsideHandler)
+  },
+  unmounted(el) {
+    document.removeEventListener('click', el._clickOutsideHandler)
+  }
+}
+
 // Router
 const router = useRouter()
 const route = useRoute()
@@ -544,11 +589,53 @@ const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=coderhub'
 
 // 可用模型列表
 const availableModels = ref([
-  { id: 'qwen-plus', name: '通义千问 Plus', icon: '🌟' },
-  { id: 'qwen-turbo', name: '通义千问 Turbo', icon: '⚡' },
-  { id: 'qwen-max', name: '通义千问 Max', icon: '🚀' },
-  { id: 'deepseek-chat', name: 'DeepSeek Chat', icon: '🔮' }
+  { id: 'qwen-plus', name: '通义千问 Plus', icon: '🌟', desc: '均衡强大，推荐首选' },
+  { id: 'qwen-turbo', name: '通义千问 Turbo', icon: '⚡', desc: '响应极快，适合日常' },
+  { id: 'qwen-max', name: '通义千问 Max', icon: '🚀', desc: '超大规模，专业分析' }
 ])
+
+const modelDropdownOpen = ref(false)
+
+const currentModel = computed(() =>
+  availableModels.value.find(m => m.id === selectedModel.value) || availableModels.value[0]
+)
+
+const toggleModelDropdown = () => {
+  modelDropdownOpen.value = !modelDropdownOpen.value
+}
+
+const closeModelDropdown = () => {
+  modelDropdownOpen.value = false
+}
+
+const selectModel = (modelId) => {
+  selectedModel.value = modelId
+  modelDropdownOpen.value = false
+  onModelChange()
+}
+
+// ==================== AI 提问额度 ====================
+const aiQuota = ref(null)       // null=未加载，-1=无限制，>=0=剩余次数
+const aiQuotaUnlimited = ref(false)
+
+const fetchAiQuota = async () => {
+  const token = localStorage.getItem('token')
+  if (!token) return
+  try {
+    const res = await fetch('/api/ai/quota', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.ok) {
+      const json = await res.json()
+      if (json.code === 1 && json.data) {
+        aiQuota.value = json.data.quota
+        aiQuotaUnlimited.value = json.data.unlimited === true
+      }
+    }
+  } catch (e) {
+    // 静默失败，不影响主流程
+  }
+}
 
 // 快捷提示
 const quickPrompts = ref([
@@ -692,6 +779,9 @@ async function sendMessage() {
   } catch (error) {
     console.error('发送消息失败:', error)
     showToast('发送失败，请重试', 'error')
+  } finally {
+    // 每次发送后刷新额度显示
+    fetchAiQuota()
   }
 }
 
@@ -1257,6 +1347,9 @@ onMounted(async () => {
     selectedModel.value = savedModel
   }
   
+  // 加载 AI 提问额度
+  fetchAiQuota()
+
   // 加载会话列表
   await loadConversations()
   
@@ -1656,37 +1749,134 @@ watch(streamingContent, () => {
   align-items: center;
 }
 
-.model-selector select {
-  appearance: none;
-  padding: 10px 40px 10px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-text-primary);
+.model-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-full);
   cursor: pointer;
   transition: all 0.2s;
   font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.model-selector select:hover {
+.model-trigger:hover {
   border-color: var(--color-primary);
+  background: var(--color-bg-primary);
 }
 
-.model-selector select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+.model-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.model-name {
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .select-arrow {
+  width: 14px;
+  height: 14px;
+  color: var(--color-text-secondary);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.select-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* 下拉面板 */
+.model-dropdown {
   position: absolute;
-  right: 14px;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 240px;
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  z-index: 100;
+}
+
+.model-dropdown-header {
+  padding: 10px 16px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.model-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.model-option:hover {
+  background: var(--color-bg-secondary);
+}
+
+.model-option.active {
+  background: var(--color-bg-secondary);
+}
+
+.option-icon {
+  font-size: 20px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.option-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.option-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.option-desc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.option-check {
   width: 16px;
   height: 16px;
-  color: var(--color-text-secondary);
-  pointer-events: none;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* 下拉动画 */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.18s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.97);
 }
 
 .theme-btn {
@@ -1712,6 +1902,35 @@ watch(streamingContent, () => {
 .theme-btn svg {
   width: 20px;
   height: 20px;
+}
+
+/* ==================== AI 额度 Badge ==================== */
+.quota-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.quota-badge svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.quota-badge.exhausted {
+  border-color: #e74c3c;
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.08);
 }
 
 /* ==================== 欢迎界面 ==================== */
@@ -3213,20 +3432,46 @@ watch(streamingContent, () => {
   border-bottom: 1px solid #eee4d8;
 }
 
-.ai-assistant:not(.dark-mode) .model-selector select {
+.ai-assistant:not(.dark-mode) .model-trigger {
   background: #ffffff;
   border-color: #eee4d8;
   color: #3d342f;
 }
 
-.ai-assistant:not(.dark-mode) .model-selector select:hover,
-.ai-assistant:not(.dark-mode) .model-selector select:focus {
+.ai-assistant:not(.dark-mode) .model-trigger:hover {
   border-color: #c2410c;
-  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
 }
 
 .ai-assistant:not(.dark-mode) .select-arrow {
   color: #8c8273;
+}
+
+.ai-assistant:not(.dark-mode) .model-dropdown {
+  background: #ffffff;
+  border-color: #eee4d8;
+  box-shadow: 0 8px 32px rgba(60, 40, 20, 0.12);
+}
+
+.ai-assistant:not(.dark-mode) .model-dropdown-header {
+  color: #a08870;
+  border-bottom-color: #eee4d8;
+}
+
+.ai-assistant:not(.dark-mode) .model-option:hover,
+.ai-assistant:not(.dark-mode) .model-option.active {
+  background: #fdf6ee;
+}
+
+.ai-assistant:not(.dark-mode) .option-name {
+  color: #3d342f;
+}
+
+.ai-assistant:not(.dark-mode) .option-desc {
+  color: #a08870;
+}
+
+.ai-assistant:not(.dark-mode) .option-check {
+  color: #c2410c;
 }
 
 .ai-assistant:not(.dark-mode) .theme-btn,

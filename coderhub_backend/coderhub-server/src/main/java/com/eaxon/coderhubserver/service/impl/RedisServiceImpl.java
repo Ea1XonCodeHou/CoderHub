@@ -245,4 +245,67 @@ public class RedisServiceImpl implements RedisService {
             return false;
         }
     }
+
+    // ==================== AI 提问额度 ====================
+
+    @Override
+    public Integer getAiQuota(String userId) {
+        try {
+            String key = RedisConstant.AI_QUOTA + userId;
+            Object val = redisTemplate.opsForValue().get(key);
+            if (val == null) return null;
+            return Integer.parseInt(val.toString());
+        } catch (Exception e) {
+            log.error("Redis getAiQuota 失败: userId={}", userId, e);
+            return null;
+        }
+    }
+
+    @Override
+    public Boolean initAiQuota(String userId, int quota) {
+        try {
+            String key = RedisConstant.AI_QUOTA + userId;
+            Boolean result = redisTemplate.opsForValue().setIfAbsent(key, String.valueOf(quota));
+            log.debug("Redis initAiQuota: userId={}, quota={}, result={}", userId, quota, result);
+            return result;
+        } catch (Exception e) {
+            log.error("Redis initAiQuota 失败: userId={}", userId, e);
+            return false;
+        }
+    }
+
+    @Override
+    public void setAiQuota(String userId, int quota) {
+        try {
+            String key = RedisConstant.AI_QUOTA + userId;
+            redisTemplate.opsForValue().set(key, String.valueOf(quota));
+            log.debug("Redis setAiQuota: userId={}, quota={}", userId, quota);
+        } catch (Exception e) {
+            log.error("Redis setAiQuota 失败: userId={}", userId, e);
+        }
+    }
+
+    @Override
+    public Long decrementAiQuota(String userId) {
+        try {
+            String key = RedisConstant.AI_QUOTA + userId;
+            Long result = redisTemplate.opsForValue().decrement(key, 1L);
+            log.debug("Redis decrementAiQuota: userId={}, remaining={}", userId, result);
+            return result;
+        } catch (Exception e) {
+            log.error("Redis decrementAiQuota 失败: userId={}", userId, e);
+            return null;
+        }
+    }
+
+    @Override
+    public Boolean hasAiQuota(String userId) {
+        try {
+            String key = RedisConstant.AI_QUOTA + userId;
+            return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+        } catch (Exception e) {
+            log.error("Redis hasAiQuota 失败: userId={}", userId, e);
+            return false;
+        }
+    }
 }
