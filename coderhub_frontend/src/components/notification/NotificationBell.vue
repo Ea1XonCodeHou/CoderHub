@@ -28,6 +28,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+// 轮询生命周期由 App.vue 全局管理，本组件只负责展示和交互
 import { useRouter } from 'vue-router'
 import { useNotificationStore } from '@/stores/notificationStore'
 import NotificationPopup from './NotificationPopup.vue'
@@ -106,16 +107,12 @@ const handleClickOutside = (e) => {
 
 // 生命周期
 onMounted(() => {
-  // 启动轮询
-  notificationStore.startPolling()
-  // 监听点击外部
+  // 仅注册点击外部关闭弹窗的事件，轮询由 App.vue 全局管理
   document.addEventListener('click', handleClickOutside)
 })
 
 onUnmounted(() => {
-  // 停止轮询
-  notificationStore.stopPolling()
-  // 移除监听
+  // 仅移除点击监听，不停止轮询（轮询由 App.vue 管理）
   document.removeEventListener('click', handleClickOutside)
 })
 </script>

@@ -88,4 +88,13 @@ public interface RedisService {
      * @return 递减后的值
      */
     Long decrement(String key, long delta);
+
+    /**
+     * 仅当 key 不存在时才设置值（原子操作，等价于 Redis SETNX）
+     * 用于防止并发场景下的覆盖竞争
+     * @param key 键
+     * @param value 值
+     * @return true 表示设置成功（key 原本不存在），false 表示 key 已存在未作修改
+     */
+    Boolean setIfAbsent(String key, Object value);
 }

@@ -8,6 +8,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.List;
+
 @Mapper
 public interface UserMapper {
 
@@ -71,4 +73,11 @@ public interface UserMapper {
      * @return 用户分页列表
      */
     Page<User> pageQuery(UserPageQueryDTO userPageQueryDTO);
+
+    /**
+     * 查询全部正常状态用户的 ID（用于系统通知广播）
+     * @return 用户 ID 列表
+     */
+    @Select("select id from coder_hub.user where status = 1 and role = 'USER'")
+    List<String> getAllActiveUserIds();
 }

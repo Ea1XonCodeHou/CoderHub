@@ -112,6 +112,9 @@
         <!-- 向量化管理 -->
         <EmbeddingManagement v-if="activeMenu === 'embedding'" />
 
+        <!-- 通知管理 -->
+        <SystemNotification v-if="activeMenu === 'notification'" />
+
         <!-- 通用设置 -->
         <div v-if="activeMenu === 'settings'" class="section">
           <div class="section-header">
@@ -149,6 +152,7 @@
 import ArticleReview from '@/components/admin/ArticleReview.vue'
 import CategoryManagement from '@/components/admin/CategoryManagement.vue'
 import EmbeddingManagement from '@/components/admin/EmbeddingManagement.vue'
+import SystemNotification from '@/components/admin/SystemNotification.vue'
 import TutorialDetail from '@/components/admin/TutorialDetail.vue'
 import TutorialManagement from '@/components/admin/TutorialManagement.vue'
 import UserManagement from '@/components/admin/UserManagement.vue'
@@ -186,6 +190,11 @@ const menuItems = ref([
     key: 'tutorials',
     label: '教程管理',
     icon: '<path d="M2 3H8C9.06087 3 10.0783 3.42143 10.8284 4.17157C11.5786 4.92172 12 5.93913 12 7V21C12 20.2044 11.6839 19.4413 11.1213 18.8787C10.5587 18.3161 9.79565 18 9 18H2V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 3H16C14.9391 3 13.9217 3.42143 13.1716 4.17157C12.4214 4.92172 12 5.93913 12 7V21C12 20.2044 12.3161 19.4413 12.8787 18.8787C13.4413 18.3161 14.2044 18 15 18H22V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+  },
+  {
+    key: 'notification',
+    label: '通知管理',
+    icon: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
   },
   {
     key: 'embedding',

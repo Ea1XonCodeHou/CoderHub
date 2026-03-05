@@ -233,4 +233,16 @@ public class RedisServiceImpl implements RedisService {
             return null;
         }
     }
+
+    @Override
+    public Boolean setIfAbsent(String key, Object value) {
+        try {
+            Boolean result = redisTemplate.opsForValue().setIfAbsent(key, String.valueOf(value));
+            log.debug("Redis SETNX: key={}, result={}", key, result);
+            return result;
+        } catch (Exception e) {
+            log.error("Redis SETNX 失败: key={}", key, e);
+            return false;
+        }
+    }
 }

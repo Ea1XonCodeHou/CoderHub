@@ -111,14 +111,15 @@ public class NotificationServiceImpl implements NotificationService {
             return Integer.parseInt(countObj.toString());
         }
 
-        // 2. Redis 失效，从 MySQL 重建
+        // 2. Redis key 不存在，以 MySQL 数据为准重建
+        // 使用 setIfAbsent 避免与 Consumer 的 increment 产生竞争覆盖
         Integer count = notificationMapper.countUnread(userId);
         if (count == null) {
             count = 0;
         }
 
-        // 3. 写入 Redis（永久有效，手动维护）
-        redisService.set(redisKey, count);
+        // 3. 只有 key 不存在时才写入，防止覆盖 Consumer 已累加的计数
+        redisService.setIfAbsent(redisKey, count);
 
         log.info("从 MySQL 重建未读计数: userId={}, count={}", userId, count);
         return count;
