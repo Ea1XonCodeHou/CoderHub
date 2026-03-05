@@ -150,6 +150,12 @@ import NavBar from '@/components/NavBar.vue'
 const route = useRoute()
 const router = useRouter()
 
+// 将 MinIO 内网地址转换为 Nginx 代理路径，使浏览器可访问
+const resolveMinioUrl = (url) => {
+  if (!url) return url
+  return url.replace(/^https?:\/\/[^/:]+:9000\//, '/minio/')
+}
+
 // 数据状态
 const videoPlayer = ref(null)
 const video = ref(null)
@@ -192,7 +198,7 @@ const loadData = async () => {
         
         const currentVideo = videosRes.data?.find(v => v.id === videoId)
         if (currentVideo) {
-          video.value = currentVideo
+          video.value = { ...currentVideo, videoUrl: resolveMinioUrl(currentVideo.videoUrl) }
         }
       }
     }
@@ -235,7 +241,7 @@ const toggleChapter = (chapterId) => {
 
 // 切换视频
 const switchVideo = (videoItem, chapterItem) => {
-  video.value = videoItem
+  video.value = { ...videoItem, videoUrl: resolveMinioUrl(videoItem.videoUrl) }
   chapter.value = chapterItem
   isPlaying.value = true
   
@@ -277,7 +283,7 @@ const downloadVideo = () => {
   if (!video.value) return
   
   const link = document.createElement('a')
-  link.href = video.value.videoUrl
+  link.href = resolveMinioUrl(video.value.videoUrl)
   link.download = video.value.videoTitle + '.mp4'
   link.target = '_blank'
   document.body.appendChild(link)
