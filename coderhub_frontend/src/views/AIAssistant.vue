@@ -623,7 +623,7 @@ const fetchAiQuota = async () => {
   if (!token) return
   try {
     const res = await fetch('/api/ai/quota', {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { authentication: token }
     })
     if (res.ok) {
       const json = await res.json()

@@ -178,10 +178,14 @@ const handleBatchInit = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token()}`
+        authentication: token()
       },
       body: JSON.stringify({ quota: batchQuota.value || 10 })
     })
+    if (!res.ok) {
+      batchResult.value = { ok: false, msg: `请求失败（${res.status}），请确认管理员登录状态` }
+      return
+    }
     const json = await res.json()
     if (json.code === 1 && json.data) {
       batchResult.value = { ok: true, ...json.data }
@@ -211,8 +215,12 @@ const handleQuery = async () => {
   newQuota.value = ''
   try {
     const res = await fetch(`/api/admin/ai-quota/user/${queryUserId.value}`, {
-      headers: { Authorization: `Bearer ${token()}` }
+      headers: { authentication: token() }
     })
+    if (!res.ok) {
+      queryResult.value = { exists: false, quota: null, error: `请求失败（${res.status}）` }
+      return
+    }
     const json = await res.json()
     if (json.code === 1 && json.data) {
       queryResult.value = json.data
@@ -235,14 +243,17 @@ const handleSetQuota = async () => {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token()}`
+        authentication: token()
       },
       body: JSON.stringify({ quota: newQuota.value })
     })
+    if (!res.ok) {
+      setResult.value = { ok: false, msg: `请求失败（${res.status}），请确认管理员登录状态` }
+      return
+    }
     const json = await res.json()
     if (json.code === 1) {
       setResult.value = { ok: true, msg: `已将用户额度设置为 ${newQuota.value} 次` }
-      // 刷新查询结果
       queryResult.value = { ...queryResult.value, exists: true, quota: newQuota.value }
     } else {
       setResult.value = { ok: false, msg: json.msg || '保存失败' }
