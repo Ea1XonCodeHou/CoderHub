@@ -21,6 +21,7 @@ request.interceptors.request.use(
 )
 
 // 响应拦截器
+// 注意：通知接口是后台轮询接口，失败不应强制退出登录，只静默记录错误
 request.interceptors.response.use(
   response => {
     const res = response.data
@@ -31,12 +32,12 @@ request.interceptors.response.use(
     }
   },
   error => {
+    // 401 只打印警告，不强制跳转，避免轮询时序问题导致误退出
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('userInfo')
-      window.location.href = '/'
+      console.warn('通知接口 401，token 可能已过期，跳过强制退出')
+    } else {
+      console.error('通知请求错误：', error)
     }
-    console.error('请求错误：', error)
     return Promise.reject(error)
   }
 )

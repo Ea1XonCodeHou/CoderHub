@@ -14,10 +14,12 @@ router.afterEach((to) => {
   const token = localStorage.getItem('token')
 
   if (token && to.meta?.requiresAuth) {
-    // 已登录且进入需要鉴权的页面，确保轮询运行（startPolling 内部有去重保护）
-    notificationStore.startPolling()
+    // 延迟启动，确保页面和 token 均已稳定，避免登录后立刻轮询的时序问题
+    setTimeout(() => {
+      notificationStore.startPolling()
+    }, 500)
   } else if (!token && (to.name === 'login' || to.name === 'register')) {
-    // 明确到达登录/注册页且无 token，说明是退出登录或未登录状态，停止轮询
+    // 明确到达登录/注册页且无 token，停止轮询
     notificationStore.reset()
   }
 })
