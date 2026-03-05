@@ -59,7 +59,11 @@
         <div v-if="batchResult" class="aq-result" :class="batchResult.ok ? 'ok' : 'err'">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline v-if="batchResult.ok" points="20 6 9 17 4 12"/>
-            <circle v-else cx="12" cy="12" r="10"/><line v-else x1="15" y1="9" x2="9" y2="15"/><line v-else x1="9" y1="9" x2="15" y2="15"/>
+            <template v-if="!batchResult.ok">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </template>
           </svg>
           <span v-if="batchResult.ok">
             初始化完成：共 <strong>{{ batchResult.total }}</strong> 名用户，
@@ -141,7 +145,11 @@
             <div v-if="setResult" class="aq-result" :class="setResult.ok ? 'ok' : 'err'">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline v-if="setResult.ok" points="20 6 9 17 4 12"/>
-                <circle v-else cx="12" cy="12" r="10"/><line v-else x1="15" y1="9" x2="9" y2="15"/><line v-else x1="9" y1="9" x2="15" y2="15"/>
+                <template v-if="!setResult.ok">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="15" y1="9" x2="9" y2="15"/>
+                  <line x1="9" y1="9" x2="15" y2="15"/>
+                </template>
               </svg>
               <span>{{ setResult.msg }}</span>
             </div>
