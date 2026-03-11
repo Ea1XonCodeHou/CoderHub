@@ -137,6 +137,16 @@ public class RedisConstant {
      */
     public static final String CAPTCHA = "captcha:";
     
+    // ==================== RAG 文章全文缓存 ====================
+
+    /**
+     * 文章Markdown全文缓存（深度检索下载后缓存，避免重复访问OSS）
+     * Key: article:fulltext:{articleId}
+     * Value: String (Markdown全文)
+     * 过期时间: 2小时
+     */
+    public static final String ARTICLE_FULLTEXT = "article:fulltext:";
+
     // ==================== 过期时间（单位：秒） ====================
     
     public static final long EXPIRE_30_MINUTES = 30 * 60;

@@ -210,3 +210,23 @@ export function changePassword(data) {
     data
   })
 }
+
+// ==================== 忘记密码 / 邮箱找回 ====================
+
+// 发送密码重置验证码
+export function sendResetCode(email) {
+  return request({
+    url: '/user/password/send-code',
+    method: 'post',
+    data: { email }
+  })
+}
+
+// 通过验证码重置密码
+export function resetPassword(data) {
+  return request({
+    url: '/user/password/reset',
+    method: 'post',
+    data
+  })
+}

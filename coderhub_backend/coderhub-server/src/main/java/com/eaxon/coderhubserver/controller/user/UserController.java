@@ -1,7 +1,9 @@
 package com.eaxon.coderhubserver.controller.user;
 
 import com.eaxon.coderhubcommon.context.BaseContext;
+import com.eaxon.coderhubcommon.constant.RedisConstant;
 import com.eaxon.coderhubcommon.result.Result;
+import com.eaxon.coderhubcommon.utils.MD5Util;
 import com.eaxon.coderhubpojo.DTO.UserInfoUpdateDTO;
 import com.eaxon.coderhubpojo.DTO.UserLoginDTO;
 import com.eaxon.coderhubpojo.DTO.UserRegisterDTO;
@@ -13,6 +15,8 @@ import com.eaxon.coderhubserver.mapper.ArticleMapper;
 import com.eaxon.coderhubserver.mapper.ProjectMapper;
 import com.eaxon.coderhubserver.mapper.UserFollowMapper;
 import com.eaxon.coderhubserver.mapper.UserMapper;
+import com.eaxon.coderhubserver.service.MailService;
+import com.eaxon.coderhubserver.service.RedisService;
 import com.eaxon.coderhubserver.service.UserFollowService;
 import com.eaxon.coderhubserver.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,6 +54,12 @@ public class UserController {
 
     @Autowired
     private ProjectMapper projectMapper;
+
+    @Autowired
+    private RedisService redisService;
+
+    @Autowired
+    private MailService mailService;
     
     /**
      * 用户注册
@@ -332,5 +342,97 @@ public class UserController {
         } catch (Exception e) {
             return Result.error(e.getMessage());
         }
+    }
+
+    // ==================== 忘记密码 / 邮箱找回 ====================
+
+    /**
+     * 发送密码重置验证码
+     */
+    @PostMapping("/password/send-code")
+    @Operation(summary = "发送密码重置验证码")
+    public Result<String> sendResetCode(@RequestBody Map<String, String> params) {
+        String email = params.get("email");
+        if (email == null || email.trim().isEmpty()) {
+            return Result.error("请输入邮箱地址");
+        }
+
+        // 防刷：检查是否 60 秒内已发送
+        String redisKey = RedisConstant.CAPTCHA + email;
+        Object existing = redisService.get(redisKey);
+        if (existing != null) {
+            return Result.error("验证码已发送，请60秒后重试");
+        }
+
+        // 校验邮箱是否已注册（统一返回，防止邮箱泄露）
+        User user = userMapper.getUserByEmail(email);
+        if (user == null) {
+            return Result.error("该邮箱未注册");
+        }
+
+        // 生成6位随机验证码
+        String code = String.format("%06d", new java.util.Random().nextInt(1000000));
+
+        // 存入 Redis，TTL 5 分钟
+        redisService.set(redisKey, code, RedisConstant.EXPIRE_5_MINUTES);
+
+        // 发送邮件
+        try {
+            mailService.sendResetPasswordCode(email, code);
+        } catch (Exception e) {
+            log.error("验证码邮件发送失败: email={}", email, e);
+            redisService.delete(redisKey);
+            return Result.error("邮件发送失败，请稍后重试");
+        }
+
+        return Result.success("验证码已发送至邮箱");
+    }
+
+    /**
+     * 验证码重置密码
+     */
+    @PostMapping("/password/reset")
+    @Operation(summary = "通过验证码重置密码")
+    public Result<String> resetPassword(@RequestBody Map<String, String> params) {
+        String email = params.get("email");
+        String code = params.get("code");
+        String newPassword = params.get("newPassword");
+
+        if (email == null || code == null || newPassword == null) {
+            return Result.error("参数不完整");
+        }
+
+        if (newPassword.length() < 6) {
+            return Result.error("新密码长度不能少于6位");
+        }
+
+        // 校验验证码
+        String redisKey = RedisConstant.CAPTCHA + email;
+        Object cached = redisService.get(redisKey);
+        if (cached == null) {
+            return Result.error("验证码已过期，请重新获取");
+        }
+        if (!code.equals(cached.toString())) {
+            return Result.error("验证码错误");
+        }
+
+        // 查找用户
+        User user = userMapper.getUserByEmail(email);
+        if (user == null) {
+            return Result.error("该邮箱未注册");
+        }
+
+        // 更新密码
+        User updateUser = User.builder()
+                .id(user.getId())
+                .password(MD5Util.encrypt(newPassword))
+                .build();
+        userMapper.update(updateUser);
+
+        // 删除已用验证码
+        redisService.delete(redisKey);
+
+        log.info("用户 {} 通过邮箱验证码重置密码成功", user.getId());
+        return Result.success("密码重置成功");
     }
 }

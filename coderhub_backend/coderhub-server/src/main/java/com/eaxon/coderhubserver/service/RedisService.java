@@ -61,6 +61,14 @@ public interface RedisService {
     void set(String key, Object value);
 
     /**
+     * 设置值并指定过期时间
+     * @param key 键
+     * @param value 值
+     * @param expireSeconds 过期时间（秒）
+     */
+    void set(String key, Object value, long expireSeconds);
+
+    /**
      * 获取值
      * @param key 键
      * @return 值

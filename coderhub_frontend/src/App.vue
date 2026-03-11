@@ -13,7 +13,7 @@ const notificationStore = useNotificationStore()
 router.afterEach((to) => {
   const token = localStorage.getItem('token')
 
-  if (token && to.meta?.requiresAuth) {
+  if (token && to.meta?.requiresAuth && to.meta?.role !== 'ADMIN') {
     // 延迟启动，确保页面和 token 均已稳定，避免登录后立刻轮询的时序问题
     setTimeout(() => {
       notificationStore.startPolling()

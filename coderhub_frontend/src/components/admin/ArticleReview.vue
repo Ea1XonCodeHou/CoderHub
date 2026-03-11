@@ -1,20 +1,15 @@
 <template>
   <div class="article-review">
     <div class="review-header">
-      <h2>文章审核</h2>
-      <div class="stats">
-        <div class="stat-item">
-          <span class="stat-label">待审核</span>
-          <span class="stat-value">{{ pendingArticles.length }}</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">已发布</span>
-          <span class="stat-value">{{ publishedArticles.length }}</span>
-        </div>
+      <h2>文章管理</h2>
+      <div class="tab-bar">
+        <button :class="['tab-btn', { active: activeTab === 'review' }]" @click="activeTab = 'review'">文章审核</button>
+        <button :class="['tab-btn', { active: activeTab === 'manage' }]" @click="switchToManage">文章列表</button>
       </div>
     </div>
 
-    <div class="review-content">
+    <!-- ========== Tab 1: 审核 ========== -->
+    <div v-if="activeTab === 'review'" class="review-content">
       <!-- 左侧：待审核文章列表 -->
       <div class="article-column pending-column">
         <div class="column-header">
@@ -145,6 +140,67 @@
       </div>
     </div>
 
+    <!-- ========== Tab 2: 文章列表管理 ========== -->
+    <div v-if="activeTab === 'manage'" class="manage-content">
+      <div class="manage-toolbar">
+        <input v-model="manageKeyword" placeholder="搜索文章标题..." class="search-input" @keyup.enter="fetchManagedArticles" />
+        <select v-model="manageStatusFilter" class="filter-select" @change="fetchManagedArticles">
+          <option :value="null">全部状态</option>
+          <option :value="1">已发布</option>
+          <option :value="2">待审核</option>
+          <option :value="3">审核拒绝</option>
+          <option :value="4">已隐藏</option>
+        </select>
+        <button @click="fetchManagedArticles" class="btn-refresh">刷新</button>
+      </div>
+
+      <div class="manage-table-wrap">
+        <table class="manage-table">
+          <thead>
+            <tr>
+              <th style="width:40%">标题</th>
+              <th>作者</th>
+              <th>分类</th>
+              <th>状态</th>
+              <th>置顶</th>
+              <th>浏览</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="a in managedArticles" :key="a.id">
+              <td class="title-cell">
+                <span v-if="a.isTop === 1" class="top-badge">置顶</span>
+                {{ a.title }}
+              </td>
+              <td>{{ a.username }}</td>
+              <td>{{ a.categoryName || '-' }}</td>
+              <td><span :class="'status-tag s' + a.status">{{ statusText(a.status, a.auditStatus) }}</span></td>
+              <td>
+                <button class="btn-sm" @click="toggleTop(a)">{{ a.isTop === 1 ? '取消' : '置顶' }}</button>
+              </td>
+              <td>{{ a.viewCount || 0 }}</td>
+              <td class="action-cell">
+                <button v-if="a.status !== 4" class="btn-sm btn-warn" @click="hideArticle(a)">隐藏</button>
+                <button v-else class="btn-sm btn-ok" @click="showArticle(a)">恢复</button>
+                <button class="btn-sm btn-danger" @click="deleteArticle(a)">删除</button>
+              </td>
+            </tr>
+            <tr v-if="managedArticles.length === 0">
+              <td colspan="7" style="text-align:center;color:#999;padding:40px">暂无文章</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 分页 -->
+      <div v-if="manageTotalPages > 1" class="pagination">
+        <button :disabled="managePage <= 1" @click="managePage--; fetchManagedArticles()">上一页</button>
+        <span>{{ managePage }} / {{ manageTotalPages }}</span>
+        <button :disabled="managePage >= manageTotalPages" @click="managePage++; fetchManagedArticles()">下一页</button>
+      </div>
+    </div>
+
     <!-- 拒绝原因对话框 -->
     <div v-if="showRejectDialogFlag" class="dialog-overlay" @click.self="closeRejectDialog">
       <div class="dialog">
@@ -172,12 +228,20 @@ import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css'
 
 // 数据
+const activeTab = ref('review')
 const pendingArticles = ref([])
 const publishedArticles = ref([])
 const selectedArticle = ref(null)
 const markdownContent = ref('')
 const showRejectDialogFlag = ref(false)
 const rejectReason = ref('')
+
+// 文章管理 Tab 数据
+const managedArticles = ref([])
+const managePage = ref(1)
+const manageTotalPages = ref(1)
+const manageKeyword = ref('')
+const manageStatusFilter = ref(null)
 
 // Markdown配置
 marked.setOptions({
@@ -399,6 +463,71 @@ const formatFullTime = (timeStr) => {
   } catch (e) {
     return '未知时间'
   }
+}
+
+// ==================== 文章管理 Tab ====================
+
+const switchToManage = () => {
+  activeTab.value = 'manage'
+  if (managedArticles.value.length === 0) fetchManagedArticles()
+}
+
+const adminHeaders = () => ({
+  authentication: localStorage.getItem('token')
+})
+
+const fetchManagedArticles = async () => {
+  try {
+    const params = { page: managePage.value, pageSize: 15 }
+    if (manageKeyword.value) params.keyword = manageKeyword.value
+    if (manageStatusFilter.value != null) params.status = manageStatusFilter.value
+    const res = await axios.get('/api/admin/article/list', { headers: adminHeaders(), params })
+    if (res.data.code === 1) {
+      managedArticles.value = res.data.data.list || []
+      manageTotalPages.value = res.data.data.pages || 1
+    }
+  } catch (e) {
+    console.error('获取文章列表失败', e)
+  }
+}
+
+const statusText = (status, auditStatus) => {
+  if (status === 4) return '已隐藏'
+  if (status === 3) return '审核拒绝'
+  if (status === 2) return '待审核'
+  if (status === 1 && auditStatus === 1) return '已发布'
+  return '未知'
+}
+
+const hideArticle = async (a) => {
+  if (!confirm(`确认隐藏《${a.title}》？`)) return
+  try {
+    await axios.put(`/api/admin/article/hide/${a.id}`, null, { headers: adminHeaders() })
+    fetchManagedArticles()
+  } catch (e) { alert('操作失败') }
+}
+
+const showArticle = async (a) => {
+  try {
+    await axios.put(`/api/admin/article/show/${a.id}`, null, { headers: adminHeaders() })
+    fetchManagedArticles()
+  } catch (e) { alert('操作失败') }
+}
+
+const toggleTop = async (a) => {
+  const newTop = a.isTop === 1 ? 0 : 1
+  try {
+    await axios.put(`/api/admin/article/top/${a.id}`, null, { headers: adminHeaders(), params: { isTop: newTop } })
+    fetchManagedArticles()
+  } catch (e) { alert('操作失败') }
+}
+
+const deleteArticle = async (a) => {
+  if (!confirm(`确认永久删除《${a.title}》？此操作不可恢复！`)) return
+  try {
+    await axios.delete(`/api/admin/article/${a.id}`, { headers: adminHeaders() })
+    fetchManagedArticles()
+  } catch (e) { alert('删除失败') }
 }
 
 // 初始化
@@ -858,5 +987,44 @@ onMounted(() => {
 .btn-confirm:hover {
   background: #dc2626;
 }
+
+/* Tab 栏 */
+.tab-bar { display: flex; gap: 8px; }
+.tab-btn {
+  padding: 6px 18px; border: 1px solid #e0e0e0; border-radius: 6px;
+  background: #fff; cursor: pointer; font-size: 14px; color: #666; transition: all .2s;
+}
+.tab-btn.active { background: #333; color: #fff; border-color: #333; }
+
+/* 管理列表 */
+.manage-content { flex: 1; display: flex; flex-direction: column; padding: 16px; overflow: hidden; }
+.manage-toolbar { display: flex; gap: 12px; margin-bottom: 12px; align-items: center; }
+.search-input {
+  flex: 1; max-width: 300px; padding: 8px 14px; border: 1px solid #e0e0e0;
+  border-radius: 6px; font-size: 14px; outline: none;
+}
+.search-input:focus { border-color: #333; }
+.filter-select { padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 14px; outline: none; }
+.manage-table-wrap { flex: 1; overflow-y: auto; background: #fff; border-radius: 8px; }
+.manage-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.manage-table th { text-align: left; padding: 12px 16px; background: #f8f9fa; color: #666; font-weight: 600; border-bottom: 1px solid #e0e0e0; position: sticky; top: 0; }
+.manage-table td { padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
+.manage-table tr:hover td { background: #fafbfc; }
+.title-cell { font-weight: 500; color: #333; }
+.top-badge { display: inline-block; padding: 1px 6px; font-size: 11px; background: #ff9800; color: #fff; border-radius: 3px; margin-right: 6px; }
+.status-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+.status-tag.s1 { background: #e8f5e9; color: #2e7d32; }
+.status-tag.s2 { background: #fff3e0; color: #e65100; }
+.status-tag.s3 { background: #ffebee; color: #c62828; }
+.status-tag.s4 { background: #f5f5f5; color: #999; }
+.action-cell { display: flex; gap: 6px; }
+.btn-sm { padding: 4px 10px; border: 1px solid #e0e0e0; border-radius: 4px; background: #fff; cursor: pointer; font-size: 12px; transition: all .2s; }
+.btn-sm:hover { background: #f5f5f5; }
+.btn-sm.btn-warn { color: #e65100; border-color: #ffcc80; }
+.btn-sm.btn-ok { color: #2e7d32; border-color: #a5d6a7; }
+.btn-sm.btn-danger { color: #c62828; border-color: #ef9a9a; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 16px; padding: 12px; }
+.pagination button { padding: 6px 16px; border: 1px solid #e0e0e0; border-radius: 6px; background: #fff; cursor: pointer; }
+.pagination button:disabled { opacity: .4; cursor: not-allowed; }
 </style>
 

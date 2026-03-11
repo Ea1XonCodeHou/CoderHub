@@ -63,6 +63,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
                 .addPathPatterns("/tutorial/comment/**")  // 添加教程评论路径（删除评论）
                 .excludePathPatterns("/user/login")
                 .excludePathPatterns("/user/register")
+                .excludePathPatterns("/user/password/**")
                 .excludePathPatterns("/common/**");
         
         log.info("JWT拦截器注册完成");

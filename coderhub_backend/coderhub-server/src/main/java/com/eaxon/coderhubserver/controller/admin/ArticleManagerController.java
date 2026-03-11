@@ -12,6 +12,9 @@ import com.eaxon.coderhubserver.mapper.UserMapper;
 import com.eaxon.coderhubpojo.entity.Category;
 import com.eaxon.coderhubpojo.entity.User;
 import com.eaxon.coderhubserver.mq.NotificationProducer;
+import com.eaxon.coderhubserver.service.ArticleEmbeddingService;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +22,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/article")
@@ -41,6 +46,9 @@ public class ArticleManagerController {
 
     @Autowired
     private NotificationProducer notificationProducer;
+
+    @Autowired
+    private ArticleEmbeddingService articleEmbeddingService;
     
     /**
      * 获取待审核文章列表
@@ -142,7 +150,10 @@ public class ArticleManagerController {
 
         // 【消息通知】发送审核通过消息给作者
         sendAuditPassNotification(article);
-        
+
+        // 【向量化】审核通过后异步向量化入库（供 RAG 检索）
+        articleEmbeddingService.embedArticleAsync(id);
+
         return Result.success("审核通过");
     }
 
@@ -215,6 +226,92 @@ public class ArticleManagerController {
     /**
      * 构建ArticleVO列表
      */
+
+    // ==================== 文章管理（CRUD） ====================
+
+    /**
+     * 管理端：分页查询所有文章
+     */
+    @GetMapping("/list")
+    @Operation(summary = "分页查询所有文章")
+    public Result<Map<String, Object>> listArticles(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "15") int pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Integer auditStatus) {
+        log.info("管理端查询文章列表: page={}, keyword={}, status={}, auditStatus={}", page, keyword, status, auditStatus);
+
+        PageHelper.startPage(page, pageSize);
+        List<Article> articles = articleMapper.adminListAll(keyword, status, auditStatus);
+        PageInfo<Article> pageInfo = new PageInfo<>(articles);
+
+        List<ArticleVO> voList = buildArticleVOList(articles);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", voList);
+        result.put("total", pageInfo.getTotal());
+        result.put("page", pageInfo.getPageNum());
+        result.put("pageSize", pageInfo.getPageSize());
+        result.put("pages", pageInfo.getPages());
+
+        return Result.success(result);
+    }
+
+    /**
+     * 隐藏文章（status=4 不删除，但前台不可见）
+     */
+    @PutMapping("/hide/{id}")
+    @Operation(summary = "隐藏文章")
+    public Result<String> hideArticle(@PathVariable String id) {
+        log.info("隐藏文章: id={}", id);
+        Article article = articleMapper.getById(id);
+        if (article == null) return Result.error("文章不存在");
+        articleMapper.updateStatus(id, 4);
+        return Result.success("文章已隐藏");
+    }
+
+    /**
+     * 恢复隐藏的文章（status 恢复为 1）
+     */
+    @PutMapping("/show/{id}")
+    @Operation(summary = "恢复文章可见")
+    public Result<String> showArticle(@PathVariable String id) {
+        log.info("恢复文章: id={}", id);
+        Article article = articleMapper.getById(id);
+        if (article == null) return Result.error("文章不存在");
+        articleMapper.updateStatus(id, 1);
+        return Result.success("文章已恢复");
+    }
+
+    /**
+     * 置顶/取消置顶
+     */
+    @PutMapping("/top/{id}")
+    @Operation(summary = "置顶/取消置顶")
+    public Result<String> toggleTop(@PathVariable String id, @RequestParam Integer isTop) {
+        log.info("切换置顶: id={}, isTop={}", id, isTop);
+        Article article = articleMapper.getById(id);
+        if (article == null) return Result.error("文章不存在");
+        articleMapper.updateIsTop(id, isTop);
+        return Result.success(isTop == 1 ? "已置顶" : "已取消置顶");
+    }
+
+    /**
+     * 删除文章（硬删除）
+     */
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除文章")
+    public Result<String> deleteArticle(@PathVariable String id) {
+        log.info("删除文章: id={}", id);
+        Article article = articleMapper.getById(id);
+        if (article == null) return Result.error("文章不存在");
+        articleMapper.deleteById(id);
+        // 同步删除向量化记录
+        articleEmbeddingService.removeArticleEmbedding(id);
+        return Result.success("文章已删除");
+    }
+
     private List<ArticleVO> buildArticleVOList(List<Article> articles) {
         List<ArticleVO> voList = new ArrayList<>();
         for (Article article : articles) {

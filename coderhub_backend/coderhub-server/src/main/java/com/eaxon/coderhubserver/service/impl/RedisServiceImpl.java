@@ -191,6 +191,16 @@ public class RedisServiceImpl implements RedisService {
     }
 
     @Override
+    public void set(String key, Object value, long expireSeconds) {
+        try {
+            redisTemplate.opsForValue().set(key, String.valueOf(value), expireSeconds, java.util.concurrent.TimeUnit.SECONDS);
+            log.debug("Redis SET with TTL: key={}, expire={}s", key, expireSeconds);
+        } catch (Exception e) {
+            log.error("Redis SET 失败: key={}, expire={}s", key, expireSeconds, e);
+        }
+    }
+
+    @Override
     public Object get(String key) {
         try {
             return redisTemplate.opsForValue().get(key);

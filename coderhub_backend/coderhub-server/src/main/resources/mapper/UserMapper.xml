@@ -6,6 +6,7 @@
         update coder_hub.user
         <set>
             <if test="username != null">username = #{username},</if>
+            <if test="password != null">password = #{password},</if>
             <if test="phone != null">phone = #{phone},</if>
             <if test="email != null">email = #{email},</if>
             <if test="avatar != null">avatar = #{avatar},</if>

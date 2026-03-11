@@ -467,6 +467,37 @@
                 </button>
               </div>
             </div>
+            <!-- 模式胶囊按钮 -->
+            <div class="mode-capsules">
+              <button
+                class="mode-capsule"
+                :class="{ active: chatMode === 'rag' }"
+                @click="toggleChatMode('rag')"
+                :disabled="isStreaming"
+                title="基于知识库深度检索后回答"
+              >
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="9" cy="9" r="6"/>
+                  <line x1="13.2" y1="13.2" x2="17" y2="17"/>
+                  <path d="M9 6v6M6 9h6"/>
+                </svg>
+                <span>深度检索</span>
+              </button>
+              <button
+                class="mode-capsule"
+                :class="{ active: chatMode === 'web' }"
+                @click="toggleChatMode('web')"
+                :disabled="isStreaming"
+                title="联网搜索（即将上线）"
+              >
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="10" cy="10" r="8"/>
+                  <ellipse cx="10" cy="10" rx="3.5" ry="8"/>
+                  <line x1="2" y1="10" x2="18" y2="10"/>
+                </svg>
+                <span>联网搜索</span>
+              </button>
+            </div>
             <div class="input-hint">
               <span>CoderHub AI 可能会产生错误信息，请核实重要内容</span>
             </div>
@@ -542,14 +573,15 @@ const inputFocused = ref(false)
 const selectedModel = ref('qwen-plus')
 const sidebarOpen = ref(true) // 默认展开侧边栏
 const lastToolCall = ref(null) // 保存最近的工具调用信息
+const chatMode = ref('normal') // 'normal' | 'rag' | 'web'
 const showAgentProgress = ref(false)
 const agentProgressStep = ref(0)
-const agentProgressSteps = [
-  '读取ing',
-  '检索ing',
-  '提取ing',
-  '回答ing'
-]
+const agentProgressSteps = ref([
+  '初始化',
+  '检索中',
+  '融合排序',
+  '生成回答'
+])
 const agentProgressStarted = ref(false)
 const liveTrace = ref([])
 
@@ -648,6 +680,17 @@ const quickPrompts = ref([
 // ==================== 方法 ====================
 
 /**
+ * 切换对话模式（普通/深度检索/联网搜索）
+ */
+function toggleChatMode(mode) {
+  if (mode === 'web') {
+    showToast('联网搜索功能即将上线，敬请期待', 'info')
+    return
+  }
+  chatMode.value = chatMode.value === mode ? 'normal' : mode
+}
+
+/**
  * 发送消息
  */
 async function sendMessage() {
@@ -693,8 +736,16 @@ async function sendMessage() {
     let capturedArticleSearchResult = null  // 用于存储ArticleSearchResult
     let hasFirstToken = false
 
+    // 根据模式选择不同的发送函数
+    const sendFn = chatMode.value === 'rag' ? streamSendMessageWithRAG : streamSendMessage
+
+    // RAG 模式自动启动进度指示
+    if (chatMode.value === 'rag') {
+      startAgentProgress()
+    }
+
     // 发送流式请求，传入 conversationId 让后端自动加载上下文
-    await streamSendMessage({
+    await sendFn({
       message: text,
       model: selectedModel.value,
       temperature: 0.7,
@@ -702,17 +753,24 @@ async function sendMessage() {
       onToken: () => {
         if (showAgentProgress.value && !hasFirstToken) {
           hasFirstToken = true
-          setAgentProgressStep(3) // 回答ing
+          setAgentProgressStep(3) // 生成回答
         }
         scrollToBottom()
       },
       onToolCall: (toolCall) => {
         console.log('工具调用中:', toolCall)
-        if (showAgentProgress.value) {
-          setAgentProgressStep(1) // 检索ing
+        if (!showAgentProgress.value) startAgentProgress()
+        // 根据后端推送的真实 parameters 推进进度
+        const params = toolCall?.parameters || ''
+        if (params.includes('HyDE') || params.includes('假设')) {
+          setAgentProgressStep(0)
+        } else if (params.includes('向量') || params.includes('Top-K') || params.includes('下载')) {
+          setAgentProgressStep(1)
+        } else if (params.includes('关键词') || params.includes('RRF') || params.includes('融合')) {
+          setAgentProgressStep(2)
         }
-        if (toolCall?.displayName || toolCall?.parameters) {
-          appendLiveTrace(`工具调用：${toolCall.displayName || '调用工具'} ${toolCall.parameters || ''}`)
+        if (toolCall?.displayName || params) {
+          appendLiveTrace(params || `${toolCall.displayName || '调用工具'}`)
         }
         scrollToBottom()
       },
@@ -720,9 +778,9 @@ async function sendMessage() {
         console.log('工具调用完成:', toolCall, '推荐数:', recommendations?.length)
         lastToolCall.value = toolCall
         if (showAgentProgress.value) {
-          setAgentProgressStep(2) // 提取ing
+          setAgentProgressStep(2) // 融合排序完成
         }
-        appendLiveTrace('工具结果已返回，正在提取答案…')
+        appendLiveTrace(toolCall?.parameters || '检索完成，正在生成回答…')
         
         // 解析ArticleSearchResult JSON
         if (toolCall?.toolResult) {
@@ -1138,8 +1196,8 @@ function startAgentProgress() {
   stopAgentProgress()
   showAgentProgress.value = true
   agentProgressStarted.value = true
-  setAgentProgressStep(0) // 读取ing
-  liveTrace.value = ['开始读取文章内容…']
+  setAgentProgressStep(0)
+  liveTrace.value = ['正在启动深度检索…']
 }
 
 function stopAgentProgress() {
@@ -1150,8 +1208,8 @@ function stopAgentProgress() {
 
 function setAgentProgressStep(stepIndex) {
   if (!agentProgressStarted.value) return
-  agentProgressStep.value = Math.max(0, Math.min(stepIndex, agentProgressSteps.length - 1))
-  const stageText = agentProgressSteps[agentProgressStep.value] || '处理中'
+  agentProgressStep.value = Math.max(0, Math.min(stepIndex, agentProgressSteps.value.length - 1))
+  const stageText = agentProgressSteps.value[agentProgressStep.value] || '处理中'
   appendLiveTrace(`阶段：${stageText}`)
 }
 
@@ -1167,7 +1225,7 @@ function getThinkingLines() {
   const lines = []
 
   // 行1：阶段
-  const stageText = agentProgressSteps[agentProgressStep.value] || '处理中'
+  const stageText = agentProgressSteps.value[agentProgressStep.value] || '处理中'
   lines.push(`阶段：${stageText}`)
 
   // 行2：工具/参数（真实信息）
@@ -2530,6 +2588,52 @@ watch(streamingContent, () => {
   color: var(--color-text-muted);
 }
 
+/* ==================== 模式胶囊按钮 ==================== */
+.mode-capsules {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mode-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border: 1.5px solid var(--color-border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.mode-capsule svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.mode-capsule:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(44, 62, 80, 0.04);
+}
+
+.mode-capsule.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(44, 62, 80, 0.08);
+  font-weight: 500;
+}
+
+.mode-capsule:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ==================== Toast ==================== */
 .toast {
   position: fixed;
@@ -3537,6 +3641,24 @@ watch(streamingContent, () => {
 
 .ai-assistant:not(.dark-mode) .send-btn:hover:not(:disabled) {
   background: #b45309;
+}
+
+.ai-assistant:not(.dark-mode) .mode-capsule {
+  background: #ffffff;
+  border-color: #eee4d8;
+  color: #78716c;
+}
+
+.ai-assistant:not(.dark-mode) .mode-capsule:hover:not(:disabled) {
+  border-color: #c2410c;
+  color: #c2410c;
+  background: rgba(194, 65, 12, 0.04);
+}
+
+.ai-assistant:not(.dark-mode) .mode-capsule.active {
+  border-color: #c2410c;
+  color: #c2410c;
+  background: rgba(194, 65, 12, 0.08);
 }
 
 .ai-assistant:not(.dark-mode) .tool-call-section {

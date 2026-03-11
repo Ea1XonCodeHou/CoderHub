@@ -179,5 +179,29 @@
         LIMIT #{limit}
     </select>
 
+    <!-- 管理端：查询所有文章（支持筛选） -->
+    <select id="adminListAll" resultType="com.eaxon.coderhubpojo.entity.Article">
+        SELECT * FROM article
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (title LIKE CONCAT('%', #{keyword}, '%')
+                     OR summary LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null">AND status = #{status}</if>
+            <if test="auditStatus != null">AND audit_status = #{auditStatus}</if>
+        </where>
+        ORDER BY is_top DESC, create_time DESC
+    </select>
+
+    <!-- 管理端：更新文章状态 -->
+    <update id="updateStatus">
+        UPDATE article SET status = #{status}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <!-- 管理端：更新置顶状态 -->
+    <update id="updateIsTop">
+        UPDATE article SET is_top = #{isTop}, update_time = NOW() WHERE id = #{id}
+    </update>
+
 </mapper>
 

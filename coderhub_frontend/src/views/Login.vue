@@ -131,9 +131,14 @@
       <div class="footer">
         <span class="footer-text">还没有账号？</span>
         <router-link to="/register" class="footer-link">立即注册</router-link>
+        <span class="footer-divider">|</span>
+        <a class="footer-link" href="javascript:void(0)" @click="showResetModal = true">忘记密码？</a>
       </div>
       </div>
     </div>
+
+    <!-- 忘记密码弹窗 -->
+    <ResetPasswordModal v-model:visible="showResetModal" />
   </div>
 </template>
 
@@ -141,6 +146,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { login } from '@/api/user'
+import ResetPasswordModal from '@/components/ResetPasswordModal.vue'
 
 const router = useRouter()
 
@@ -152,6 +158,7 @@ const loginForm = ref({
 const showPassword = ref(false)
 const loading = ref(false)
 const isShaking = ref(false)
+const showResetModal = ref(false)
 
 const getParticleStyle = (index) => {
   const size = Math.random() * 4 + 2
@@ -903,6 +910,12 @@ const handleLogin = async () => {
 
 .footer-link:hover {
   color: var(--primary-muted);
+}
+
+.footer-divider {
+  color: var(--border-warm);
+  margin: 0 6px;
+  font-size: 13px;
 }
 
 /* 响应式 */

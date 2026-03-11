@@ -11,13 +11,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import com.eaxon.coderhubcommon.constant.RedisConstant;
 import com.eaxon.coderhubpojo.DTO.ChatRequestDTO;
 import com.eaxon.coderhubpojo.DTO.ChatStreamEvent;
 import com.eaxon.coderhubpojo.DTO.ChatStreamEvent.RecommendItem;
 import com.eaxon.coderhubpojo.DTO.ChatStreamEvent.ToolCall;
 import com.eaxon.coderhubpojo.entity.AIMessage;
+import com.eaxon.coderhubpojo.entity.Article;
 import com.eaxon.coderhubserver.agent.CoderHubTools;
 import com.eaxon.coderhubserver.mapper.AIMessageMapper;
+import com.eaxon.coderhubserver.mapper.ArticleMapper;
 
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
@@ -31,7 +34,6 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.service.AiServices;
-import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -80,16 +82,36 @@ public class AIService {
     private AIMessageMapper messageMapper;
 
     @Autowired
-    private EmbeddingStore<TextSegment> embeddingStore;
+    private ArticleMapper articleMapper;
+
+    @Autowired
+    private RedisService redisService;
+
+    @Autowired
+    private volatile EmbeddingStore<TextSegment> embeddingStore;
+
+    /**
+     * 刷新 EmbeddingStore 引用（清空 ChromaDB 重建后调用）
+     */
+    public void refreshEmbeddingStore(EmbeddingStore<TextSegment> newStore) {
+        this.embeddingStore = newStore;
+        log.info("AIService EmbeddingStore 引用已刷新");
+    }
 
     @Autowired
     private EmbeddingModel embeddingModel;
 
+    @Autowired
+    private OssContentService ossContentService;
+
     /** 上下文窗口最大消息数 */
     private static final int MAX_CONTEXT_MESSAGES = 20;
 
-    /** RAG检索返回的最大文章数 */
-    private static final int RAG_TOP_K = 5;
+    /** RAG检索返回的最大chunk数 */
+    private static final int RAG_TOP_K = 8;
+
+    /** BM25 关键词召回的最大文章数 */
+    private static final int BM25_TOP_K = 5;
 
     /**
      * 流式模型缓存
@@ -107,34 +129,22 @@ public class AIService {
     private CoderHubAgent coderHubAgent;
 
     /**
-     * 带工具的系统提示词
+     * 普通对话系统提示词（无工具调用）
      */
-    private static final String SYSTEM_PROMPT_WITH_TOOLS = """
-            你是 CoderHub AI 助手，一个专业的编程技术顾问。你可以帮助用户学习编程技术，并推荐平台上的相关教程和文章。
-            
+    private static final String SYSTEM_PROMPT_SIMPLE = """
+            你是 CoderHub AI 助手，一个专业的编程技术顾问。
+
             你具有以下特点：
             1. 专业知识：精通各种编程语言、框架和最佳实践
             2. 代码能力：能够编写清晰、高效、可维护的代码
-            3. 资源推荐：可以搜索和推荐 CoderHub 平台上的教程和文章
-            4. 沟通技巧：用清晰简洁的语言解释复杂概念
-            
-            当用户询问想要学习某个技术时，你应该：
-            1. 使用工具搜索相关的教程和文章
-            2. 基于搜索结果给出推荐
-            3. 同时提供一些学习建议
-            
-            ⚠️ 重要约束（防止幻觉）：
-            1. **严禁编造不存在的内容**：当使用工具搜索文章/教程时，只能介绍工具返回的真实文章标题。
-            2. **禁止发挥想象**：不要基于文章标题推测、编造或扩展其他不存在的文章。
-            3. **如实陈述**：如果工具返回了5篇文章，就说"找到5篇"，不要说"等等"或暗示还有更多。
-            4. **原文引用**：直接引用工具返回的文章标题和简介，不要改写或美化。
-            
+            3. 沟通技巧：用清晰简洁的语言解释复杂概念
+
             在回答时请注意：
             - 提供准确、实用的技术建议
             - 代码示例要完整且可运行
             - 适当使用 Markdown 格式组织回答
             - 对于代码块，请标注编程语言以便语法高亮
-            - 当推荐资源时，请告知用户这些都来自 CoderHub 平台
+            - 严禁编造不存在的平台内容、课程或文章
             """;
 
     /**
@@ -182,97 +192,30 @@ public class AIService {
     }
 
     /**
-     * 流式对话 - 核心方法（支持工具调用）
+     * 流式对话 - 普通模式（无 Agent、无工具调用，直接流式输出）
      */
     public Flux<ChatStreamEvent> streamChat(ChatRequestDTO request) {
-        String sessionId = request.getSessionId() != null ? 
+        String sessionId = request.getSessionId() != null ?
                 request.getSessionId() : java.util.UUID.randomUUID().toString();
         String model = request.getModel() != null ? request.getModel() : defaultModelName;
         double temperature = request.getTemperature() != null ? request.getTemperature() : 0.7;
         int maxTokens = request.getMaxTokens() != null ? request.getMaxTokens() : 4096;
-        
-        log.info("开始流式对话 - sessionId: {}, model: {}", sessionId, model);
-        String userMessage = request.getMessage();
+
+        log.info("开始普通流式对话 - sessionId: {}, model: {}", sessionId, model);
 
         return Flux.create(sink -> {
             try {
-                // 1. 发送思考中事件
-                sink.next(ChatStreamEvent.thinking(sessionId, model));
-                
-                // 2. 直接使用Agent进行对话（让Agent自主决策是否调用工具）
-                String toolResult = null;
-                List<RecommendItem> recommendations = new ArrayList<>();
-                
-                try {
-                    log.info("Agent开始处理消息，将自动决策是否调用工具");
-                    
-                    // 清理上一次的ThreadLocal（防止残留）
-                    TOOL_RESULT_JSON.remove();
-                    TOOL_NAME.remove();
-                    
-                    // Agent自主执行（可能调用工具，也可能直接回答）
-                    toolResult = coderHubAgent.chat(userMessage);
-                    
-                    log.info("Agent处理完成，工具结果: {}", toolResult != null ? toolResult.substring(0, Math.min(100, toolResult.length())) : "无");
-                    
-                    // 从ThreadLocal读取Tool执行时存储的原始JSON（绕过LLM改写）
-                    String capturedJson = TOOL_RESULT_JSON.get();
-                    String capturedToolName = TOOL_NAME.get();
-                    
-                    if (capturedJson != null) {
-                        try {
-                            log.info("✅ 从ThreadLocal捕获到原始JSON，长度: {} 字符，工具: {}", capturedJson.length(), capturedToolName);
-                            
-                            // 从JSON中提取keyword字段作为关键词（Tool已经提取过了）
-                            String keyword = "";
-                            try {
-                                com.fasterxml.jackson.databind.JsonNode jsonNode = new com.fasterxml.jackson.databind.ObjectMapper().readTree(capturedJson);
-                                keyword = jsonNode.get("keyword").asText();
-                                log.info("从Tool返回的JSON中提取关键词: {}", keyword);
-                            } catch (Exception ex) {
-                                log.warn("提取JSON中的keyword失败，使用fallback", ex);
-                                keyword = extractKeyword(userMessage);
-                            }
-                            recommendations = coderHubTools.searchAndGetRecommendations(keyword, 0, 6);
-                            log.info("获取 {} 个推荐结果", recommendations.size());
-                            
-                            // 发送工具调用完成状态（使用捕获的原始JSON）
-                            ToolCall toolCall = ToolCall.builder()
-                                    .toolName(capturedToolName != null ? capturedToolName : "智能检索")
-                                    .displayName("AI智能体")
-                                    .icon("🤖")
-                                    .parameters("关键词: " + keyword)
-                                    .status("success")
-                                    .resultCount(recommendations.size())
-                                    .toolResult(capturedJson)  // 使用ThreadLocal捕获的原始JSON
-                                    .build();
-                            sink.next(ChatStreamEvent.toolResult(sessionId, toolCall, recommendations));
-                        } catch (Exception e) {
-                            log.warn("解析工具结果失败: {}", e.getMessage());
-                        } finally {
-                            // 清理ThreadLocal避免内存泄漏
-                            TOOL_RESULT_JSON.remove();
-                            TOOL_NAME.remove();
-                        }
-                    }
-                    
-                } catch (Exception e) {
-                    log.error("Agent执行失败: {}", e.getMessage(), e);
-                }
-
-                // 3. 获取流式模型
+                // 直接获取流式模型，不做 Agent 同步调用
                 OpenAiStreamingChatModel streamingModel = getOrCreateStreamingModel(model, temperature, maxTokens);
-                
-                // 4. 构建消息列表
-                List<ChatMessage> messages = buildMessages(request, toolResult);
-                
-                // 5. 执行流式生成
+
+                // 构建消息列表（无工具结果）
+                List<ChatMessage> messages = buildMessages(request, null);
+
                 AtomicInteger tokenCount = new AtomicInteger(0);
                 StringBuilder fullResponse = new StringBuilder();
-                List<RecommendItem> finalRecommendations = recommendations;
-                
+
                 streamingModel.generate(messages, new StreamingResponseHandler<AiMessage>() {
-                    
+
                     @Override
                     public void onNext(String token) {
                         if (token != null && !token.isEmpty()) {
@@ -284,19 +227,14 @@ public class AIService {
 
                     @Override
                     public void onComplete(Response<AiMessage> response) {
-                        log.info("流式响应完成 - sessionId: {}, 总字符数: {}", 
+                        log.info("流式响应完成 - sessionId: {}, 总字符数: {}",
                                 sessionId, fullResponse.length());
-                        
+
                         ChatStreamEvent.TokenUsage usage = ChatStreamEvent.TokenUsage.builder()
                                 .outputTokens(tokenCount.get())
                                 .build();
-                        
-                        // 如果有推荐内容，附带在完成事件中
-                        if (!finalRecommendations.isEmpty()) {
-                            sink.next(ChatStreamEvent.doneWithRecommendations(sessionId, usage, finalRecommendations));
-                        } else {
+
                         sink.next(ChatStreamEvent.done(sessionId, usage));
-                        }
                         sink.complete();
                     }
 
@@ -307,7 +245,7 @@ public class AIService {
                         sink.complete();
                     }
                 });
-                
+
             } catch (Exception e) {
                 log.error("创建流式对话失败: {}", e.getMessage(), e);
                 sink.next(ChatStreamEvent.error("服务初始化失败: " + e.getMessage(), sessionId));
@@ -366,8 +304,8 @@ public class AIService {
         List<ChatMessage> messages = new ArrayList<>();
         
         // 1. 添加系统提示词
-        String systemPrompt = request.getSystemPrompt() != null ? 
-                request.getSystemPrompt() : SYSTEM_PROMPT_WITH_TOOLS;
+        String systemPrompt = request.getSystemPrompt() != null ?
+                request.getSystemPrompt() : SYSTEM_PROMPT_SIMPLE;
         messages.add(SystemMessage.from(systemPrompt));
         
         // 2. 从数据库加载历史对话（如果有 conversationId）
@@ -437,99 +375,196 @@ public class AIService {
         return message;
     }
 
-    // ==================== RAG 增强对话 ====================
+    // ==================== RAG 增强对话（HyDE + 混合召回） ====================
 
     /**
-     * RAG增强系统提示词
+     * RAG增强系统提示词（检索片段模式）
      */
     private static final String RAG_SYSTEM_PROMPT = """
             你是 CoderHub AI 助手，一个专业的编程技术顾问。
-            
-            以下是从 CoderHub 知识库中检索到的与用户问题相关的博客文章内容，请基于这些内容回答用户的问题：
-            
+
+            以下是从 CoderHub 知识库中检索到的与用户问题相关的文章段落：
+
             【知识库参考资料】
             %s
-            
+
             回答要求：
-            1. 优先基于上述参考资料回答，确保答案准确且有据可查
-            2. 如果参考资料不足以完整回答问题，可以结合你的专业知识补充
-            3. 适当引用参考资料中的内容，增强可信度
-            4. 使用 Markdown 格式组织回答，代码块标注语言
-            5. 如果问题超出参考资料范围，坦诚告知并给出你的专业建议
+            1. **仅基于上述参考资料回答**，不得编造、虚构任何不在上述资料中的文章、课程、教程标题或内容
+            2. 如果参考资料中确实包含相关内容，直接引用原文标题和段落
+            3. 如果参考资料不足以回答问题，明确告知用户"知识库中暂无相关内容"，然后基于你的通用知识给出建议，但不得伪装为平台内容
+            4. 使用 Markdown 格式，代码块标注语言
+            5. **绝对禁止**：编造文章标题、虚构课程名称、伪造推荐列表
             """;
 
     /**
-     * RAG增强的流式对话 - 基于知识库检索
-     * 
-     * 核心逻辑：
-     * 1. 将问题向量化
-     * 2. 从ChromaDB检索Top-K篇相似博客
-     * 3. 将检索结果作为上下文
-     * 4. 调用LLM生成回答
+     * RAG增强系统提示词（全文阅读模式 — 用户指定了文章ID）
+     */
+    private static final String RAG_FULLTEXT_SYSTEM_PROMPT = """
+            你是 CoderHub AI 助手，一个专业的编程技术顾问。
+
+            用户请求你深入阅读并讲解一篇平台文章。以下是该文章的完整内容（已从平台数据库获取）：
+
+            【文章全文】
+            标题：《%s》
+
+            %s
+
+            回答要求：
+            1. 你已经成功获取了这篇文章的完整内容，请直接基于上述文章全文进行详细讲解
+            2. 提炼文章的核心知识点，用结构化的方式呈现
+            3. 对关键概念和代码示例做深入解读
+            4. 使用 Markdown 格式，代码块标注语言
+            5. 如果文章涉及实战内容，可以补充最佳实践建议
+            """;
+
+    /**
+     * HyDE 提示词：让 LLM 生成假设性答案文档，用于向量检索
+     */
+    private static final String HYDE_PROMPT = """
+            请根据以下问题，生成一段约150字的假设性技术文档片段。
+            不需要完全正确，只需要语义上贴近可能的答案。直接输出文档片段，不要有其他说明。
+
+            问题：%s
+            """;
+
+    /**
+     * RAG增强的流式对话 - HyDE + 多路召回 + 真实进度反馈
      */
     public Flux<ChatStreamEvent> streamChatWithRAG(ChatRequestDTO request) {
-        String sessionId = request.getSessionId() != null ? 
+        String sessionId = request.getSessionId() != null ?
                 request.getSessionId() : java.util.UUID.randomUUID().toString();
         String model = request.getModel() != null ? request.getModel() : defaultModelName;
         double temperature = request.getTemperature() != null ? request.getTemperature() : 0.7;
         int maxTokens = request.getMaxTokens() != null ? request.getMaxTokens() : 4096;
-        
-        log.info("开始RAG增强对话 - sessionId: {}, model: {}", sessionId, model);
+
+        log.info("开始RAG增强对话（HyDE+混合召回） - sessionId: {}, model: {}", sessionId, model);
         String userMessage = request.getMessage();
 
         return Flux.create(sink -> {
             try {
                 // 1. 发送思考中事件
                 sink.next(ChatStreamEvent.thinking(sessionId, model));
-                
-                // 2. 发送RAG检索状态
-                ToolCall ragToolCall = ToolCall.builder()
-                        .toolName("ragRetrieval")
-                        .displayName("知识库检索")
-                        .icon("🔍")
-                        .parameters("检索问题: " + (userMessage.length() > 50 ? 
-                                userMessage.substring(0, 50) + "..." : userMessage))
-                        .status("calling")
-                        .build();
-                sink.next(ChatStreamEvent.toolCalling(sessionId, ragToolCall));
 
-                // 3. 执行RAG检索
-                List<RetrievedArticle> retrievedArticles = retrieveRelevantArticles(userMessage);
-                
-                if (retrievedArticles.isEmpty()) {
-                    log.info("RAG检索无结果，使用普通对话模式");
-                    ragToolCall.setStatus("no_result");
-                    sink.next(ChatStreamEvent.toolResult(sessionId, ragToolCall, null));
-                } else {
-                    log.info("RAG检索成功，获取到 {} 篇相关文章", retrievedArticles.size());
-                    ragToolCall.setStatus("success");
-                    ragToolCall.setResultCount(retrievedArticles.size());
-                    
-                    // 构建推荐列表
-                    List<RecommendItem> recommendations = new ArrayList<>();
-                    for (RetrievedArticle a : retrievedArticles) {
-                        recommendations.add(RecommendItem.builder()
-                                .id(a.articleId)
-                                .title(a.title)
-                                .type("article")
-                                .rating(a.score * 100) // 转换为百分比
-                                .build());
+                // 2. 检测用户消息中是否包含文章ID（UUID格式）
+                String detectedArticleId = extractArticleId(userMessage);
+                List<RetrievedArticle> retrievedChunks;
+
+                if (detectedArticleId != null) {
+                    // === 指定文章模式：直接下载全文 ===
+                    ToolCall ragToolCall = ToolCall.builder()
+                            .toolName("ragRetrieval").displayName("深度检索")
+                            .icon("🔍").parameters("正在下载文章全文...").status("calling").build();
+                    sink.next(ChatStreamEvent.toolCalling(sessionId, ragToolCall));
+
+                    retrievedChunks = retrieveArticleById(detectedArticleId, userMessage);
+
+                    if (retrievedChunks.isEmpty()) {
+                        ragToolCall.setStatus("no_result");
+                        ragToolCall.setParameters("文章内容获取失败");
+                        sink.next(ChatStreamEvent.toolResult(sessionId, ragToolCall, null));
+                    } else {
+                        ragToolCall.setStatus("success");
+                        ragToolCall.setResultCount(retrievedChunks.size());
+                        ragToolCall.setParameters("已获取文章《" + retrievedChunks.get(0).title + "》全文");
+                        sink.next(ChatStreamEvent.toolResult(sessionId, ragToolCall, null));
                     }
-                    sink.next(ChatStreamEvent.toolResult(sessionId, ragToolCall, recommendations));
+                } else {
+                    // === 常规 RAG 模式：HyDE + 混合召回，带真实进度 ===
+
+                    // Step 1: HyDE 生成假设文档
+                    ToolCall ragToolCall = ToolCall.builder()
+                            .toolName("ragRetrieval").displayName("深度检索")
+                            .icon("🔍").parameters("正在生成 HyDE 假设文档...").status("calling").build();
+                    sink.next(ChatStreamEvent.toolCalling(sessionId, ragToolCall));
+
+                    String hydeDoc = generateHyDE(userMessage);
+                    log.info("HyDE 假设文档生成完成，长度: {} 字符", hydeDoc.length());
+
+                    // Step 2: 向量检索
+                    ragToolCall.setParameters("正在向量检索 Top-K 相关段落...");
+                    sink.next(ChatStreamEvent.toolCalling(sessionId, ragToolCall));
+
+                    List<RetrievedArticle> vectorResults = new ArrayList<>();
+                    try {
+                        TextSegment hydeSegment = TextSegment.from(hydeDoc);
+                        Embedding hydeEmbedding = embeddingModel.embed(hydeSegment).content();
+                        EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                                .queryEmbedding(hydeEmbedding).maxResults(RAG_TOP_K).minScore(0.4).build();
+                        EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
+                        vectorResults = searchResult.matches().stream().map(match -> {
+                            RetrievedArticle a = new RetrievedArticle();
+                            a.content = match.embedded().text();
+                            a.score = match.score();
+                            if (match.embedded().metadata() != null) {
+                                a.articleId = match.embedded().metadata().getString("articleId");
+                                a.title = match.embedded().metadata().getString("title");
+                                a.authorName = match.embedded().metadata().getString("authorName");
+                            }
+                            return a;
+                        }).collect(Collectors.toList());
+                        log.info("HyDE 向量召回: {} 个结果", vectorResults.size());
+                    } catch (Exception e) {
+                        log.warn("HyDE 向量召回失败: {}", e.getMessage());
+                    }
+
+                    // Step 3: 关键词召回
+                    ragToolCall.setParameters("正在关键词召回 + RRF 融合排序...");
+                    sink.next(ChatStreamEvent.toolCalling(sessionId, ragToolCall));
+
+                    List<RetrievedArticle> keywordResults = new ArrayList<>();
+                    try {
+                        String keyword = extractKeyword(userMessage);
+                        if (!keyword.isEmpty()) {
+                            List<Article> dbArticles = articleMapper.searchByKeyword(keyword, BM25_TOP_K);
+                            for (int i = 0; i < dbArticles.size(); i++) {
+                                Article a = dbArticles.get(i);
+                                RetrievedArticle ra = new RetrievedArticle();
+                                ra.articleId = a.getId(); ra.title = a.getTitle();
+                                ra.content = (a.getTitle() != null ? a.getTitle() : "") + "\n" +
+                                             (a.getSummary() != null ? a.getSummary() : "");
+                                ra.score = 0.8 - (i * 0.05);
+                                keywordResults.add(ra);
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("关键词召回失败: {}", e.getMessage());
+                    }
+
+                    retrievedChunks = mergeWithRRF(vectorResults, keywordResults, 5);
+
+                    // Step 4: 完成检索
+                    if (retrievedChunks.isEmpty()) {
+                        ragToolCall.setStatus("no_result");
+                        ragToolCall.setParameters("未找到相关内容");
+                        sink.next(ChatStreamEvent.toolResult(sessionId, ragToolCall, null));
+                    } else {
+                        ragToolCall.setStatus("success");
+                        ragToolCall.setResultCount(retrievedChunks.size());
+                        ragToolCall.setParameters(retrievedChunks.size() + " 条结果");
+                        List<RecommendItem> recommendations = new ArrayList<>();
+                        retrievedChunks.stream()
+                                .collect(Collectors.toMap(
+                                        a -> a.articleId != null ? a.articleId : "",
+                                        a -> a, (a1, a2) -> a1.score > a2.score ? a1 : a2))
+                                .values().forEach(a -> recommendations.add(RecommendItem.builder()
+                                        .id(a.articleId).title(a.title).type("article")
+                                        .rating(a.score * 100).build()));
+                        sink.next(ChatStreamEvent.toolResult(sessionId, ragToolCall, recommendations));
+                    }
                 }
 
-                // 4. 获取流式模型
+                // 5. 获取流式模型
                 OpenAiStreamingChatModel streamingModel = getOrCreateStreamingModel(model, temperature, maxTokens);
-                
-                // 5. 构建带RAG上下文的消息列表
-                List<ChatMessage> messages = buildRAGMessages(request, retrievedArticles);
-                
-                // 6. 执行流式生成
+
+                // 6. 构建带RAG上下文的消息列表
+                boolean isFullTextMode = (detectedArticleId != null && !retrievedChunks.isEmpty());
+                List<ChatMessage> messages = buildRAGMessages(request, retrievedChunks, isFullTextMode);
+
+                // 7. 执行流式生成
                 AtomicInteger tokenCount = new AtomicInteger(0);
                 StringBuilder fullResponse = new StringBuilder();
-                
+
                 streamingModel.generate(messages, new StreamingResponseHandler<AiMessage>() {
-                    
                     @Override
                     public void onNext(String token) {
                         if (token != null && !token.isEmpty()) {
@@ -538,20 +573,14 @@ public class AIService {
                             sink.next(ChatStreamEvent.message(token, sessionId));
                         }
                     }
-
                     @Override
                     public void onComplete(Response<AiMessage> response) {
-                        log.info("RAG对话完成 - sessionId: {}, 总字符数: {}", 
-                                sessionId, fullResponse.length());
-                        
+                        log.info("RAG对话完成 - sessionId: {}, 总字符数: {}", sessionId, fullResponse.length());
                         ChatStreamEvent.TokenUsage usage = ChatStreamEvent.TokenUsage.builder()
-                                .outputTokens(tokenCount.get())
-                                .build();
-                        
+                                .outputTokens(tokenCount.get()).build();
                         sink.next(ChatStreamEvent.done(sessionId, usage));
                         sink.complete();
                     }
-
                     @Override
                     public void onError(Throwable error) {
                         log.error("RAG对话出错 - sessionId: {}, error: {}", sessionId, error.getMessage());
@@ -559,7 +588,7 @@ public class AIService {
                         sink.complete();
                     }
                 });
-                
+
             } catch (Exception e) {
                 log.error("RAG对话失败: {}", e.getMessage(), e);
                 sink.next(ChatStreamEvent.error("RAG服务异常: " + e.getMessage(), sessionId));
@@ -569,31 +598,247 @@ public class AIService {
     }
 
     /**
-     * 从向量数据库检索相关文章
+     * 从用户消息中提取文章ID（UUID格式）
+     */
+    private String extractArticleId(String message) {
+        if (message == null) return null;
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", java.util.regex.Pattern.CASE_INSENSITIVE)
+                .matcher(message);
+        if (matcher.find()) {
+            String id = matcher.group();
+            // 验证是否真的是文章ID
+            Article article = articleMapper.getById(id);
+            return article != null ? id : null;
+        }
+        return null;
+    }
+
+    /**
+     * 通过文章ID获取全文内容（优先 Redis 缓存，未命中则下载并缓存）
+     * 使用 synchronized 保证同一篇文章只有第一个请求下载，后续直接读缓存
+     */
+    private List<RetrievedArticle> retrieveArticleById(String articleId, String userQuery) {
+        List<RetrievedArticle> results = new ArrayList<>();
+        try {
+            Article article = articleMapper.getById(articleId);
+            if (article == null || article.getContentUrl() == null) return results;
+
+            String redisKey = RedisConstant.ARTICLE_FULLTEXT + articleId;
+            String content = null;
+
+            // 1. 优先从 Redis 读取缓存
+            Object cached = redisService.get(redisKey);
+            if (cached != null && !cached.toString().trim().isEmpty()) {
+                content = cached.toString();
+                log.info("文章全文命中 Redis 缓存: articleId={}, length={}", articleId, content.length());
+            } else {
+                // 2. 未命中，synchronized 保证只有一个线程下载
+                synchronized (articleId.intern()) {
+                    // double-check：拿锁后再查一次缓存，防止重复下载
+                    Object doubleCheck = redisService.get(redisKey);
+                    if (doubleCheck != null && !doubleCheck.toString().trim().isEmpty()) {
+                        content = doubleCheck.toString();
+                        log.info("文章全文 double-check 命中缓存: articleId={}", articleId);
+                    } else {
+                        // 3. 从 OSS 下载
+                        content = ossContentService.downloadMarkdownContent(article.getContentUrl());
+                        if (content != null && !content.trim().isEmpty()) {
+                            // 4. 存入 Redis，TTL 2小时
+                            redisService.set(redisKey, content, RedisConstant.EXPIRE_2_HOURS);
+                            log.info("文章全文已下载并缓存到 Redis: articleId={}, length={}", articleId, content.length());
+                        }
+                    }
+                }
+            }
+
+            if (content == null || content.trim().isEmpty()) return results;
+
+            // 全文过长时截断
+            if (content.length() > 6000) {
+                content = content.substring(0, 6000) + "\n\n...(内容已截断)";
+            }
+
+            RetrievedArticle ra = new RetrievedArticle();
+            ra.articleId = articleId;
+            ra.title = article.getTitle();
+            ra.content = content;
+            ra.score = 1.0;
+            results.add(ra);
+
+            log.info("文章全文获取成功: title={}, length={}", article.getTitle(), content.length());
+        } catch (Exception e) {
+            log.error("获取文章全文失败: articleId={}", articleId, e);
+        }
+        return results;
+    }
+
+    /**
+     * HyDE + 多路召回检索
+     *
+     * 路1（语义）: 用 HyDE 生成假设文档 → Embedding → ChromaDB Top-K
+     * 路2（关键词）: 从问题提取关键词 → MySQL LIKE 搜索 → 取标题+摘要
+     * 合并: RRF（Reciprocal Rank Fusion）排序 → 取 Top-5
+     */
+    private List<RetrievedArticle> retrieveWithHyDE(String query) {
+        try {
+            // === 路1：HyDE 语义召回 ===
+            List<RetrievedArticle> vectorResults = new ArrayList<>();
+            try {
+                // 生成假设性文档
+                String hydeDoc = generateHyDE(query);
+                log.info("HyDE 假设文档生成完成，长度: {} 字符", hydeDoc.length());
+
+                // 用假设文档做向量检索
+                TextSegment hydeSegment = TextSegment.from(hydeDoc);
+                Embedding hydeEmbedding = embeddingModel.embed(hydeSegment).content();
+
+                EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
+                        .queryEmbedding(hydeEmbedding)
+                        .maxResults(RAG_TOP_K)
+                        .minScore(0.4)
+                        .build();
+                EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
+
+                vectorResults = searchResult.matches().stream()
+                        .map(match -> {
+                            RetrievedArticle article = new RetrievedArticle();
+                            article.content = match.embedded().text();
+                            article.score = match.score();
+                            if (match.embedded().metadata() != null) {
+                                article.articleId = match.embedded().metadata().getString("articleId");
+                                article.title = match.embedded().metadata().getString("title");
+                                article.authorName = match.embedded().metadata().getString("authorName");
+                            }
+                            return article;
+                        })
+                        .collect(Collectors.toList());
+
+                log.info("HyDE 向量召回: {} 个结果", vectorResults.size());
+            } catch (Exception e) {
+                log.warn("HyDE 向量召回失败，降级为原始查询: {}", e.getMessage());
+                // 降级：直接用原始问题做向量检索
+                vectorResults = retrieveRelevantArticles(query);
+            }
+
+            // === 路2：MySQL 关键词召回 ===
+            List<RetrievedArticle> keywordResults = new ArrayList<>();
+            try {
+                String keyword = extractKeyword(query);
+                if (!keyword.isEmpty()) {
+                    List<Article> dbArticles = articleMapper.searchByKeyword(keyword, BM25_TOP_K);
+                    for (int i = 0; i < dbArticles.size(); i++) {
+                        Article a = dbArticles.get(i);
+                        RetrievedArticle ra = new RetrievedArticle();
+                        ra.articleId = a.getId();
+                        ra.title = a.getTitle();
+                        ra.content = (a.getTitle() != null ? a.getTitle() : "") + "\n" +
+                                     (a.getSummary() != null ? a.getSummary() : "");
+                        ra.score = 0.8 - (i * 0.05); // 按排名递减分数
+                        keywordResults.add(ra);
+                    }
+                    log.info("关键词召回: {} 个结果, keyword={}", keywordResults.size(), keyword);
+                }
+            } catch (Exception e) {
+                log.warn("关键词召回失败: {}", e.getMessage());
+            }
+
+            // === RRF 合并去重 ===
+            return mergeWithRRF(vectorResults, keywordResults, 5);
+
+        } catch (Exception e) {
+            log.error("HyDE 混合检索失败: {}", e.getMessage(), e);
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * HyDE: 调用 LLM 生成假设性答案文档
+     * 使用 qwen-turbo 快速生成，低成本
+     */
+    private String generateHyDE(String query) {
+        try {
+            OpenAiChatModel hydeModel = syncModelCache.computeIfAbsent("hyde_qwen-turbo", k ->
+                    OpenAiChatModel.builder()
+                            .apiKey(apiKey)
+                            .baseUrl(baseUrl)
+                            .modelName("qwen-turbo")
+                            .temperature(0.3)
+                            .maxTokens(300)
+                            .logRequests(false)
+                            .logResponses(false)
+                            .build());
+
+            String prompt = String.format(HYDE_PROMPT, query);
+            String result = hydeModel.generate(prompt);
+            return result != null ? result : query;
+        } catch (Exception e) {
+            log.warn("HyDE 生成失败，使用原始查询: {}", e.getMessage());
+            return query;
+        }
+    }
+
+    /**
+     * RRF（Reciprocal Rank Fusion）合并两路召回结果
+     * score = sum(1 / (rank_i + 60)) 对每一路
+     */
+    private List<RetrievedArticle> mergeWithRRF(
+            List<RetrievedArticle> vectorResults,
+            List<RetrievedArticle> keywordResults,
+            int topN) {
+
+        // 用 content hash 去重，以向量结果优先
+        java.util.Map<String, RetrievedArticle> articleMap = new java.util.LinkedHashMap<>();
+        java.util.Map<String, Double> rrfScores = new java.util.HashMap<>();
+
+        // 向量路按排名计分
+        for (int i = 0; i < vectorResults.size(); i++) {
+            RetrievedArticle a = vectorResults.get(i);
+            String key = a.articleId != null ? a.articleId + "_" + a.content.hashCode() : String.valueOf(a.content.hashCode());
+            articleMap.put(key, a);
+            rrfScores.merge(key, 1.0 / (i + 60), Double::sum);
+        }
+
+        // 关键词路按排名计分
+        for (int i = 0; i < keywordResults.size(); i++) {
+            RetrievedArticle a = keywordResults.get(i);
+            String key = a.articleId != null ? a.articleId + "_kw" : String.valueOf(a.content.hashCode());
+            articleMap.putIfAbsent(key, a);
+            rrfScores.merge(key, 1.0 / (i + 60), Double::sum);
+        }
+
+        // 按 RRF 分数排序，取 topN
+        return rrfScores.entrySet().stream()
+                .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+                .limit(topN)
+                .map(entry -> {
+                    RetrievedArticle article = articleMap.get(entry.getKey());
+                    article.score = entry.getValue();
+                    return article;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 原始向量检索（降级方案 / 直接查询）
      */
     private List<RetrievedArticle> retrieveRelevantArticles(String query) {
         try {
-            // 1. 将问题向量化
             TextSegment querySegment = TextSegment.from(query);
             Embedding queryEmbedding = embeddingModel.embed(querySegment).content();
-            
-            // 2. 检索相似文章
+
             EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
                     .queryEmbedding(queryEmbedding)
                     .maxResults(RAG_TOP_K)
-                    .minScore(0.5) // 最低相似度阈值
+                    .minScore(0.4)
                     .build();
             EmbeddingSearchResult<TextSegment> searchResult = embeddingStore.search(searchRequest);
-            List<EmbeddingMatch<TextSegment>> matches = searchResult.matches();
-            
-            // 3. 构建结果列表
-            return matches.stream()
+
+            return searchResult.matches().stream()
                     .map(match -> {
                         RetrievedArticle article = new RetrievedArticle();
                         article.content = match.embedded().text();
                         article.score = match.score();
-                        
-                        // 从metadata中提取信息
                         if (match.embedded().metadata() != null) {
                             article.articleId = match.embedded().metadata().getString("articleId");
                             article.title = match.embedded().metadata().getString("title");
@@ -602,22 +847,32 @@ public class AIService {
                         return article;
                     })
                     .collect(Collectors.toList());
-                    
         } catch (Exception e) {
-            log.error("RAG检索失败: {}", e.getMessage(), e);
+            log.error("向量检索失败: {}", e.getMessage(), e);
             return new ArrayList<>();
         }
     }
 
     /**
      * 构建带RAG上下文的消息列表
+     * @param isFullTextMode true=全文阅读模式（指定文章ID），false=检索片段模式
      */
-    private List<ChatMessage> buildRAGMessages(ChatRequestDTO request, List<RetrievedArticle> articles) {
+    private List<ChatMessage> buildRAGMessages(ChatRequestDTO request, List<RetrievedArticle> articles, boolean isFullTextMode) {
         List<ChatMessage> messages = new ArrayList<>();
-        
-        // 1. 构建RAG系统提示词
-        String ragContext = buildRAGContext(articles);
-        String systemPrompt = String.format(RAG_SYSTEM_PROMPT, ragContext);
+
+        // 1. 构建系统提示词（区分全文模式和检索模式）
+        String systemPrompt;
+        if (isFullTextMode && !articles.isEmpty()) {
+            RetrievedArticle fullArticle = articles.get(0);
+            String content = fullArticle.content != null ? fullArticle.content : "";
+            systemPrompt = String.format(RAG_FULLTEXT_SYSTEM_PROMPT,
+                    fullArticle.title != null ? fullArticle.title : "未知文章",
+                    content);
+            log.info("全文阅读模式 - 文章: {}, 内容长度: {} 字符", fullArticle.title, content.length());
+        } else {
+            String ragContext = buildRAGContext(articles);
+            systemPrompt = String.format(RAG_SYSTEM_PROMPT, ragContext);
+        }
         messages.add(SystemMessage.from(systemPrompt));
         
         // 2. 添加历史对话（如果有）
@@ -641,24 +896,22 @@ public class AIService {
     }
 
     /**
-     * 构建RAG检索结果上下文
+     * 构建RAG检索结果上下文（适配 chunk 段落）
      */
     private String buildRAGContext(List<RetrievedArticle> articles) {
         if (articles.isEmpty()) {
-            return "（未找到相关参考资料，请基于你的专业知识回答）";
+            return "（知识库中未找到相关参考资料。请直接基于你的通用专业知识回答，但不得编造任何平台文章、课程或教程。如果无法回答，坦诚告知。）";
         }
-        
+
         StringBuilder context = new StringBuilder();
         for (int i = 0; i < articles.size(); i++) {
             RetrievedArticle article = articles.get(i);
-            context.append(String.format("\n--- 参考文章 %d (相似度: %.1f%%) ---\n", 
-                    i + 1, article.score * 100));
-            context.append("标题: ").append(article.title != null ? article.title : "未知").append("\n");
+            context.append(String.format("\n--- 参考段落 %d (来源: %s) ---\n",
+                    i + 1, article.title != null ? article.title : "未知文章"));
             if (article.authorName != null) {
                 context.append("作者: ").append(article.authorName).append("\n");
             }
-            context.append("内容摘要:\n");
-            // 限制每篇文章的内容长度
+            context.append("内容:\n");
             String content = article.content;
             if (content != null && content.length() > 1500) {
                 content = content.substring(0, 1500) + "...";
@@ -669,32 +922,7 @@ public class AIService {
     }
 
     /**
-     * 从AI回复中提取XML标记的JSON数据
-     * Tool返回时会添加 <TOOL_RESULT_JSON>{...}</TOOL_RESULT_JSON> 标记
-     */
-    private String extractToolResultJson(String text) {
-        if (text == null || !text.contains("<TOOL_RESULT_JSON>")) {
-            return null;
-        }
-        
-        try {
-            int startTag = text.indexOf("<TOOL_RESULT_JSON>");
-            int endTag = text.indexOf("</TOOL_RESULT_JSON>");
-            
-            if (startTag != -1 && endTag != -1 && endTag > startTag) {
-                String json = text.substring(startTag + "<TOOL_RESULT_JSON>".length(), endTag).trim();
-                log.info("成功提取工具返回的JSON，长度: {} 字符", json.length());
-                return json;
-            }
-        } catch (Exception e) {
-            log.warn("提取工具JSON失败: {}", e.getMessage());
-        }
-        
-        return null;
-    }
-
-    /**
-     * 检索到的文章内部类
+     * 检索到的文章/段落内部类
      */
     @lombok.Data
     private static class RetrievedArticle {

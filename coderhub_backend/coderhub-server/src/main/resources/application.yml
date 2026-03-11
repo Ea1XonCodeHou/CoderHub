@@ -55,6 +55,20 @@ spring:
           max-attempts: 3         # 最多重试 3 次
           multiplier: 2.0         # 重试间隔翻倍（3s → 6s → 12s）
 
+  # 邮件发送配置（163邮箱 SMTP）
+  mail:
+    host: smtp.163.com
+    port: 465
+    username: coderhub_net@163.com
+    password: QUcH7C6JENP3WB7B
+    default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          ssl:
+            enable: true
+          auth: true
+
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.eaxon.coderhubpojo.entity

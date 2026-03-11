@@ -119,5 +119,22 @@ public interface ArticleMapper {
      * @return 文章列表
      */
     List<Article> getHotArticles(@Param("limit") Integer limit);
+
+    /**
+     * 管理端：分页查询所有文章（不限状态）
+     */
+    List<Article> adminListAll(@Param("keyword") String keyword,
+                               @Param("status") Integer status,
+                               @Param("auditStatus") Integer auditStatus);
+
+    /**
+     * 管理端：更新文章状态（隐藏/恢复）
+     */
+    void updateStatus(@Param("id") String id, @Param("status") Integer status);
+
+    /**
+     * 管理端：更新置顶状态
+     */
+    void updateIsTop(@Param("id") String id, @Param("isTop") Integer isTop);
 }
 
