@@ -120,6 +120,8 @@ services:
       - AI_API_KEY=${AI_API_KEY}
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
     deploy:
       resources:
         limits:

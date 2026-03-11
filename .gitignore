@@ -22,3 +22,9 @@ mysql/data/
 redis/data/
 minio/data/
 chroma/data/
+mysql/
+rabbitmq/
+
+# local-development files
+develop_log/
+question/

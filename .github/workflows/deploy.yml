@@ -19,7 +19,9 @@ jobs:
             git pull origin main
             # 兼容性检查：优先使用新版 docker compose
             if docker compose version &> /dev/null; then
+              docker compose down
               docker compose up -d --build
             else
+              docker-compose down
               docker-compose up -d --build
             fi
