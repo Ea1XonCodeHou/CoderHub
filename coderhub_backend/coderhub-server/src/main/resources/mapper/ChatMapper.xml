@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eaxon.coderhubserver.mapper.ChatMapper">
+
+    <!-- ==================== 会话操作 ==================== -->
+
+    <insert id="insertConversation">
+        INSERT INTO chat_conversation (id, user1_id, user2_id, created_at)
+        VALUES (#{id}, #{user1Id}, #{user2Id}, #{createdAt})
+    </insert>
+
+    <select id="findConversationByUsers" resultType="com.eaxon.coderhubpojo.entity.ChatConversation">
+        SELECT id, user1_id, user2_id, last_message, last_msg_at, created_at
+        FROM chat_conversation
+        WHERE user1_id = #{user1Id} AND user2_id = #{user2Id}
+        LIMIT 1
+    </select>
+
+    <select id="findConversationById" resultType="com.eaxon.coderhubpojo.entity.ChatConversation">
+        SELECT id, user1_id, user2_id, last_message, last_msg_at, created_at
+        FROM chat_conversation
+        WHERE id = #{id}
+    </select>
+
+    <select id="findUserConversations" resultType="com.eaxon.coderhubpojo.entity.ChatConversation">
+        SELECT id, user1_id, user2_id, last_message, last_msg_at, created_at
+        FROM chat_conversation
+        WHERE user1_id = #{userId} OR user2_id = #{userId}
+        ORDER BY COALESCE(last_msg_at, created_at) DESC
+    </select>
+
+    <update id="updateLastMessage">
+        UPDATE chat_conversation
+        SET last_message = #{lastMessage}, last_msg_at = #{lastMsgAt}
+        WHERE id = #{id}
+    </update>
+
+    <!-- ==================== 消息操作 ==================== -->
+
+    <insert id="insertMessage">
+        INSERT INTO chat_message (id, conversation_id, sender_id, receiver_id, content, is_read, created_at)
+        VALUES (#{id}, #{conversationId}, #{senderId}, #{receiverId}, #{content}, #{isRead}, #{createdAt})
+    </insert>
+
+    <select id="findMessages" resultType="com.eaxon.coderhubpojo.entity.ChatMsg">
+        SELECT id, conversation_id, sender_id, receiver_id, content, is_read, created_at
+        FROM chat_message
+        WHERE conversation_id = #{conversationId}
+        ORDER BY created_at ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(*) FROM chat_message
+        WHERE receiver_id = #{receiverId} AND is_read = 0
+    </select>
+
+    <select id="countUnreadInConversation" resultType="int">
+        SELECT COUNT(*) FROM chat_message
+        WHERE conversation_id = #{conversationId}
+          AND receiver_id = #{receiverId}
+          AND is_read = 0
+    </select>
+
+    <update id="markConversationAsRead">
+        UPDATE chat_message
+        SET is_read = 1
+        WHERE conversation_id = #{conversationId}
+          AND receiver_id = #{receiverId}
+          AND is_read = 0
+    </update>
+
+</mapper>

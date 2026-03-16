@@ -104,6 +104,9 @@ public class AIService {
     @Autowired
     private OssContentService ossContentService;
 
+    @Autowired
+    private WebSearchService webSearchService;
+
     /** 上下文窗口最大消息数 */
     private static final int MAX_CONTEXT_MESSAGES = 20;
 
@@ -553,14 +556,61 @@ public class AIService {
                     }
                 }
 
-                // 5. 获取流式模型
+                // 5. 联网搜索（如果开启，优先级低于本地RAG，追加在RAG之后）
+                String webContext = null;
+                if (Boolean.TRUE.equals(request.getUseWebSearch())) {
+                    ToolCall webToolCall = ToolCall.builder()
+                            .toolName("webSearch").displayName("联网搜索")
+                            .icon("🌐").parameters("正在搜索互联网...").status("calling").build();
+                    sink.next(ChatStreamEvent.toolCalling(sessionId, webToolCall));
+
+                    List<WebSearchService.WebSearchResult> webResults = webSearchService.search(userMessage, 5);
+
+                    if (webResults.isEmpty()) {
+                        webToolCall.setStatus("no_result");
+                        webToolCall.setParameters("未找到相关网络内容");
+                        sink.next(ChatStreamEvent.toolResult(sessionId, webToolCall, null));
+                    } else {
+                        webToolCall.setStatus("success");
+                        webToolCall.setResultCount(webResults.size());
+                        webToolCall.setParameters("找到 " + webResults.size() + " 条互联网结果");
+
+                        List<RecommendItem> webRecommendations = new ArrayList<>();
+                        for (WebSearchService.WebSearchResult r : webResults) {
+                            webRecommendations.add(RecommendItem.builder()
+                                    .type("web")
+                                    .title(r.getTitle())
+                                    .description(r.getContent().length() > 120
+                                            ? r.getContent().substring(0, 120) + "..." : r.getContent())
+                                    .link(r.getUrl())
+                                    .sourceUrl(r.getUrl())
+                                    .siteName(r.getSiteName())
+                                    .rating(r.getScore() * 100)
+                                    .build());
+                        }
+                        sink.next(ChatStreamEvent.toolResult(sessionId, webToolCall, webRecommendations));
+
+                        // 构建供LLM参考的网络内容上下文（优先级低于本地RAG）
+                        StringBuilder wb = new StringBuilder("\n【互联网检索补充】\n以下为网络搜索内容，仅作补充参考，优先采用上方平台知识库的内容：\n");
+                        for (int i = 0; i < webResults.size(); i++) {
+                            WebSearchService.WebSearchResult r = webResults.get(i);
+                            wb.append(String.format("\n--- 网络资料 %d (来源: %s) ---\n", i + 1, r.getSiteName()));
+                            wb.append("标题: ").append(r.getTitle()).append("\n");
+                            String c = r.getContent().length() > 1000 ? r.getContent().substring(0, 1000) + "..." : r.getContent();
+                            wb.append("内容:\n").append(c).append("\n");
+                        }
+                        webContext = wb.toString();
+                    }
+                }
+
+                // 6. 获取流式模型
                 OpenAiStreamingChatModel streamingModel = getOrCreateStreamingModel(model, temperature, maxTokens);
 
-                // 6. 构建带RAG上下文的消息列表
+                // 7. 构建带RAG上下文的消息列表
                 boolean isFullTextMode = (detectedArticleId != null && !retrievedChunks.isEmpty());
-                List<ChatMessage> messages = buildRAGMessages(request, retrievedChunks, isFullTextMode);
+                List<ChatMessage> messages = buildRAGMessages(request, retrievedChunks, isFullTextMode, webContext);
 
-                // 7. 执行流式生成
+                // 8. 执行流式生成
                 AtomicInteger tokenCount = new AtomicInteger(0);
                 StringBuilder fullResponse = new StringBuilder();
 
@@ -857,7 +907,7 @@ public class AIService {
      * 构建带RAG上下文的消息列表
      * @param isFullTextMode true=全文阅读模式（指定文章ID），false=检索片段模式
      */
-    private List<ChatMessage> buildRAGMessages(ChatRequestDTO request, List<RetrievedArticle> articles, boolean isFullTextMode) {
+    private List<ChatMessage> buildRAGMessages(ChatRequestDTO request, List<RetrievedArticle> articles, boolean isFullTextMode, String webContext) {
         List<ChatMessage> messages = new ArrayList<>();
 
         // 1. 构建系统提示词（区分全文模式和检索模式）
@@ -874,8 +924,13 @@ public class AIService {
             systemPrompt = String.format(RAG_SYSTEM_PROMPT, ragContext);
         }
         messages.add(SystemMessage.from(systemPrompt));
-        
-        // 2. 添加历史对话（如果有）
+
+        // 2. 如有联网搜索补充内容，紧接在RAG上下文之后（低优先级）
+        if (webContext != null && !webContext.isEmpty()) {
+            messages.add(SystemMessage.from(webContext));
+        }
+
+        // 3. 添加历史对话（如果有）
         String conversationId = request.getConversationId();
         if (conversationId != null && !conversationId.isEmpty()) {
             List<AIMessage> dbMessages = messageMapper.getRecentMessages(conversationId, MAX_CONTEXT_MESSAGES);
@@ -888,7 +943,7 @@ public class AIService {
             }
         }
         
-        // 3. 添加当前用户消息
+        // 4. 添加当前用户消息
         messages.add(UserMessage.from(request.getMessage()));
         
         log.debug("RAG消息列表构建完成，共 {} 条消息", messages.size());

@@ -37,6 +37,17 @@
       <div class="nav-right">
         <!-- 消息通知 -->
         <NotificationBell />
+
+        <!-- 信息中心 -->
+        <button class="nav-btn-shelf nav-btn-messages" @click="goToMessages" title="信息中心">
+          <div class="msg-icon-wrap">
+            <span class="material-symbols-outlined">forum</span>
+            <span v-if="messagingStore.unreadCount > 0" class="msg-badge">
+              {{ messagingStore.unreadCount > 99 ? '99+' : messagingStore.unreadCount }}
+            </span>
+          </div>
+          <span class="btn-text">信息中心</span>
+        </button>
         
         <!-- 我的收藏 -->
         <button class="nav-btn-shelf" @click="goToProfile">
@@ -82,6 +93,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useMessagingStore } from '@/stores/messagingStore'
 import NotificationBell from './notification/NotificationBell.vue'
 
 // Props
@@ -101,6 +113,7 @@ const emit = defineEmits(['search'])
 
 const router = useRouter()
 const route = useRoute()
+const messagingStore = useMessagingStore()
 
 const searchKeyword = ref('')
 const showUserMenu = ref(false)
@@ -135,6 +148,7 @@ const goToTutorial = () => router.push('/tutorial')
 const goToProjects = () => router.push('/projects')
 const goToAIChat = () => router.push('/ai/assistant')
 const goToEditor = () => router.push('/article/editor')
+const goToMessages = () => router.push('/messages')
 const goToProfile = () => {
   showUserMenu.value = false
   router.push('/profile')
@@ -174,6 +188,8 @@ const handleClickOutside = (e) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  // 拉取私信未读数（每60秒刷新一次）
+  messagingStore.fetchUnreadCount()
 })
 
 onUnmounted(() => {
@@ -300,6 +316,33 @@ onUnmounted(() => {
 .nav-btn-shelf:hover {
   color: var(--primary, #c2410c);
   background: rgba(194, 65, 12, 0.05);
+}
+
+/* 信息中心角标 */
+.nav-btn-messages {
+  position: relative;
+}
+
+.msg-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.msg-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 9999px;
+  border: 1.5px solid #fff;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.4;
 }
 
 .nav-btn-shelf .material-symbols-outlined {

@@ -84,6 +84,12 @@ const router = createRouter({
       name: 'project-detail',
       component: () => import('@/views/ProjectDetail.vue'),
       meta: { requiresAuth: true, role: 'USER' }
+    },
+    {
+      path: '/messages',
+      name: 'messages',
+      component: () => import('@/views/MessageCenter.vue'),
+      meta: { requiresAuth: true, role: 'USER' }
     }
   ]
 })

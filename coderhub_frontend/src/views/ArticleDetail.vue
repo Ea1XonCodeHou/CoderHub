@@ -322,6 +322,10 @@
           <button v-if="!isAuthor" class="btn-follow" :class="{ following: isFollowing }" @click="toggleFollow">
             {{ isFollowing ? '已关注' : '+ 关注' }}
           </button>
+          <button v-if="!isAuthor" class="btn-message" @click="sendDirectMessage">
+            <span class="material-symbols-outlined">chat_bubble</span>
+            私信咨询
+          </button>
         </div>
 
         <!-- 相关推荐 -->
@@ -856,6 +860,14 @@ const toggleCollect = () => {
 }
 
 // 关注/取消关注
+/**
+ * 私信咨询：跳转到信息中心并自动打开与作者的会话
+ */
+function sendDirectMessage() {
+  if (!author.value?.id) return
+  router.push({ path: '/messages', query: { targetUserId: author.value.id } })
+}
+
 const toggleFollow = async () => {
   try {
     const token = localStorage.getItem('token')
@@ -2530,6 +2542,34 @@ onMounted(() => {
 .btn-follow.following {
   background: #f0f0f0;
   color: #666;
+}
+
+.btn-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px 0;
+  margin-top: 8px;
+  background: rgba(194, 65, 12, 0.06);
+  color: var(--primary, #c2410c);
+  border: 1.5px solid rgba(194, 65, 12, 0.25);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-message:hover {
+  background: rgba(194, 65, 12, 0.12);
+  border-color: rgba(194, 65, 12, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-message .material-symbols-outlined {
+  font-size: 16px;
 }
 
 /* 相关推荐 */

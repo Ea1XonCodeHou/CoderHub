@@ -44,6 +44,9 @@ public class ChatRequestDTO {
     @Schema(description = "最大输出token数")
     private Integer maxTokens;
 
+    @Schema(description = "是否启用联网搜索（Tavily）")
+    private Boolean useWebSearch;
+
     /**
      * 对话消息（用于历史记录）
      */

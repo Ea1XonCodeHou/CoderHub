@@ -266,6 +266,7 @@ export function useChatStream() {
     model = 'qwen-plus',
     temperature = 0.7,
     conversationId = null,
+    useWebSearch = false,
     onToken = null,
     onComplete = null,
     onError = null,
@@ -290,13 +291,13 @@ export function useChatStream() {
         model,
         temperature,
         conversationId,
+        useWebSearch,
         sessionId: generateSessionId()
       }
 
       // 获取 token
       const token = localStorage.getItem('token')
-      
-      // 使用 RAG 接口
+
       const response = await fetch(`${API_BASE_URL}/ai/chat/rag`, {
         method: 'POST',
         headers: {

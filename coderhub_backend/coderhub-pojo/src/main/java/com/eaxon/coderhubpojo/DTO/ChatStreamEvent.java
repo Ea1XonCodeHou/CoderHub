@@ -151,6 +151,12 @@ public class ChatStreamEvent {
 
         @Schema(description = "跳转链接")
         private String link;
+
+        @Schema(description = "来源URL（联网搜索结果）")
+        private String sourceUrl;
+
+        @Schema(description = "来源站点名称，如 github.com")
+        private String siteName;
     }
 
     // =============== 静态工厂方法 ===============

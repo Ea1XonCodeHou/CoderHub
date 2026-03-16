@@ -92,6 +92,10 @@ coder:
     access-key-secret: ${coder.alioss.access-key-secret}
     bucket-name: ${coder.alioss.bucket-name}
 
+  # Tavily联网搜索配置
+  tavily:
+    api-key: ${TAVILY_API_KEY:}
+
   # MinIO配置（大文件存储）
   minio:
     endpoint: ${coder.minio.endpoint}

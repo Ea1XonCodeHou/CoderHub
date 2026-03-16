@@ -236,7 +236,7 @@
                     <!-- 已完成消息的推荐卡片（置于回答前） -->
                     <div v-if="msg.recommendations && msg.recommendations.length > 0" class="recommendation-cards saved">
                       <div class="cards-header">
-                        <span class="cards-title">📚 相关推荐</span>
+                        <span class="cards-title">{{ msg.recommendations.some(r => r.type === 'web') ? '🌐 网络参考' : '📚 相关推荐' }}</span>
                         <span class="cards-count">{{ msg.recommendations.length }} 项</span>
                       </div>
                       <div class="cards-grid">
@@ -263,7 +263,7 @@
                               </svg>
                               继续问
                             </button>
-                            <div class="card-badge">{{ item.type === 'tutorial' ? '教程' : '文章' }}</div>
+                            <div class="card-badge">{{ item.type === 'web' ? '网络' : item.type === 'tutorial' ? '教程' : '文章' }}</div>
                           </div>
                           <div class="card-cover" v-if="item.coverImage">
                             <img :src="item.coverImage" :alt="item.title" />
@@ -272,6 +272,7 @@
                             <h4 class="card-title">{{ item.title }}</h4>
                             <p class="card-desc">{{ item.description?.slice(0, 60) }}{{ item.description?.length > 60 ? '...' : '' }}</p>
                             <div class="card-meta">
+                              <span v-if="item.siteName" class="meta-site">🌐 {{ item.siteName }}</span>
                               <span v-if="item.author" class="meta-author">{{ item.author }}</span>
                               <span v-if="item.rating !== null && item.rating !== undefined" class="meta-rating">⭐ 匹配度 {{ formatMatchScore(item.rating) }}%</span>
                               <span v-if="item.viewCount" class="meta-views">👁 {{ formatNumber(item.viewCount) }}</span>
@@ -381,12 +382,12 @@
                 <!-- 实时推荐卡片（置于回答前） -->
                 <div v-if="currentRecommendations.length > 0" class="recommendation-cards">
                   <div class="cards-header">
-                    <span class="cards-title">📚 相关推荐</span>
+                    <span class="cards-title">{{ currentRecommendations.some(r => r.type === 'web') ? '🌐 网络参考' : '📚 相关推荐' }}</span>
                     <span class="cards-count">{{ currentRecommendations.length }} 项</span>
                   </div>
                   <div class="cards-grid">
-                    <a 
-                      v-for="item in currentRecommendations.slice(0, 6)" 
+                    <a
+                      v-for="item in currentRecommendations.slice(0, 6)"
                       :key="item.id"
                       :href="getRecommendLink(item)"
                       class="recommend-card"
@@ -394,7 +395,7 @@
                       :target="isExternalLink(item) ? '_blank' : '_self'"
                       @click.prevent="openRecommendation(item)"
                     >
-                      <div class="card-badge">{{ item.type === 'tutorial' ? '教程' : '文章' }}</div>
+                      <div class="card-badge">{{ item.type === 'web' ? '网络' : item.type === 'tutorial' ? '教程' : '文章' }}</div>
                       <div class="card-cover" v-if="item.coverImage">
                         <img :src="item.coverImage" :alt="item.title" />
                       </div>
@@ -402,6 +403,7 @@
                         <h4 class="card-title">{{ item.title }}</h4>
                         <p class="card-desc">{{ item.description?.slice(0, 60) }}{{ item.description?.length > 60 ? '...' : '' }}</p>
                         <div class="card-meta">
+                          <span v-if="item.siteName" class="meta-site">🌐 {{ item.siteName }}</span>
                           <span v-if="item.author" class="meta-author">{{ item.author }}</span>
                           <span v-if="item.rating !== null && item.rating !== undefined" class="meta-rating">⭐ 匹配度 {{ formatMatchScore(item.rating) }}%</span>
                           <span v-if="item.viewCount" class="meta-views">👁 {{ formatNumber(item.viewCount) }}</span>
@@ -410,7 +412,7 @@
                     </a>
                   </div>
                 </div>
-                
+
                 <div v-if="isThinking && !streamingContent && !isToolCalling" class="thinking-indicator">
                   <div class="thinking-dot"></div>
                   <div class="thinking-dot"></div>
@@ -471,7 +473,7 @@
             <div class="mode-capsules">
               <button
                 class="mode-capsule"
-                :class="{ active: chatMode === 'rag' }"
+                :class="{ active: useRag }"
                 @click="toggleChatMode('rag')"
                 :disabled="isStreaming"
                 title="基于知识库深度检索后回答"
@@ -485,10 +487,10 @@
               </button>
               <button
                 class="mode-capsule"
-                :class="{ active: chatMode === 'web' }"
+                :class="{ active: useWebSearch }"
                 @click="toggleChatMode('web')"
                 :disabled="isStreaming"
-                title="联网搜索（即将上线）"
+                title="联网搜索，补充互联网实时内容"
               >
                 <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="10" cy="10" r="8"/>
@@ -573,7 +575,8 @@ const inputFocused = ref(false)
 const selectedModel = ref('qwen-plus')
 const sidebarOpen = ref(true) // 默认展开侧边栏
 const lastToolCall = ref(null) // 保存最近的工具调用信息
-const chatMode = ref('normal') // 'normal' | 'rag' | 'web'
+const useRag = ref(false)       // 深度检索模式
+const useWebSearch = ref(false) // 联网搜索模式
 const showAgentProgress = ref(false)
 const agentProgressStep = ref(0)
 const agentProgressSteps = ref([
@@ -683,11 +686,11 @@ const quickPrompts = ref([
  * 切换对话模式（普通/深度检索/联网搜索）
  */
 function toggleChatMode(mode) {
-  if (mode === 'web') {
-    showToast('联网搜索功能即将上线，敬请期待', 'info')
-    return
+  if (mode === 'rag') {
+    useRag.value = !useRag.value
+  } else if (mode === 'web') {
+    useWebSearch.value = !useWebSearch.value
   }
-  chatMode.value = chatMode.value === mode ? 'normal' : mode
 }
 
 /**
@@ -736,11 +739,11 @@ async function sendMessage() {
     let capturedArticleSearchResult = null  // 用于存储ArticleSearchResult
     let hasFirstToken = false
 
-    // 根据模式选择不同的发送函数
-    const sendFn = chatMode.value === 'rag' ? streamSendMessageWithRAG : streamSendMessage
+    // 根据模式选择发送函数（深度检索或联网搜索时都走RAG接口）
+    const sendFn = (useRag.value || useWebSearch.value) ? streamSendMessageWithRAG : streamSendMessage
 
-    // RAG 模式自动启动进度指示
-    if (chatMode.value === 'rag') {
+    // RAG / 联网搜索 模式自动启动进度指示
+    if (useRag.value || useWebSearch.value) {
       startAgentProgress()
     }
 
@@ -749,7 +752,8 @@ async function sendMessage() {
       message: text,
       model: selectedModel.value,
       temperature: 0.7,
-      conversationId: convId, // 传入会话ID
+      conversationId: convId,
+      useWebSearch: useWebSearch.value,
       onToken: () => {
         if (showAgentProgress.value && !hasFirstToken) {
           hasFirstToken = true
@@ -3158,6 +3162,10 @@ watch(streamingContent, () => {
   --card-accent: #f97316;
 }
 
+.recommend-card.web {
+  --card-accent: #3b82f6;
+}
+
 .card-badge-group {
   position: absolute;
   bottom: 10px;
@@ -3379,6 +3387,15 @@ watch(streamingContent, () => {
   opacity: 1;
   color: #c2410c;
   font-weight: 600;
+}
+
+.meta-site {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #3b82f6;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 .meta-author {

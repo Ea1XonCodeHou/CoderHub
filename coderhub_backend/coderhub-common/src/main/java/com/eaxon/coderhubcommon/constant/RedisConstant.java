@@ -147,6 +147,15 @@ public class RedisConstant {
      */
     public static final String ARTICLE_FULLTEXT = "article:fulltext:";
 
+    // ==================== 私信聊天 ====================
+
+    /**
+     * 私信未读总数
+     * Key: chat:unread:{userId}
+     * Value: Integer
+     */
+    public static final String CHAT_UNREAD = "chat:unread:";
+
     // ==================== 过期时间（单位：秒） ====================
     
     public static final long EXPIRE_30_MINUTES = 30 * 60;
